@@ -1,0 +1,29 @@
+name: AnniTest
+version: '1.0-SNAPSHOT'
+main: cn.zhuobing.testPlugin.AnniTest
+api-version: '1.20'
+commands:
+  team:
+    description: 队伍相关指令/团队重生点相关指令[respawn使用示例 /team respawn red或lobby 可以添加多个重生点]
+    usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawncancel>
+  nexus:
+    description: 管理队伍核心
+    usage: /nexus <set/sethealth/remove/save>
+  annistart:
+    description: 游戏启动
+    usage: /annistart
+  phase:
+    description: 设置游戏阶段
+    usage: /phase set <阶段编号>
+  diamond:
+    description: 将准星对准方块设置为钻石重生点
+    usage: /diamond
+  getteamstar:
+    description: 获得队伍选择之星
+    usage: /getteamstar
+  compass:
+    description: 获得指南针
+    usage: /compass
+  boss:
+    description: boss相关指令 tp[团队boss点tp位置] set[boss重生点] spawn[手动刷新boss] clear[清除boss]
+    usage: /boss <tp/set/spawn/clear> <队伍名称/null>
