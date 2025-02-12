@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -22,7 +23,6 @@ public class CompassListener implements Listener {
     private final TeamManager teamManager;
     private final NexusManager nexusManager;
     private final List<String> teamNames;
-    private int currentIndex = 0;
     private final Plugin plugin;
 
     public CompassListener(TeamManager teamManager, NexusManager nexusManager, Plugin plugin) {
@@ -45,7 +45,7 @@ public class CompassListener implements Listener {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 0L, 20L); // 每一秒执行一次
+        }.runTaskTimer(plugin, 0L, 40L); // 每两秒执行一次
     }
 
     // 更新指南针信息
@@ -57,14 +57,13 @@ public class CompassListener implements Listener {
             return;
         }
 
-        // 初始指向玩家所在队伍的核心
-        if (currentIndex == 0) {
-            for (int i = 0; i < teamNames.size(); i++) {
-                if (teamNames.get(i).equals(playerTeam)) {
-                    currentIndex = i;
-                    break;
-                }
-            }
+        // 获取当前指向的队伍索引
+        int currentIndex = getCurrentIndex(player);
+
+        // 如果需要切换队伍
+        if (switchTeam) {
+            currentIndex = (currentIndex + 1) % teamNames.size();
+            setCurrentIndex(player, currentIndex);
         }
 
         String targetTeam = teamNames.get(currentIndex);
@@ -79,11 +78,21 @@ public class CompassListener implements Listener {
         } else {
             player.sendMessage(ChatColor.RED + "未找到 " + teamManager.getEnglishToChineseMap().get(targetTeam) + "队 的核心位置！");
         }
+    }
 
-        // 如果需要切换队伍
-        if (switchTeam) {
-            currentIndex = (currentIndex + 1) % teamNames.size();
-        }
+    // 获取玩家当前指向的队伍索引
+    private int getCurrentIndex(Player player) {
+        Object indexObj = player.getMetadata("compassIndex").stream()
+                .filter(meta -> meta.getOwningPlugin().equals(plugin))
+                .findFirst()
+                .map(meta -> meta.asInt())
+                .orElse(0);
+        return (int) indexObj;
+    }
+
+    // 设置玩家当前指向的队伍索引
+    private void setCurrentIndex(Player player, int index) {
+        player.setMetadata("compassIndex", new FixedMetadataValue(plugin, index));
     }
 
     @EventHandler
