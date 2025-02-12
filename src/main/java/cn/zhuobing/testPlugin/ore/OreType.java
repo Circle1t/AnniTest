@@ -21,7 +21,7 @@ public enum OreType {
     LOG(
             20, 2, "AXE",
             Arrays.asList(new ItemStack(Material.OAK_LOG)),
-            null, 0, 0,
+            Material.AIR, 0, 0,
             new Material[]{
                     Material.OAK_LOG,
                     Material.SPRUCE_LOG,
