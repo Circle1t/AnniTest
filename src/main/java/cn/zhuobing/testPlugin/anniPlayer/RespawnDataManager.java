@@ -1,5 +1,6 @@
 package cn.zhuobing.testPlugin.anniPlayer;
 
+import cn.zhuobing.testPlugin.nexus.NexusManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -23,9 +24,11 @@ public class RespawnDataManager {
     private final Plugin plugin;
     private File configFile;
     private FileConfiguration config;
+    private NexusManager nexusManager;
 
-    public RespawnDataManager(Plugin plugin) {
+    public RespawnDataManager(NexusManager nexusManager, Plugin plugin) {
         this.plugin = plugin;
+        this.nexusManager = nexusManager;
         loadConfig();
     }
 
@@ -114,6 +117,9 @@ public class RespawnDataManager {
      */
     public void handlePlayerRespawn(Player player, String teamName, PlayerRespawnEvent event) {
         String targetTeam = teamName != null ? teamName : "lobby";
+        if(!targetTeam.equalsIgnoreCase("lobby") && nexusManager.getNexusHealth(teamName) <= 0) {
+            targetTeam = "lobby";
+        }
         Set<Location> respawnLocations = getRespawnLocations(targetTeam);
         if (respawnLocations.isEmpty()) {
             return;

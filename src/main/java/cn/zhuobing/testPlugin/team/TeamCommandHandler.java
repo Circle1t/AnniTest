@@ -4,6 +4,7 @@ import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
 import cn.zhuobing.testPlugin.command.CommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
+import cn.zhuobing.testPlugin.nexus.NexusManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -19,12 +20,14 @@ public class TeamCommandHandler implements CommandHandler {
     private final NexusInfoBoard nexusInfoBoard;
     private final GameManager gameManager;
     private final RespawnDataManager respawnDataManager;
+    private final NexusManager nexusManager;
 
-    public TeamCommandHandler(TeamManager teamManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, RespawnDataManager respawnDataManager) {
+    public TeamCommandHandler(TeamManager teamManager, NexusManager nexusManager,NexusInfoBoard nexusInfoBoard, GameManager gameManager, RespawnDataManager respawnDataManager) {
         this.teamManager = teamManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.respawnDataManager = respawnDataManager;
+        this.nexusManager = nexusManager;
     }
 
     @Override
@@ -197,6 +200,10 @@ public class TeamCommandHandler implements CommandHandler {
         Team selectedTeam = scoreboard.getTeam(teamName);
         if (selectedTeam == null) {
             player.sendMessage(ChatColor.RED + "队伍不存在！");
+            return;
+        }
+        if(nexusManager.getNexusHealth(teamName) <= 0) {
+            player.sendMessage(ChatColor.RED + "该队伍核心已被摧毁！");
             return;
         }
 

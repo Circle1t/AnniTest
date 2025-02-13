@@ -95,12 +95,12 @@ public class AnniTest extends JavaPlugin {
         oreManager = new OreManager(gameManager);
         enchantManager = new EnchantManager();
         teamSelectorManager = new TeamSelectorManager(teamManager);
-        respawnDataManager = new RespawnDataManager(this);
+        respawnDataManager = new RespawnDataManager(nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
 
 
         // 注册命令处理器
-        teamCommandHandler = new TeamCommandHandler(teamManager, nexusInfoBoard, gameManager,respawnDataManager);
+        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager);
         commandHandlers.add(teamCommandHandler);
         commandHandlers.add(new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager));
         commandHandlers.add(new GameCommandHandler(gameManager, oreManager));
