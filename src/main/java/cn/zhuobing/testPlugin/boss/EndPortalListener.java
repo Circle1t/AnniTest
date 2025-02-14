@@ -10,6 +10,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class EndPortalListener implements Listener {
     private final TeamManager teamManager;
     private final BossDataManager bossDataManager;
@@ -48,6 +51,10 @@ public class EndPortalListener implements Listener {
             // 设置传送位置并取消原事件
             event.setTo(bossLocation);
             event.setCancelled(false); // 允许传送
+
+            // 将成功进入传送门的玩家添加到哈希集合中
+            bossDataManager.addPlayerWhoEnteredPortal(player);
         }
     }
+
 }
