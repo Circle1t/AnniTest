@@ -24,10 +24,7 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class BossDataManager {
     private final Map<String, Location> teamBossLocations = new HashMap<>();
@@ -36,11 +33,11 @@ public class BossDataManager {
     private FileConfiguration config;
     private Wither boss;
     private boolean bossAlive = false;
-    private Player lastAttacker;
+    private UUID lastAttackerUUID; // 使用 UUID 存储最后攻击者
     private BossBar bossBar;
     private BukkitRunnable bossRespawnTask; // 用于控制 Boss 重生的任务
-    private final Map<String, String> killerTeamMap = new HashMap<>();
-    private final Set<Player> bossPlayers = new HashSet<>();
+    private final Map<UUID, String> killerTeamMap = new HashMap<>(); // 使用 UUID 作为键
+    private final Set<UUID> bossPlayers = new HashSet<>(); // 储存进入 boss 点的玩家
     private final GameManager gameManager;
     private final TeamManager teamManager;
 
@@ -50,11 +47,8 @@ public class BossDataManager {
         this.teamManager = teamManager;
         loadConfig();
         this.bossBar = Bukkit.createBossBar(ChatColor.RED + "凋零 Boss", BarColor.RED, BarStyle.SOLID);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            bossBar.addPlayer(player);
-        }
         bossBar.setVisible(false);
-        //设置gameManager中的BossDataManager
+        // 设置 gameManager 中的 BossDataManager
         setBossDataManager();
     }
 
@@ -122,8 +116,12 @@ public class BossDataManager {
         if (bossLocation == null || bossAlive) {
             return;
         }
+
         boss = (Wither) bossLocation.getWorld().spawnEntity(bossLocation, EntityType.WITHER);
         boss.setMetadata("customBoss", new FixedMetadataValue(plugin, true));
+
+        // 清除原版自带 bossbar
+        clearOriginalBossBar();
 
         // 设置血量和 BossBar
         AttributeInstance maxHealth = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
@@ -131,8 +129,9 @@ public class BossDataManager {
             maxHealth.setBaseValue(300);
             boss.setHealth(maxHealth.getBaseValue());
         }
-        bossBar.setProgress(1.0); // 重置血条
-        bossBar.setVisible(true);
+
+        updateBossBar(); // 生成 Boss 时更新 BossBar
+        bossBar.setVisible(false);
         bossAlive = true;
 
         // 固定 Boss 位置和攻击逻辑
@@ -145,6 +144,7 @@ public class BossDataManager {
             public void run() {
                 if (bossAlive) {
                     attackNearestPlayer();
+                    clearOriginalBossBar(); // 每次攻击时也清除原版 BossBar
                 } else {
                     this.cancel();
                 }
@@ -155,8 +155,9 @@ public class BossDataManager {
     private void attackNearestPlayer() {
         double minDistance = Double.MAX_VALUE;
         Player nearestPlayer = null;
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getWorld().equals(boss.getWorld())) {
+        for (UUID uuid : bossPlayers) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null && player.getWorld().equals(boss.getWorld())) {
                 double distance = player.getLocation().distance(boss.getLocation());
                 if (distance < minDistance) {
                     minDistance = distance;
@@ -182,12 +183,51 @@ public class BossDataManager {
         if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
             Wither wither = (Wither) event.getEntity();
             if (event.getDamager() instanceof Player) {
-                lastAttacker = (Player) event.getDamager();
+                Player damager = (Player) event.getDamager();
+                lastAttackerUUID = damager.getUniqueId(); // 存储攻击者的 UUID
             }
-            // 直接使用事件中的 Wither 实体更新血量
-            double progress = wither.getHealth() / wither.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
-            bossBar.setProgress(progress);
+            // 更新 BossBar
+            updateBossBar();
+            clearOriginalBossBar(); // 受到攻击时清除原版 BossBar
         }
+    }
+
+    private void updateBossBar() {
+        if (boss == null || !bossAlive) {
+            bossBar.setVisible(false); // 如果 Boss 不存在或已死亡，隐藏 BossBar
+            return;
+        }
+
+        AttributeInstance maxHealthAttribute = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        if (maxHealthAttribute == null) return;
+
+        double maxHealth = maxHealthAttribute.getBaseValue();
+        double currentHealth = boss.getHealth();
+
+        // 计算进度，处理最大生命值为0的情况
+        double progress = (maxHealth > 0) ? currentHealth / maxHealth : 0.0;
+        bossBar.setProgress(Math.max(0.0, Math.min(1.0, progress))); // 确保进度在0-1之间
+
+        // 设置标题
+        bossBar.setTitle(ChatColor.RED + "凋零 Boss: " + ChatColor.WHITE + String.format("%.0f", currentHealth) + " / " + String.format("%.0f", maxHealth));
+
+        // 仅对进入 Boss 点的玩家显示 BossBar
+        for (UUID uuid : bossPlayers) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                if (!bossBar.getPlayers().contains(player)) {
+                    bossBar.addPlayer(player);
+                }
+            }
+        }
+        // 移除不在 Boss 点的玩家
+        for (Player player : new ArrayList<>(bossBar.getPlayers())) {
+            if (!bossPlayers.contains(player.getUniqueId())) {
+                bossBar.removePlayer(player);
+            }
+        }
+
+        bossBar.setVisible(!bossBar.getPlayers().isEmpty()); // 如果有玩家在 Boss 点，显示 BossBar
     }
 
     public void onBossDeath(EntityDeathEvent event) {
@@ -198,10 +238,13 @@ public class BossDataManager {
             // 清除当前 Boss 实例
             this.boss = null;
 
-            if (lastAttacker != null) {
-                String teamName = teamManager.getPlayerTeamName(lastAttacker);
-                killerTeamMap.put(lastAttacker.getName(), teamName);
-                announceBossKill(lastAttacker, teamName);
+            if (lastAttackerUUID != null) {
+                Player lastAttacker = Bukkit.getPlayer(lastAttackerUUID);
+                if (lastAttacker != null) {
+                    String teamName = teamManager.getPlayerTeamName(lastAttacker);
+                    killerTeamMap.put(lastAttackerUUID, teamName);
+                    announceBossKill(lastAttacker, teamName);
+                }
             }
 
             // 取消之前的重生任务
@@ -234,12 +277,12 @@ public class BossDataManager {
         return bossAlive;
     }
 
-    public String getKillerTeam(String killerName) {
-        return killerTeamMap.get(killerName);
+    public String getKillerTeam(UUID killerUUID) {
+        return killerTeamMap.get(killerUUID);
     }
 
     public Player getLastAttacker() {
-        return lastAttacker;
+        return lastAttackerUUID != null ? Bukkit.getPlayer(lastAttackerUUID) : null;
     }
 
     // 清除 Boss 的方法
@@ -256,14 +299,24 @@ public class BossDataManager {
     }
 
     public void addBossPlayer(Player player) {
-        bossPlayers.add(player);
+        bossPlayers.add(player.getUniqueId());
+        updateBossBar();
+        clearOriginalBossBar(); // 玩家进入时清除原版 BossBar
     }
 
     public void removeBossPlayer(Player player) {
-        bossPlayers.remove(player);
+        bossPlayers.remove(player.getUniqueId());
+        updateBossBar();
+        clearOriginalBossBar(); // 玩家离开时清除原版 BossBar
     }
 
     public boolean isPlayerInBoss(Player player) {
-        return bossPlayers.contains(player);
+        return bossPlayers.contains(player.getUniqueId());
+    }
+
+    public void clearOriginalBossBar() {
+        if (boss != null) {
+            boss.getBossBar().removeAll();
+        }
     }
 }

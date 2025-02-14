@@ -81,7 +81,6 @@ public class GameManager {
         this.currentPhase = currentPhase;
         this.remainingTime = phaseManager.getPhase(currentPhase).getDuration();
         updateBossBar(currentPhase, remainingTime);
-
         startCountdown();
 
         // 当游戏进入阶段 1 时，杀死所有选择了队伍的玩家

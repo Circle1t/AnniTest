@@ -1,6 +1,7 @@
 package cn.zhuobing.testPlugin.game;
 
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
+import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
@@ -17,12 +18,14 @@ public class GamePlayerJoinListener implements Listener {
     private final NexusInfoBoard nexusInfoBoard;
     private final TeamManager teamManager;
     private final RespawnDataManager respawnDataManager;
+    private final BossDataManager bossDataManager;
 
-    public GamePlayerJoinListener(TeamManager teamManager, GameManager gameManager, NexusInfoBoard nexusInfoBoard, RespawnDataManager respawnDataManager) {
+    public GamePlayerJoinListener(TeamManager teamManager, GameManager gameManager, NexusInfoBoard nexusInfoBoard, RespawnDataManager respawnDataManager, BossDataManager bossDataManager) {
         this.gameManager = gameManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.teamManager = teamManager;
         this.respawnDataManager = respawnDataManager;
+        this.bossDataManager = bossDataManager;
     }
 
     @EventHandler
@@ -51,6 +54,7 @@ public class GamePlayerJoinListener implements Listener {
 
         // 设置计分板 BossBar 事项
         gameManager.getBossBar().addPlayer(player);
+        bossDataManager.clearOriginalBossBar();
         player.setScoreboard(teamManager.getScoreboard());
         nexusInfoBoard.updateInfoBoard();
         int currentPhase = gameManager.getCurrentPhase();
