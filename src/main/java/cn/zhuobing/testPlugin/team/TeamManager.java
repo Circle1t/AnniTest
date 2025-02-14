@@ -3,9 +3,12 @@ package cn.zhuobing.testPlugin.team;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+import org.bukkit.util.ChatPaginator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +29,7 @@ public class TeamManager {
         ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
         this.scoreboard = scoreboardManager.getNewScoreboard();
         initTeams();
+        setupTabList();
     }
 
     private void initTeams() {
@@ -143,5 +147,22 @@ public class TeamManager {
     // 判断是否是有效队伍
     public boolean isValidTeamName(String teamName) {
         return teamColors.containsKey(teamName);
+    }
+
+    private void setupTabList() {
+        String header = ChatColor.GOLD + "核心战争";
+        String footer = ChatColor.GOLD + "AnniTest 开发者：Circle1t";
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.setPlayerListHeaderFooter(header, footer);
+            player.setScoreboard(scoreboard);
+        }
+    }
+
+    public void applyScoreboardToPlayer(Player player) {
+        String header = ChatColor.GOLD + "核心战争";
+        String footer = ChatColor.GOLD + "AnniTest 开发者：Circle1t";
+        player.setPlayerListHeaderFooter(header, footer);
+        player.setScoreboard(scoreboard);
     }
 }

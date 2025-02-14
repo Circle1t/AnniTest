@@ -55,7 +55,7 @@ public class GamePlayerJoinListener implements Listener {
         // 设置计分板 BossBar 事项
         gameManager.getBossBar().addPlayer(player);
         bossDataManager.clearOriginalBossBar();
-        player.setScoreboard(teamManager.getScoreboard());
+        teamManager.applyScoreboardToPlayer(player);
         nexusInfoBoard.updateInfoBoard();
         int currentPhase = gameManager.getCurrentPhase();
         if (currentPhase != 5 && currentPhase != 0) {

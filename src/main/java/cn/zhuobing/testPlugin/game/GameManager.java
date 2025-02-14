@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.game;
 
 import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
+import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -21,12 +22,14 @@ public class GameManager {
     private GameCountdownTask countdownTask;
     private TeamManager teamManager;
     private BossDataManager bossDataManager;
+    private OreManager oreManager;
     private int currentPhase = 0;
     private boolean gameOver = false;
 
-    public GameManager(TeamManager teamManager,BossDataManager bossDataManager) {
+    public GameManager(TeamManager teamManager,BossDataManager bossDataManager,OreManager oreManager) {
         this.teamManager = teamManager;
         this.bossDataManager = bossDataManager;
+        this.oreManager = oreManager;
         phaseManager = new GamePhaseManager();
         bossBar = Bukkit.createBossBar(ChatColor.YELLOW + "您正在游玩 核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + "请等待游戏启动...", BarColor.BLUE, BarStyle.SOLID);
         bossBar.setVisible(true);
@@ -83,6 +86,11 @@ public class GameManager {
         updateBossBar(currentPhase, remainingTime);
         startCountdown();
 
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            // 播放获得经验的声效，音量设置为 2.0F（较大），音高设置为 2.0F（较高）
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 2.0F, 2.0F);
+        }
+
         // 当游戏进入阶段 1 时，杀死所有选择了队伍的玩家
         if (currentPhase == 1) {
             killPlayersInTeams();
@@ -90,6 +98,9 @@ public class GameManager {
         // 当游戏进入阶段 4 时, 出现boss
         if (currentPhase == 4) {
             bossDataManager.spawnBoss();
+        }
+        if(currentPhase == 3) {
+            oreManager.updateDiamondBlocks();
         }
 
     }
@@ -143,5 +154,9 @@ public class GameManager {
 
     public boolean isGameOver(){
         return gameOver;
+    }
+
+    public void setOreManager(OreManager oreManager){
+        this.oreManager = oreManager;
     }
 }

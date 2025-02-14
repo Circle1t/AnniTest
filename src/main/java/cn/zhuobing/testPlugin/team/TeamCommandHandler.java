@@ -211,7 +211,7 @@ public class TeamCommandHandler implements CommandHandler {
         teamManager.addPlayerToTeam(player,teamName);
 
         Map<String, String> englishToChineseMap = teamManager.getEnglishToChineseMap();
-        player.setScoreboard(scoreboard);
+        teamManager.applyScoreboardToPlayer(player);
         nexusInfoBoard.updateInfoBoard();
         player.sendMessage(ChatColor.GREEN + "你已加入 " + teamColors.get(teamName) + englishToChineseMap.get(teamName) + "队" + ChatColor.GREEN + " ！");
     }

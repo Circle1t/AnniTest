@@ -1,6 +1,7 @@
 package cn.zhuobing.testPlugin.anniPlayer;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.entity.Player;
@@ -16,13 +17,15 @@ public class PlayerRespawnListener implements Listener {
     private final TeamManager teamManager;
     private final RespawnDataManager respawnDataManager;
     private final GameManager gameManager;
+    private final NexusManager nexusManager;
     private final Plugin plugin;
     int currentPhase = 0;
 
-    public PlayerRespawnListener(TeamManager teamManager, RespawnDataManager respawnDataManager, GameManager gameManager, Plugin plugin) {
+    public PlayerRespawnListener(TeamManager teamManager, RespawnDataManager respawnDataManager, GameManager gameManager, NexusManager nexusManager, Plugin plugin) {
         this.teamManager = teamManager;
         this.respawnDataManager = respawnDataManager;
         this.gameManager = gameManager;
+        this.nexusManager = nexusManager;
         this.plugin = plugin;
     }
 
@@ -84,6 +87,12 @@ public class PlayerRespawnListener implements Listener {
             inventory.setItem(1, teamStar);
             return;
         }
+
+        // 核心已被摧毁
+        if(nexusManager.getNexusHealth(teamName) <= 0) {
+            respawnDataManager.handlePlayerRespawn(player, null, event);
+        }
+
         respawnDataManager.handlePlayerRespawn(player, teamName, event);
     }
 }

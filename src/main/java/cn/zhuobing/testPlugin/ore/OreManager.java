@@ -37,6 +37,8 @@ public class OreManager {
         this.diamondDataManager = new DiamondDataManager(AnniTest.getInstance());
         startCoolDownCheckTask();
         updateDiamondBlocks(); // 加载完配置后更新钻石块状态
+
+        setGameManager();
     }
 
     private void startCoolDownCheckTask() {
@@ -186,8 +188,11 @@ public class OreManager {
         }
     }
 
-
     public DiamondDataManager getDiamondDataManager() {
         return diamondDataManager;
+    }
+
+    private void setGameManager(){
+        gameManager.setOreManager(this);
     }
 }

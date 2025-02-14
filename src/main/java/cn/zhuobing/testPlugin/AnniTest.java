@@ -91,7 +91,7 @@ public class AnniTest extends JavaPlugin {
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
         nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager);
-        gameManager = new GameManager(teamManager,null);
+        gameManager = new GameManager(teamManager,null,null);
         oreManager = new OreManager(gameManager);
         enchantManager = new EnchantManager();
         teamSelectorManager = new TeamSelectorManager(teamManager);
@@ -118,9 +118,9 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
-        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,this), this);
+        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,nexusManager,this), this);
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager),this);
-        getServer().getPluginManager().registerEvents(new PlayerListener(teamManager),this);
+        getServer().getPluginManager().registerEvents(new PlayerListener(teamManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
