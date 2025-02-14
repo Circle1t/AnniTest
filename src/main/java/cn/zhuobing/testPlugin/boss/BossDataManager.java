@@ -13,8 +13,12 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Wither;
+import org.bukkit.entity.WitherSkull;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -26,7 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public class BossDataManager {
+public class BossDataManager implements Listener {
     private final Map<String, Location> teamBossLocations = new HashMap<>();
     private final Plugin plugin;
     private File configFile;
@@ -50,6 +54,7 @@ public class BossDataManager {
         bossBar.setVisible(false);
         // 设置 gameManager 中的 BossDataManager
         setBossDataManager();
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
     private void loadConfig() {
@@ -130,7 +135,14 @@ public class BossDataManager {
             boss.setHealth(maxHealth.getBaseValue());
         }
 
-        updateBossBar(); // 生成 Boss 时更新 BossBar
+        // 确保凋零不会破坏方块
+        boss.setCollidable(false);
+        boss.setCustomName(ChatColor.RED + "凋零 Boss");
+        boss.getBossBar().setColor(BarColor.YELLOW);
+        boss.getBossBar().setTitle(ChatColor.YELLOW + "注意：Boss会对你发起攻击！");
+        boss.setCustomNameVisible(true);
+
+        updateBossBar();
         bossBar.setVisible(false);
         bossAlive = true;
 
@@ -138,44 +150,86 @@ public class BossDataManager {
         boss.setAI(false);
         boss.setRotation(0, 0);
 
-        // 攻击任务
+        // 每 20 秒对周围玩家发起冲击波
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (bossAlive) {
-                    attackNearestPlayer();
-                    clearOriginalBossBar(); // 每次攻击时也清除原版 BossBar
+                    attackNearbyPlayers();
+                    clearOriginalBossBar();
                 } else {
                     this.cancel();
                 }
             }
-        }.runTaskTimer(plugin, 0L, 200L); // 10 秒一次攻击
+        }.runTaskTimer(plugin, 0L, 20 * 20L); // 20 秒一次
+
+        // 每 8 秒发射凋零头颅（带音效）
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (bossAlive) {
+                    shootWitherSkull();
+                    clearOriginalBossBar();
+                } else {
+                    this.cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 8 * 20L); // 8 秒一次
     }
 
-    private void attackNearestPlayer() {
-        double minDistance = Double.MAX_VALUE;
-        Player nearestPlayer = null;
+    private void attackNearbyPlayers() {
         for (UUID uuid : bossPlayers) {
             Player player = Bukkit.getPlayer(uuid);
-            if (player != null && player.getWorld().equals(boss.getWorld())) {
+            if (player != null && player.getWorld().equals(boss.getWorld()) && player.getLocation().distance(boss.getLocation()) <= 3) {
+                // 给予玩家斜向上的向量
+                Vector direction = player.getLocation().toVector().subtract(boss.getLocation().toVector()).normalize();
+                Vector knockback = direction.multiply(2).setY(1.732); // 60 度角的 y 分量，tan(60) = √3 ≈ 1.732
+                player.setVelocity(knockback);
+
+                // 给予玩家 2 秒凋零效果
+                player.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 2 * 20, 1));
+            }
+        }
+    }
+
+    private void shootWitherSkull() {
+        // 寻找最近的玩家（在 15 格范围内）
+        Player nearestPlayer = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!bossPlayers.contains(player.getUniqueId())) continue;
+
+            if (player.getWorld().equals(boss.getWorld())) {
                 double distance = player.getLocation().distance(boss.getLocation());
-                if (distance < minDistance) {
+                if (distance < minDistance && distance <= 15) { // 只检测 15 格内的玩家
                     minDistance = distance;
-                    if (minDistance < 15) {
-                        nearestPlayer = player;
-                    }
+                    nearestPlayer = player;
                 }
             }
         }
 
         if (nearestPlayer != null) {
-            // 给予玩家凋零效果
-            nearestPlayer.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1)); // 3 秒凋零效果
+            // 播放音效（凋零攻击音）
+            boss.getWorld().playSound(boss.getLocation(),
+                    Sound.ENTITY_WITHER_SHOOT,
+                    2.0f,
+                    0.8f + (float) Math.random() * 0.4f);
 
-            // 给予玩家冲量
-            Vector direction = nearestPlayer.getLocation().toVector().subtract(boss.getLocation().toVector()).normalize();
-            Vector knockback = direction.multiply(2).setY(1);
-            nearestPlayer.setVelocity(knockback);
+            // 计算方向向量
+            Location targetLoc = nearestPlayer.getEyeLocation();
+            Location bossEyeLoc = boss.getEyeLocation();
+            Vector direction = targetLoc.toVector()
+                    .subtract(bossEyeLoc.toVector())
+                    .normalize();
+
+            // 添加随机散布（±5 度）
+            direction = direction.rotateAroundX(Math.toRadians((Math.random() - 0.5) * 10))
+                    .rotateAroundY(Math.toRadians((Math.random() - 0.5) * 10));
+
+            // 发射凋零头
+            WitherSkull skull = boss.launchProjectile(WitherSkull.class, direction.multiply(1.8));
+            skull.setCharged(false); // 普通头颅
         }
     }
 
@@ -317,6 +371,15 @@ public class BossDataManager {
     public void clearOriginalBossBar() {
         if (boss != null) {
             boss.getBossBar().removeAll();
+        }
+    }
+
+    // 监听爆炸事件，防止凋零爆炸破坏方块
+    @EventHandler
+    public void onExplosionPrime(ExplosionPrimeEvent event) {
+        if (event.getEntity() instanceof Wither || event.getEntity() instanceof WitherSkull) {
+            event.setFire(false);
+            event.setRadius(0);
         }
     }
 }

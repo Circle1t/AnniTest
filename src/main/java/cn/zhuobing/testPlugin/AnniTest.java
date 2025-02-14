@@ -123,6 +123,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(teamManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
+        getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
 
     }
 
