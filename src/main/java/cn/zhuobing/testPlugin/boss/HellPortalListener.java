@@ -31,10 +31,12 @@ public class HellPortalListener implements Listener {
             Player player = event.getPlayer();
             String playerTeam = teamManager.getPlayerTeamName(player);
 
-            //如果玩家在Boss点
-            if(bossDataManager.isInBoss(player)){
+            //如果玩家在boss点
+            if(bossDataManager.isPlayerInBoss(player)){
                 respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
-                bossDataManager.removePlayerWhoEnteredPortal(player);
+                bossDataManager.removeBossPlayer(player);
+                event.setCancelled(true);
+                return;
             }
 
             if (playerTeam != null) {

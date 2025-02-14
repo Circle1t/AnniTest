@@ -10,7 +10,6 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Boss;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Wither;
@@ -25,7 +24,10 @@ import org.bukkit.util.Vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class BossDataManager {
     private final Map<String, Location> teamBossLocations = new HashMap<>();
@@ -38,8 +40,7 @@ public class BossDataManager {
     private BossBar bossBar;
     private BukkitRunnable bossRespawnTask; // 用于控制 Boss 重生的任务
     private final Map<String, String> killerTeamMap = new HashMap<>();
-    // 用于存储成功进入传送门的玩家的哈希集合
-    private final Set<Player> playersWhoEnteredPortal = new HashSet<>();
+    private final Set<Player> bossPlayers = new HashSet<>();
     private final GameManager gameManager;
     private final TeamManager teamManager;
 
@@ -49,9 +50,11 @@ public class BossDataManager {
         this.teamManager = teamManager;
         loadConfig();
         this.bossBar = Bukkit.createBossBar(ChatColor.RED + "凋零 Boss", BarColor.RED, BarStyle.SOLID);
-        // 初始时不添加任何玩家
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            bossBar.addPlayer(player);
+        }
         bossBar.setVisible(false);
-        // 设置 gameManager 中的 BossDataManager
+        //设置gameManager中的BossDataManager
         setBossDataManager();
     }
 
@@ -120,9 +123,7 @@ public class BossDataManager {
             return;
         }
         boss = (Wither) bossLocation.getWorld().spawnEntity(bossLocation, EntityType.WITHER);
-        boss.setMetadata("customBoss", new FixedMetadataValue(plugin, true)); // 设置 Metadata
-
-        boss.getBossBar().removeAll();
+        boss.setMetadata("customBoss", new FixedMetadataValue(plugin, true));
 
         // 设置血量和 BossBar
         AttributeInstance maxHealth = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
@@ -130,11 +131,7 @@ public class BossDataManager {
             maxHealth.setBaseValue(300);
             boss.setHealth(maxHealth.getBaseValue());
         }
-        updateBossBar(); // 生成 Boss 时更新 BossBar
-        // 只向进入 Boss 点的玩家显示 BossBar
-        for (Player p : playersWhoEnteredPortal) {
-            bossBar.addPlayer(p);
-        }
+        bossBar.setProgress(1.0); // 重置血条
         bossBar.setVisible(true);
         bossAlive = true;
 
@@ -158,7 +155,7 @@ public class BossDataManager {
     private void attackNearestPlayer() {
         double minDistance = Double.MAX_VALUE;
         Player nearestPlayer = null;
-        for (Player player : playersWhoEnteredPortal) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().equals(boss.getWorld())) {
                 double distance = player.getLocation().distance(boss.getLocation());
                 if (distance < minDistance) {
@@ -183,10 +180,13 @@ public class BossDataManager {
 
     public void onBossDamage(EntityDamageByEntityEvent event) {
         if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
+            Wither wither = (Wither) event.getEntity();
             if (event.getDamager() instanceof Player) {
                 lastAttacker = (Player) event.getDamager();
             }
-            updateBossBar(); // 受到伤害时更新 BossBar
+            // 直接使用事件中的 Wither 实体更新血量
+            double progress = wither.getHealth() / wither.getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
+            bossBar.setProgress(progress);
         }
     }
 
@@ -194,8 +194,6 @@ public class BossDataManager {
         if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
             bossAlive = false;
             bossBar.setVisible(false);
-            // 移除所有玩家
-            bossBar.removeAll();
 
             // 清除当前 Boss 实例
             this.boss = null;
@@ -236,18 +234,6 @@ public class BossDataManager {
         return bossAlive;
     }
 
-    public void removeOriginalBossBar(){
-        List<Player> players = boss.getBossBar().getPlayers();
-        if(players.isEmpty()){
-            return;
-        }
-        boss.getBossBar().removeAll();
-    }
-
-    public Boss getBoss() {
-        return boss;
-    }
-
     public String getKillerTeam(String killerName) {
         return killerTeamMap.get(killerName);
     }
@@ -262,10 +248,6 @@ public class BossDataManager {
             boss.remove();
             bossAlive = false;
             bossBar.setVisible(false);
-            // 移除所有玩家
-            for (Player p : playersWhoEnteredPortal) {
-                bossBar.removePlayer(p);
-            }
         }
     }
 
@@ -273,46 +255,15 @@ public class BossDataManager {
         gameManager.setBossDataManager(this);
     }
 
-    // 更新凋零 BossBar 的方法
-    private void updateBossBar() {
-        if (boss == null) return;
-        AttributeInstance maxHealthAttribute = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-        if (maxHealthAttribute == null) return;
-
-        double maxHealth = maxHealthAttribute.getBaseValue();
-        double currentHealth = boss.getHealth();
-        // 计算进度，处理最大生命值为 0 的情况
-        double progress = (maxHealth > 0) ? currentHealth / maxHealth : 0.0;
-        bossBar.setProgress(Math.max(0.0, Math.min(1.0, progress))); // 确保进度在 0 - 1 之间
-
-        // 设置标题
-        bossBar.setTitle(ChatColor.RED + "凋零 Boss: " + ChatColor.WHITE + String.format("%.0f", currentHealth) + " / " + String.format("%.0f", maxHealth));
+    public void addBossPlayer(Player player) {
+        bossPlayers.add(player);
     }
 
-    /**
-     * 获取所有成功进入传送门的玩家集合
-     *
-     * @return 成功进入传送门的玩家集合
-     */
-    public Set<Player> getPlayersSetWhoEnteredPortal() {
-        return playersWhoEnteredPortal;
+    public void removeBossPlayer(Player player) {
+        bossPlayers.remove(player);
     }
 
-    // 获取玩家是否进入了 boss 点
-    public boolean isInBoss(Player player) {
-        return playersWhoEnteredPortal.contains(player);
-    }
-
-    // 进入与离开 Boss 点
-    public void addPlayerWhoEnteredPortal(Player player) {
-        playersWhoEnteredPortal.add(player);
-        if (bossAlive) {
-            bossBar.addPlayer(player);
-        }
-    }
-
-    public void removePlayerWhoEnteredPortal(Player player) {
-        playersWhoEnteredPortal.remove(player);
-        bossBar.removePlayer(player);
+    public boolean isPlayerInBoss(Player player) {
+        return bossPlayers.contains(player);
     }
 }

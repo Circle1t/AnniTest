@@ -50,6 +50,8 @@ public class EndPortalListener implements Listener {
 
             // 设置传送位置并取消原事件
             event.setTo(bossLocation);
+            //将玩家添加到boss点玩家集合中
+            bossDataManager.addBossPlayer(player);
             event.setCancelled(false); // 允许传送
 
             // 将成功进入传送门的玩家添加到哈希集合中

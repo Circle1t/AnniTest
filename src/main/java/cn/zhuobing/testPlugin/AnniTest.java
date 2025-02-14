@@ -112,16 +112,16 @@ public class AnniTest extends JavaPlugin {
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager), this);
-        getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager), this);
+        getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(teamManager, gameManager, nexusInfoBoard,respawnDataManager), this);
         getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new EnchantTableListener(enchantManager), this);
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
         getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,this), this);
+        getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager),this);
         getServer().getPluginManager().registerEvents(new PlayerListener(teamManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
-        getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
 
     }
