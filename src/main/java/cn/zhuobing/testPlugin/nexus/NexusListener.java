@@ -82,6 +82,11 @@ public class NexusListener implements Listener {
                     // 播放 TNT 爆炸声音给全局玩家
                     playTntExplosionSound(nexusLocation);
                 } else {
+                    //游戏结束后将不能挖掘核心
+                    if(gameManager.isGameOver()){
+                        player.sendMessage(ChatColor.RED + "游戏已结束！");
+                        return;
+                    }
                     String message = teamManager.getTeamColor(playerTeam) + player.getName() + ChatColor.GOLD + " 正在破坏 " +
                             teamManager.getTeamColor(teamName) + translate(teamName) + "队" + ChatColor.GOLD + " 核心 " + ChatColor.RED + currentHealth;
                     // 向所有在线玩家发送行动栏消息

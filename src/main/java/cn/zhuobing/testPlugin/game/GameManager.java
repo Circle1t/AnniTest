@@ -15,13 +15,14 @@ import java.util.Map;
 
 public class GameManager {
     private final GamePhaseManager phaseManager;
-    private int currentPhase = 0;
     private int remainingTime;
     private BossBar bossBar;
     private boolean gameStarted = false;
     private GameCountdownTask countdownTask;
     private TeamManager teamManager;
     private BossDataManager bossDataManager;
+    private int currentPhase = 0;
+    private boolean gameOver = false;
 
     public GameManager(TeamManager teamManager,BossDataManager bossDataManager) {
         this.teamManager = teamManager;
@@ -54,10 +55,18 @@ public class GameManager {
 
     public void updateBossBar(int phaseIndex, int remainingTime) {
         GamePhase phase = phaseManager.getPhase(phaseIndex);
+        if (phase == null) return;
+
+        int totalDuration = phase.getDuration();
+        // 计算进度，处理总时间为0的情况
+        double progress = (totalDuration > 0) ? (double) remainingTime / totalDuration : 0.0;
+        bossBar.setProgress(Math.max(0.0, Math.min(1.0, progress))); // 确保进度在0-1之间
+
+        // 设置标题和时间显示
         String timeFormat = "%02d:%02d";
         String timeDisplay = String.format(timeFormat, remainingTime / 60, remainingTime % 60);
         bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + phase.getName() + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
-        bossBar.setColor(phaseManager.getPhaseColor(currentPhase));
+        bossBar.setColor(phase.getColor()); // 使用当前阶段的颜色
     }
 
     public GamePhaseManager getPhaseManager() {
@@ -98,6 +107,8 @@ public class GameManager {
         if (countdownTask != null) {
             countdownTask.cancel();
         }
+        //设置获胜者判定值
+        gameOver = true;
         Map<String, String> englishToChineseMap = teamManager.getEnglishToChineseMap();
         String cnWinnerTeam = englishToChineseMap.get(winningTeam);
         bossBar.setTitle(ChatColor.GOLD + ChatColor.BOLD.toString() + "游戏结束！" + teamManager.getTeamColor(winningTeam) + cnWinnerTeam + "队" + ChatColor.GOLD + " 获胜");
@@ -129,5 +140,9 @@ public class GameManager {
 
     public void setBossDataManager(BossDataManager bossDataManager) {
         this.bossDataManager = bossDataManager;
+    }
+
+    public boolean isGameOver(){
+        return gameOver;
     }
 }

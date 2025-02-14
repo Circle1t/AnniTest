@@ -21,7 +21,6 @@ public class TeamChatListener implements Listener {
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
-        Scoreboard scoreboard = teamManager.getScoreboard();
         int currentPhase = gameManager.getCurrentPhase();
         Team team = teamManager.getPlayerTeam(player);
         String message = event.getMessage();
@@ -31,7 +30,7 @@ public class TeamChatListener implements Listener {
             String chineseName = teamManager.getTeamChineseName(team.getName());
 
             if (currentPhase == 0) {
-                String format = ChatColor.GRAY + "[" + teamColor + chineseName + ChatColor.GRAY + "]"
+                String format = ChatColor.GRAY + "[" + teamColor + chineseName + ChatColor.GRAY + "] "
                         + "%s" + ChatColor.RESET + ": " + message;
                 event.setFormat(format);
                 return;
@@ -39,12 +38,12 @@ public class TeamChatListener implements Listener {
             if (message.startsWith("!") || message.startsWith("！") || message.startsWith("@")) {
                 // 消息开头是！或! 或@ ，让全局玩家看到消息
                 message = message.substring(1);
-                String format = ChatColor.GOLD + "(全局)" + ChatColor.GRAY + "[" + teamColor + chineseName + ChatColor.GRAY + "]"
+                String format = ChatColor.GOLD + "(全局) " + ChatColor.GRAY + "[" + teamColor + chineseName + ChatColor.GRAY + "] "
                         + "%s" + ChatColor.RESET + ": " + message;
                 event.setFormat(format);
             } else {
                 // 消息开头不是！或! 或@，只让同队伍的玩家看到消息
-                String format = ChatColor.GRAY + "[" + teamColor + chineseName + ChatColor.GRAY + "]"
+                String format = ChatColor.GRAY + "[" + teamColor + chineseName + ChatColor.GRAY + "] "
                         + ChatColor.GRAY + player.getName() + ChatColor.RESET + ": " + message;
                 event.setCancelled(true); // 取消原聊天事件
                 for(Player player1 : teamManager.getPlayersInTeam(team.getName())){
@@ -55,7 +54,7 @@ public class TeamChatListener implements Listener {
         }
 
         // 玩家在大厅，让所有玩家看到消息
-        String format = ChatColor.GRAY + "[" + ChatColor.DARK_PURPLE + "大厅" + ChatColor.GRAY + "]"
+        String format = ChatColor.GRAY + "[" + ChatColor.DARK_PURPLE + "大厅" + ChatColor.GRAY + "] "
                 + "%s" + ChatColor.RESET + ": %s";
         event.setFormat(format);
 

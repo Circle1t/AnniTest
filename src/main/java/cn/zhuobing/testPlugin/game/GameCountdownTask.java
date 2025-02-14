@@ -47,6 +47,7 @@ public class GameCountdownTask extends BukkitRunnable {
             } else {
                 cancel();
                 bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + " | " + ChatColor.AQUA + "阶段五" + ChatColor.RESET + " | " + ChatColor.GOLD + "挖掘核心造成双倍伤害");
+                bossBar.setProgress(1.0);
                 bossBar.setColor(gameManager.getPhaseManager().getPhase(currentPhase).getColor());
                 gameManager.setCurrentPhase(currentPhase);
             }

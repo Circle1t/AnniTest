@@ -183,7 +183,7 @@ public enum OreType {
     }
 
     public int getRandomDropAmount() {
-        if (this == WATERMELON || this == LAPIS) {
+        if (this == WATERMELON || this == LAPIS || this == REDSTONE) {
             return random.nextInt(8) + 1; // 生成 1 - 8 之间的随机数
         }
         return drops.get(0).getAmount();

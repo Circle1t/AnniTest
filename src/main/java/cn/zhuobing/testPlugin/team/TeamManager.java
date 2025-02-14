@@ -37,7 +37,7 @@ public class TeamManager {
     private void createTeam(String englishName, ChatColor color, String chineseName) {
         // 创建队伍并设置颜色
         Team team = scoreboard.registerNewTeam(englishName);
-        team.setPrefix(color.toString());
+        team.setPrefix(ChatColor.WHITE + "[" + color.toString() + chineseName + ChatColor.WHITE + "]" + color.toString());
         team.setColor(color);
         teamColors.put(englishName, color);
         englishToChineseMap.put(englishName, chineseName);
