@@ -4,6 +4,7 @@ import org.bukkit.Sound;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.enchantment.PrepareItemEnchantEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -18,7 +19,7 @@ import java.util.function.Predicate;
 // 灵魂绑定管理器类，用于管理所有灵魂绑定物品及其相关事件
 public class SoulBoundListener implements Listener {
 
-    // 所有soulbound类型死亡后都会被销毁
+    // 所有soulbound类型死亡后都会被销毁 禁止被附魔/铁砧操作
     // soulbound1：可丢弃且丢弃销毁
     // soulbound2：不可丢弃
     // soulbound3：玩家不能移动该物品在背包和物品栏中的位置，也不能改变其数量 可丢弃且丢弃销毁
@@ -120,6 +121,31 @@ public class SoulBoundListener implements Listener {
             if (getSoulBoundLevel(item) >= 1) {
                 iterator.remove();
             }
+        }
+    }
+
+    /**
+     * 处理准备附魔事件，禁止灵魂绑定物品附魔
+     * @param event 准备附魔事件
+     */
+    @EventHandler
+    public void onPrepareItemEnchant(PrepareItemEnchantEvent event) {
+        ItemStack item = event.getItem();
+        if (getSoulBoundLevel(item) >= 1) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * 处理准备铁砧操作事件，禁止灵魂绑定物品在铁砧上操作（包括附魔、重命名等）
+     * @param event 准备铁砧操作事件
+     */
+    @EventHandler
+    public void onPrepareAnvil(PrepareAnvilEvent event) {
+        ItemStack firstItem = event.getInventory().getItem(0);
+        ItemStack secondItem = event.getInventory().getItem(1);
+        if ((firstItem != null && getSoulBoundLevel(firstItem) >= 1) || (secondItem != null && getSoulBoundLevel(secondItem) >= 1)) {
+            event.setResult(null);
         }
     }
 }
