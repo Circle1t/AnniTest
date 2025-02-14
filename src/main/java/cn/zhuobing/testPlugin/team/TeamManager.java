@@ -11,14 +11,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class TeamManager {
     private final Scoreboard scoreboard;
     private final Map<String, ChatColor> teamColors = new HashMap<>();
     private final Map<String, String> englishToChineseMap = new HashMap<>();
     private final Map<String, Integer> teamPlayerCounts = new HashMap<>();
-    // 用于存储玩家和其所在队伍英文名的关系
-    private final Map<Player, String> playerTeamMap = new HashMap<>();
+    // 使用 UUID 作为键来存储玩家和其所在队伍英文名的关系
+    private final Map<UUID, String> playerTeamMap = new HashMap<>();
 
     public TeamManager() {
         // 初始化计分板
@@ -85,19 +86,20 @@ public class TeamManager {
         Team team = scoreboard.getTeam(teamName);
         if (team != null) {
             team.addEntry(player.getName());
-            playerTeamMap.put(player, teamName);
+            playerTeamMap.put(player.getUniqueId(), teamName);
             updateTeamPlayerCount(teamName, 1);
         }
     }
 
     // 将玩家从队伍中移除，并更新映射
     public void removePlayerFromTeam(Player player) {
-        String teamName = playerTeamMap.get(player);
+        UUID uuid = player.getUniqueId();
+        String teamName = playerTeamMap.get(uuid);
         if (teamName != null) {
             Team team = scoreboard.getTeam(teamName);
             if (team != null) {
                 team.removeEntry(player.getName());
-                playerTeamMap.remove(player);
+                playerTeamMap.remove(uuid);
                 updateTeamPlayerCount(teamName, -1);
             }
         }
@@ -105,7 +107,7 @@ public class TeamManager {
 
     // 获取玩家所在队伍的英文名
     public String getPlayerTeamName(Player player) {
-        return playerTeamMap.get(player);
+        return playerTeamMap.get(player.getUniqueId());
     }
 
     // 获取玩家所在的队伍（Team 类型）
@@ -116,7 +118,7 @@ public class TeamManager {
 
     // 判断玩家是否在任意队伍中
     public boolean isInTeam(Player player) {
-        return playerTeamMap.containsKey(player);
+        return playerTeamMap.containsKey(player.getUniqueId());
     }
 
     // 获取队伍中文名称
@@ -127,16 +129,18 @@ public class TeamManager {
     // 获取某个队伍的所有玩家
     public List<Player> getPlayersInTeam(String teamName) {
         List<Player> players = new ArrayList<>();
-        for (Map.Entry<Player, String> entry : playerTeamMap.entrySet()) {
+        for (Map.Entry<UUID, String> entry : playerTeamMap.entrySet()) {
             if (teamName.equals(entry.getValue())) {
-                players.add(entry.getKey());
+                Player player = Bukkit.getPlayer(entry.getKey());
+                if (player != null) {
+                    players.add(player);
+                }
             }
         }
         return players;
     }
 
-    //判断是否是有效队伍
-
+    // 判断是否是有效队伍
     public boolean isValidTeamName(String teamName) {
         return teamColors.containsKey(teamName);
     }

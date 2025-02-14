@@ -55,7 +55,7 @@ public class EndPortalListener implements Listener {
             event.setCancelled(false); // 允许传送
 
             // 将成功进入传送门的玩家添加到哈希集合中
-            bossDataManager.addPlayerWhoEnteredPortal(player);
+            bossDataManager.addBossPlayer(player);
         }
     }
 
