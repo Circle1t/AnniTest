@@ -15,6 +15,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public class PlayerListener implements Listener {
     private final TeamManager teamManager;
@@ -36,7 +37,6 @@ public class PlayerListener implements Listener {
         }
     }
 
-    // TODO 还需要判断玩家是否在大厅 需要加个大厅玩家集合
     @EventHandler
     public void onPlayerAttack(EntityDamageByEntityEvent event) {
         // 检查攻击者和被攻击者是否都是玩家

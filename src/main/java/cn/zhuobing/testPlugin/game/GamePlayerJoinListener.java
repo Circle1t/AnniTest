@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -62,4 +63,11 @@ public class GamePlayerJoinListener implements Listener {
             gameManager.updateBossBar(currentPhase, gameManager.getRemainingTime());
         }
     }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        // 将退出消息设置为 null，这样就不会有退出信息提示
+        event.setQuitMessage(null);
+    }
+
 }

@@ -7,11 +7,16 @@ import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 public class PlayerRespawnListener implements Listener {
     private final TeamManager teamManager;
@@ -20,6 +25,8 @@ public class PlayerRespawnListener implements Listener {
     private final NexusManager nexusManager;
     private final Plugin plugin;
     int currentPhase = 0;
+    // 用于存储处于 PvP 禁用状态的玩家
+    private final Set<UUID> pvpDisabledPlayers = new HashSet<>();
 
     public PlayerRespawnListener(TeamManager teamManager, RespawnDataManager respawnDataManager, GameManager gameManager, NexusManager nexusManager, Plugin plugin) {
         this.teamManager = teamManager;
@@ -91,8 +98,23 @@ public class PlayerRespawnListener implements Listener {
         // 核心已被摧毁
         if(nexusManager.getNexusHealth(teamName) <= 0) {
             respawnDataManager.handlePlayerRespawn(player, null, event);
+            // 关闭该玩家的 PvP
+            pvpDisabledPlayers.add(player.getUniqueId());
         }
 
         respawnDataManager.handlePlayerRespawn(player, teamName, event);
+    }
+
+    @EventHandler
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player && event.getEntity() instanceof Player) {
+            Player attacker = (Player) event.getDamager();
+            Player victim = (Player) event.getEntity();
+
+            // 检查攻击者或受害者是否处于 PvP 禁用状态
+            if (pvpDisabledPlayers.contains(attacker.getUniqueId()) || pvpDisabledPlayers.contains(victim.getUniqueId())) {
+                event.setCancelled(true);
+            }
+        }
     }
 }
