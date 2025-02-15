@@ -47,7 +47,8 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
 import cn.zhuobing.testPlugin.kit.KitListener;
 import cn.zhuobing.testPlugin.kit.KitManager;
-import cn.zhuobing.testPlugin.kit.civilian.CivilianKit;
+import cn.zhuobing.testPlugin.kit.kits.Civilian;
+import cn.zhuobing.testPlugin.kit.kits.Scout;
 import cn.zhuobing.testPlugin.nexus.NexusListener;
 import cn.zhuobing.testPlugin.nexus.NexusCommandHandler;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
@@ -132,7 +133,9 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
 
         // 注册职业
-        kitManager.registerKit(new CivilianKit(teamManager));
+        kitManager.registerKit(new Civilian(teamManager));
+        kitManager.registerKit(new Scout(teamManager));
+        getServer().getPluginManager().registerEvents(new Scout(teamManager),this);
     }
 
     @Override
