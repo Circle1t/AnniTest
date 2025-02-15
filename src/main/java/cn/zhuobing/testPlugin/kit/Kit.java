@@ -10,5 +10,4 @@ public abstract class Kit {
     public abstract String getDescription();
     public abstract ItemStack getIcon();
     public abstract void applyKit(Player player);
-    public abstract ItemStack createSoulBoundItem(Material material, String displayName, int soulBoundLevel);
 }

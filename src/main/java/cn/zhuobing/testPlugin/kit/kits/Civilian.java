@@ -1,22 +1,19 @@
 package cn.zhuobing.testPlugin.kit.kits;
 
-import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
-import cn.zhuobing.testPlugin.enchant.SoulBoundLevel;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
-import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
-import java.util.function.Predicate;
+
+import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
 public class Civilian extends Kit {
     private TeamManager teamManager;
@@ -51,7 +48,7 @@ public class Civilian extends Kit {
                 ChatColor.GRAY + "职业特性：",
                 ChatColor.WHITE + "• 全套灵魂绑定皮革护甲",
                 ChatColor.WHITE + "• 全套坚不可摧的石质工具",
-                ChatColor.WHITE + "• 自带工作台",
+                ChatColor.WHITE + "• 自带工作台 箱子",
                 " " // 预留一行用于显示选择状态
         ));
         icon.setItemMeta(meta);
@@ -75,43 +72,24 @@ public class Civilian extends Kit {
         inv.addItem(stoneAxe.clone());
         inv.addItem(stoneShovel.clone());
         inv.addItem(stoneHoe.clone());
-        inv.addItem(craftingTable.clone());
+        inv.addItem(new ItemStack(Material.CRAFTING_TABLE));
+        inv.addItem(new ItemStack(Material.CHEST));
         inv.addItem(CompassItem.createCompass());
     }
 
     private void setUp() {
         // 石剑
-        stoneSword = createSoulBoundItem(Material.STONE_SWORD, ChatColor.RESET + "石剑", 1);
+        stoneSword = createSoulBoundItem(Material.STONE_SWORD, null, 1,true);
         // 石镐
-        stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, ChatColor.RESET + "石镐", 1);
+        stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, null, 1,true);
         // 石斧
-        stoneAxe = createSoulBoundItem(Material.STONE_AXE, ChatColor.RESET + "石斧", 1);
+        stoneAxe = createSoulBoundItem(Material.STONE_AXE, null, 1,true);
         // 石铲
-        stoneShovel = createSoulBoundItem(Material.STONE_SHOVEL, ChatColor.RESET + "石铲", 1);
+        stoneShovel = createSoulBoundItem(Material.STONE_SHOVEL, null, 1,true);
         // 石锄
-        stoneHoe = createSoulBoundItem(Material.STONE_HOE, ChatColor.RESET + "石锄", 1);
-        // 工作台
-        craftingTable = createSoulBoundItem(Material.CRAFTING_TABLE, ChatColor.RESET + "工作台", 1);
+        stoneHoe = createSoulBoundItem(Material.STONE_HOE, null, 1,true);
     }
 
-    @Override
-    public ItemStack createSoulBoundItem(Material material, String displayName, int soulBoundLevel) {
-        SoulBoundLevel level = SoulBoundLevel.fromInt(soulBoundLevel);
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(displayName);
-        meta.setLore(Arrays.asList(
-                ChatColor.GOLD + "灵魂绑定 " + level.getDisplay()
-        ));
-        meta.setUnbreakable(true);
-        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
-        item.setItemMeta(meta);
-
-        // 注册灵魂绑定
-        Predicate<ItemStack> isItem = stack -> SoulBoundUtil.isSoulBoundItem(stack, displayName,material);
-        SoulBoundListener.registerSoulBoundItem(soulBoundLevel, isItem);
-        return item;
-    }
 
 
 }

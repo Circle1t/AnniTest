@@ -29,6 +29,8 @@ import org.bukkit.util.Vector;
 import java.util.Arrays;
 import java.util.function.Predicate;
 
+import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
+
 public class Scout extends Kit implements Listener {
     private TeamManager teamManager;
     private ItemStack grapple;
@@ -89,33 +91,15 @@ public class Scout extends Kit implements Listener {
 
     private void setUp() {
         // 金剑
-        goldSword = createSoulBoundItem(Material.GOLDEN_SWORD, ChatColor.RESET + "金剑", 1);
+        goldSword = createSoulBoundItem(Material.GOLDEN_SWORD, null, 1, false);
         // 木镐
-        woodPickaxe = createSoulBoundItem(Material.WOODEN_PICKAXE, ChatColor.RESET + "木镐", 1);
+        woodPickaxe = createSoulBoundItem(Material.WOODEN_PICKAXE, null, 1, false);
         // 木斧
-        woodAxe = createSoulBoundItem(Material.WOODEN_AXE, ChatColor.RESET + "木斧", 1);
+        woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1, false);
         // 抓钩
-        grapple = createSoulBoundItem(Material.FISHING_ROD, grappleName, 2);
+        grapple = createSoulBoundItem(Material.FISHING_ROD, grappleName, 2, true);
     }
 
-    @Override
-    public ItemStack createSoulBoundItem(Material material, String displayName, int soulBoundLevel) {
-        SoulBoundLevel level = SoulBoundLevel.fromInt(soulBoundLevel);
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(displayName);
-        meta.setLore(Arrays.asList(
-                ChatColor.GOLD + "灵魂绑定 " + level.getDisplay()
-        ));
-        meta.setUnbreakable(true);
-        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
-        item.setItemMeta(meta);
-
-        // 注册灵魂绑定
-        Predicate<ItemStack> isItem = stack -> SoulBoundUtil.isSoulBoundItem(stack, displayName, material);
-        SoulBoundListener.registerSoulBoundItem(soulBoundLevel, isItem);
-        return item;
-    }
 
     private boolean isGrappleItem(ItemStack stack) {
         if (stack != null && stack.hasItemMeta() && stack.getItemMeta().hasDisplayName()) {
@@ -223,5 +207,4 @@ public class Scout extends Kit implements Listener {
         return hookLocation.getBlock().getType().isSolid()
                 || hookLocation.clone().add(0, -1, 0).getBlock().getType().isSolid();
     }
-
 }
