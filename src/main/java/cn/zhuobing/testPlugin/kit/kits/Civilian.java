@@ -101,8 +101,6 @@ public class Civilian extends Kit {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(displayName);
         meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "平民基础物品",
-                "", // 隔一行
                 ChatColor.GOLD + "灵魂绑定 " + level.getDisplay()
         ));
         meta.setUnbreakable(true);

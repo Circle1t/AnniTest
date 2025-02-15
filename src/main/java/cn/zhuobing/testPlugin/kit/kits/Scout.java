@@ -105,8 +105,6 @@ public class Scout extends Kit implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(displayName);
         meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "斥候基础物品",
-                "", // 隔一行
                 ChatColor.GOLD + "灵魂绑定 " + level.getDisplay()
         ));
         meta.setUnbreakable(true);
@@ -142,51 +140,88 @@ public class Scout extends Kit implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void Grappler(PlayerFishEvent event) {
         Player player = event.getPlayer();
-        if (event.getState() == State.IN_GROUND) {
-            if (isGrappleItem(player.getInventory().getItemInMainHand())) {
-                Location playerloc = player.getLocation();
-                Location loc = event.getHook().getLocation();
-                if (playerloc.distance(loc) < 3.0D)
-                    pullPlayerSlightly(player, loc);
-                else
-                    pullEntityToLocation(player, loc);
+        if (isGrappleItem(player.getInventory().getItemInMainHand())) {
+            if (event.getState() == State.FISHING) {
+                // 设置钩子的初始速度
+                Entity hook = event.getHook();
+                setHookVelocity(hook, player);
+            } else if (event.getState() == State.IN_GROUND || event.getState() == State.CAUGHT_ENTITY) {
+                // 钩子命中目标后的逻辑
+                Location playerLoc = player.getLocation();
+                Location hookLoc = event.getHook().getLocation();
+
+                if (playerLoc.distance(hookLoc) < 3.0D) {
+                    pullPlayerSlightly(player, hookLoc);
+                } else {
+                    pullEntityToLocation(player, hookLoc);
+                }
+
+                // 重置鱼竿耐久度
                 player.getInventory().getItemInMainHand().setDurability((short) 0);
             }
         }
     }
 
-    private void pullPlayerSlightly(Player p, Location loc) {
-        if (loc.getY() > p.getLocation().getY()) {
-            p.setVelocity(new Vector(0.0D, 0.25D, 0.0D));
-            return;
-        }
+    private void setHookVelocity(Entity hook, Player player) {
+        Vector direction = player.getLocation().getDirection().normalize();
+        hook.setVelocity(direction.multiply(1.5)); // 降低速度，1.5 是一个适中的值
+        hook.setGravity(true); // 启用重力，使钩子有抛物线效果
+    }
 
+    private void pullPlayerSlightly(Player p, Location loc) {
         Location playerLoc = p.getLocation();
 
-        Vector vector = loc.toVector().subtract(playerLoc.toVector());
-        p.setVelocity(vector);
+        // 调整玩家位置，避免卡墙
+        playerLoc.setY(playerLoc.getY() + 0.5D);
+        p.teleport(playerLoc);
+
+        // 抛物线参数
+        double g = -0.08D; // 重力加速度
+        double d = loc.distance(playerLoc); // 钩子与玩家的距离
+        double t = d; // 时间因子
+
+        // 计算速度分量
+        double v_x = (1.0D + 0.07D * t) * (loc.getX() - playerLoc.getX()) / t;
+        double v_y = (1.0D + 0.03D * t) * (loc.getY() - playerLoc.getY()) / t - 0.5D * g * t;
+        double v_z = (1.0D + 0.07D * t) * (loc.getZ() - playerLoc.getZ()) / t;
+
+        // 设置速度
+        Vector v = p.getVelocity();
+        v.setX(v_x);
+        v.setY(v_y);
+        v.setZ(v_z);
+        p.setVelocity(v);
     }
 
     private void pullEntityToLocation(Entity e, Location loc) {
         Location entityLoc = e.getLocation();
 
+        // 调整玩家位置，避免卡墙
         entityLoc.setY(entityLoc.getY() + 0.5D);
         e.teleport(entityLoc);
 
-        double g = -0.08D;
-        double d = loc.distance(entityLoc);
-        double t = d;
-        double v_x = (1.0D + 0.07000000000000001D * t)
-                * (loc.getX() - entityLoc.getX()) / t;
-        double v_y = (1.0D + 0.03D * t) * (loc.getY() - entityLoc.getY()) / t
-                - 0.5D * g * t;
-        double v_z = (1.0D + 0.07000000000000001D * t)
-                * (loc.getZ() - entityLoc.getZ()) / t;
+        // 抛物线参数
+        double g = -0.08D; // 重力加速度
+        double d = loc.distance(entityLoc); // 钩子与玩家的距离
+        double t = d; // 时间因子
 
+        // 计算速度分量
+        double v_x = (1.0D + 0.07D * t) * (loc.getX() - entityLoc.getX()) / t;
+        double v_y = (1.0D + 0.03D * t) * (loc.getY() - entityLoc.getY()) / t - 0.5D * g * t;
+        double v_z = (1.0D + 0.07D * t) * (loc.getZ() - entityLoc.getZ()) / t;
+
+        // 设置速度
         Vector v = e.getVelocity();
         v.setX(v_x);
         v.setY(v_y);
         v.setZ(v_z);
         e.setVelocity(v);
     }
+
+    private boolean isValidHookLocation(Location hookLocation) {
+        // 检查钩子是否在有效方块上（包括底部）
+        return hookLocation.getBlock().getType().isSolid()
+                || hookLocation.clone().add(0, -1, 0).getBlock().getType().isSolid();
+    }
+
 }
