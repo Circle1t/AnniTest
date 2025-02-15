@@ -1,8 +1,11 @@
 package cn.zhuobing.testPlugin.boss;
 
+import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
+import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -17,12 +20,14 @@ public class HellPortalListener implements Listener {
     private final NexusManager nexusManager;
     private final RespawnDataManager respawnDataManager;
     private final BossDataManager bossDataManager;
+    private final KitManager kitManager;
 
-    public HellPortalListener(TeamManager teamManager, NexusManager nexusManager, RespawnDataManager respawnDataManager,BossDataManager bossDataManager) {
+    public HellPortalListener(TeamManager teamManager, NexusManager nexusManager, RespawnDataManager respawnDataManager, BossDataManager bossDataManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.nexusManager = nexusManager;
         this.respawnDataManager = respawnDataManager;
         this.bossDataManager = bossDataManager;
+        this.kitManager = kitManager;
     }
 
     @EventHandler
@@ -31,8 +36,8 @@ public class HellPortalListener implements Listener {
             Player player = event.getPlayer();
             String playerTeam = teamManager.getPlayerTeamName(player);
 
-            //如果玩家在boss点
-            if(bossDataManager.isPlayerInBoss(player)){
+            // 如果玩家在boss点
+            if (bossDataManager.isPlayerInBoss(player)) {
                 respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
                 bossDataManager.removeBossPlayer(player);
                 event.setCancelled(true);
@@ -44,6 +49,11 @@ public class HellPortalListener implements Listener {
                 String nearestNexusTeam = getNearestNexusTeam(player.getLocation());
                 if (nearestNexusTeam != null && nearestNexusTeam.equals(playerTeam)) {
                     respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
+
+                    // 延迟 1 tick 后打开职业选择界面
+                    Bukkit.getScheduler().runTaskLater(AnniTest.getInstance(), () -> {
+                        kitManager.openKitSelection(player);
+                    }, 1L);
                 }
             }
             event.setCancelled(true); // 取消默认的地狱门传送事件

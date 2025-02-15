@@ -45,6 +45,9 @@ import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
+import cn.zhuobing.testPlugin.kit.KitListener;
+import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.civilian.CivilianKit;
 import cn.zhuobing.testPlugin.nexus.NexusListener;
 import cn.zhuobing.testPlugin.nexus.NexusCommandHandler;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
@@ -81,6 +84,7 @@ public class AnniTest extends JavaPlugin {
     private TeamCommandHandler teamCommandHandler;
     private RespawnDataManager respawnDataManager;
     private BossDataManager bossDataManager;
+    private KitManager kitManager;
 
     @Override
     public void onEnable() {
@@ -97,10 +101,11 @@ public class AnniTest extends JavaPlugin {
         teamSelectorManager = new TeamSelectorManager(teamManager);
         respawnDataManager = new RespawnDataManager(nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
+        kitManager = new KitManager();
 
 
         // 注册命令处理器
-        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager);
+        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager,kitManager);
         commandHandlers.add(teamCommandHandler);
         commandHandlers.add(new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager));
         commandHandlers.add(new GameCommandHandler(gameManager, oreManager));
@@ -118,13 +123,16 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
-        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,nexusManager,this), this);
-        getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager),this);
+        getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,nexusManager,kitManager,this), this);
+        getServer().getPluginManager().registerEvents(new KitListener(kitManager),this);
         getServer().getPluginManager().registerEvents(new PlayerListener(teamManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
+        getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
 
+        // 注册职业
+        kitManager.registerKit(new CivilianKit(teamManager));
     }
 
     @Override

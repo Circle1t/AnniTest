@@ -10,13 +10,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Predicate;
 
 // 特殊皮革装甲类，用于创建和判断特殊皮革装甲
 public class SpecialLeatherArmor {
-
-    // 皮革装甲的显示名称前缀
-    private static final String ARMOR_NAME_PREFIX = ChatColor.GOLD + "团队皮革装备";
 
     /**
      * 创建特殊皮革装甲的方法
@@ -35,16 +33,15 @@ public class SpecialLeatherArmor {
         // 获取物品的元数据
         LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();
 
-        // 设置物品的显示名称
-//        meta.setDisplayName(ARMOR_NAME_PREFIX + " " + getArmorTypeName(armorType));
-        meta.setDisplayName(getArmorTypeName(armorType));
+        // 设置物品的显示名称，使用 ChatColor.RESET 重置样式
+        meta.setDisplayName(ChatColor.RESET + getArmorTypeName(armorType));
         // 设置物品的描述信息
-        meta.setLore(Arrays.asList(
-//                ChatColor.GRAY + "队伍颜色: " + teamColor,
+        List<String> lore = Arrays.asList(
                 ChatColor.DARK_GRAY + "特殊皮革装甲",
                 "", // 隔一行
                 ChatColor.GOLD + "灵魂绑定 I"
-        ));
+        );
+        meta.setLore(lore);
 
         // 设置皮革颜色
         meta.setColor(getColorFromTeam(teamColor));
@@ -74,15 +71,26 @@ public class SpecialLeatherArmor {
         if (!item.hasItemMeta()) {
             return false;
         }
-        // 获取物品的元数据
         ItemMeta meta = item.getItemMeta();
-        if (!meta.hasDisplayName()) {
+        if (!meta.hasDisplayName() ||!meta.hasLore()) {
             return false;
         }
-        // 去除显示名称中的颜色代码后进行比较
+
+        // 检查显示名称
         String displayName = ChatColor.stripColor(meta.getDisplayName());
-        String prefixWithoutColor = ChatColor.stripColor(ARMOR_NAME_PREFIX);
-        return displayName.startsWith(prefixWithoutColor);
+        String expectedName = ChatColor.stripColor(getArmorTypeName(item.getType()));
+        if (!displayName.equals(expectedName)) {
+            return false;
+        }
+
+        // 检查描述信息中是否包含灵魂绑定标识
+        List<String> lore = meta.getLore();
+        for (String line : lore) {
+            if (ChatColor.stripColor(line).contains("灵魂绑定 I")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

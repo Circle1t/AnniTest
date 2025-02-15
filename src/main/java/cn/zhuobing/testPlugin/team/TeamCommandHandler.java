@@ -3,6 +3,7 @@ package cn.zhuobing.testPlugin.team;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
 import cn.zhuobing.testPlugin.command.CommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import org.bukkit.ChatColor;
@@ -21,13 +22,16 @@ public class TeamCommandHandler implements CommandHandler {
     private final GameManager gameManager;
     private final RespawnDataManager respawnDataManager;
     private final NexusManager nexusManager;
+    private final KitManager kitManager;
 
-    public TeamCommandHandler(TeamManager teamManager, NexusManager nexusManager,NexusInfoBoard nexusInfoBoard, GameManager gameManager, RespawnDataManager respawnDataManager) {
+    public TeamCommandHandler(TeamManager teamManager, NexusManager nexusManager, NexusInfoBoard nexusInfoBoard,
+                              GameManager gameManager, RespawnDataManager respawnDataManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.respawnDataManager = respawnDataManager;
         this.nexusManager = nexusManager;
+        this.kitManager = kitManager;
     }
 
     @Override
@@ -205,6 +209,11 @@ public class TeamCommandHandler implements CommandHandler {
         if(nexusManager.getNexusHealth(teamName) <= 0) {
             player.sendMessage(ChatColor.RED + "该队伍核心已被摧毁！");
             return;
+        }
+
+        //设置默认职业
+        if(kitManager.getPlayerKit(player.getUniqueId()) == null){
+            kitManager.setPlayerKit(player.getUniqueId(),"平民");
         }
 
         selectedTeam.addEntry(player.getName());

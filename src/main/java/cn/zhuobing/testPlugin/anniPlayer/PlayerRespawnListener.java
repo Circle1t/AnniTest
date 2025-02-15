@@ -1,7 +1,10 @@
 package cn.zhuobing.testPlugin.anniPlayer;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.Kit;
+import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
+import cn.zhuobing.testPlugin.specialitem.items.KitSelectorItem;
 import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.entity.Player;
@@ -23,16 +26,20 @@ public class PlayerRespawnListener implements Listener {
     private final RespawnDataManager respawnDataManager;
     private final GameManager gameManager;
     private final NexusManager nexusManager;
+    private final KitManager kitManager;
     private final Plugin plugin;
     int currentPhase = 0;
     // 用于存储处于 PvP 禁用状态的玩家
     private final Set<UUID> pvpDisabledPlayers = new HashSet<>();
 
-    public PlayerRespawnListener(TeamManager teamManager, RespawnDataManager respawnDataManager, GameManager gameManager, NexusManager nexusManager, Plugin plugin) {
+    public PlayerRespawnListener(TeamManager teamManager, RespawnDataManager respawnDataManager,
+                                 GameManager gameManager, NexusManager nexusManager, KitManager kitManager,
+                                 Plugin plugin) {
         this.teamManager = teamManager;
         this.respawnDataManager = respawnDataManager;
         this.gameManager = gameManager;
         this.nexusManager = nexusManager;
+        this.kitManager = kitManager;
         this.plugin = plugin;
     }
 
@@ -84,7 +91,7 @@ public class PlayerRespawnListener implements Listener {
         currentPhase = gameManager.getCurrentPhase();
 
         // 游戏未开始，自动在大厅复活
-        if(currentPhase < 1) {
+        if(currentPhase < 1 || teamName == null) {
             respawnDataManager.handlePlayerRespawn(player, null, event);
             // 获得初始物品
             // 团队选择之星
@@ -92,6 +99,9 @@ public class PlayerRespawnListener implements Listener {
             ItemStack teamStar = TeamSelectorItem.createTeamStar();
             // 物品栏索引从 0 开始，第二格的索引为 1
             inventory.setItem(1, teamStar);
+            // 职业选择物品
+            ItemStack kitSelector = KitSelectorItem.createKitSelector();
+            inventory.setItem(2, kitSelector);
             return;
         }
 
@@ -100,9 +110,16 @@ public class PlayerRespawnListener implements Listener {
             respawnDataManager.handlePlayerRespawn(player, null, event);
             // 关闭该玩家的 PvP
             pvpDisabledPlayers.add(player.getUniqueId());
+            return;
         }
 
         respawnDataManager.handlePlayerRespawn(player, teamName, event);
+        // 获取玩家绑定的职业
+        Kit kit = kitManager.getPlayerKit(player.getUniqueId());
+        if (kit != null) {
+            kit.applyKit(player); // 应用职业装备
+            //player.sendMessage("§a你已重生，职业装备已自动应用。");
+        }
     }
 
     @EventHandler

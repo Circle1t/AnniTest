@@ -3,6 +3,7 @@ package cn.zhuobing.testPlugin.game;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
+import cn.zhuobing.testPlugin.specialitem.items.KitSelectorItem;
 import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
@@ -45,11 +46,16 @@ public class GamePlayerJoinListener implements Listener {
                 player.sendMessage(ChatColor.RED + "未设置大厅重生点，无法传送到大厅！");
             } else {
                 player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.AQUA + "欢迎回到核心战争！");
-                // 未加入队伍的玩家获得团队选择物品
                 Inventory inventory = player.getInventory();
+
+                // 未加入队伍的玩家获得特殊选择物品
                 ItemStack teamStar = TeamSelectorItem.createTeamStar();
                 // 物品栏索引从 0 开始，第二格的索引为 1
                 inventory.setItem(1, teamStar);
+                // 职业选择物品
+                ItemStack kitSelector = KitSelectorItem.createKitSelector();
+                inventory.setItem(2, kitSelector);
+
             }
         }
 
