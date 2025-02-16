@@ -4,7 +4,8 @@ public enum SoulBoundLevel {
     I("I", 1),
     II("II", 2),
     III("III", 3),
-    IV("IV",4);
+    IV("IV",4),
+    V("V",5);
 
 
     private final String display;

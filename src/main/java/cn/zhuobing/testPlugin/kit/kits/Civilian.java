@@ -16,7 +16,7 @@ import java.util.Arrays;
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
 public class Civilian extends Kit {
-    private TeamManager teamManager;
+    private final TeamManager teamManager;
     private ItemStack stoneSword;
     private ItemStack stonePickaxe;
     private ItemStack stoneAxe;
@@ -45,10 +45,11 @@ public class Civilian extends Kit {
         ItemMeta meta = icon.getItemMeta();
         meta.setDisplayName(ChatColor.GOLD + "平民");
         meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "职业特性：",
-                ChatColor.WHITE + "• 全套灵魂绑定皮革护甲",
-                ChatColor.WHITE + "• 全套坚不可摧的石质工具",
-                ChatColor.WHITE + "• 自带工作台 箱子",
+                ChatColor.YELLOW + "你是后勤的保障。",
+                "",
+                ChatColor.AQUA + "穿梭于战场周边，为团队提供坚实后盾。",
+                ChatColor.AQUA + "使用坚不可摧的石质工具，搭建起防御的壁垒，",
+                ChatColor.AQUA + "并借助自带的工作台与箱子，保障物资的供应。",
                 " " // 预留一行用于显示选择状态
         ));
         icon.setItemMeta(meta);
@@ -79,15 +80,15 @@ public class Civilian extends Kit {
 
     private void setUp() {
         // 石剑
-        stoneSword = createSoulBoundItem(Material.STONE_SWORD, null, 1,true);
+        stoneSword = createSoulBoundItem(Material.STONE_SWORD, null, 1,3,true);
         // 石镐
-        stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, null, 1,true);
+        stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, null, 1,3,true);
         // 石斧
-        stoneAxe = createSoulBoundItem(Material.STONE_AXE, null, 1,true);
+        stoneAxe = createSoulBoundItem(Material.STONE_AXE, null, 1,3,true);
         // 石铲
-        stoneShovel = createSoulBoundItem(Material.STONE_SHOVEL, null, 1,true);
+        stoneShovel = createSoulBoundItem(Material.STONE_SHOVEL, null, 1,1,true);
         // 石锄
-        stoneHoe = createSoulBoundItem(Material.STONE_HOE, null, 1,true);
+        stoneHoe = createSoulBoundItem(Material.STONE_HOE, null, 1,1,true);
     }
 
 

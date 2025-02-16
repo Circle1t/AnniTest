@@ -1,8 +1,12 @@
 package cn.zhuobing.testPlugin.kit;
 
+import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Listener;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -14,17 +18,24 @@ public class KitManager {
     private static KitManager instance;
     private final Map<UUID, String> playerKits = new HashMap<>();
     private final Map<String, Kit> registeredKits = new HashMap<>();
+    private final GameManager gameManager;
+    private final TeamManager teamManager;
+    private final Plugin plugin;
 
-    public static KitManager getInstance(Plugin plugin) {
-        if (instance == null) {
-            instance = new KitManager();
-        }
-        return instance;
+    public KitManager(GameManager gameManager, TeamManager teamManager, Plugin plugin) {
+        this.gameManager = gameManager;
+        this.teamManager = teamManager;
+        this.plugin = plugin;
     }
 
     // 注册职业
     public void registerKit(Kit kit) {
         registeredKits.put(kit.getName().toLowerCase(), kit);
+
+        // 检查 Kit 是否实现了 Listener 接口，如果实现了则注册为事件监听器
+        if (kit instanceof Listener) {
+            Bukkit.getPluginManager().registerEvents((Listener) kit, plugin);
+        }
     }
 
     public void openKitSelection(Player player) {
@@ -63,13 +74,27 @@ public class KitManager {
 
     // 设置玩家职业
     public void setPlayerKit(UUID playerId, String kitName) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            SoulBoundUtil.clearSoulBoundLevel2Items(player);
+        }
         playerKits.put(playerId, kitName.toLowerCase());
+
+        if(gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)){
+            // 死亡惩罚
+            player.setHealth(0.0);
+        }
     }
 
     // 获取玩家职业
     public Kit getPlayerKit(UUID playerId) {
         String kitName = playerKits.get(playerId);
         return kitName != null ? registeredKits.get(kitName) : null;
+    }
+
+    //获取玩家职业名称
+    public String getPlayerKitName(UUID playerId) {
+        return playerKits.get(playerId);
     }
 
     public Map<String, Kit> getRegisteredKits() {

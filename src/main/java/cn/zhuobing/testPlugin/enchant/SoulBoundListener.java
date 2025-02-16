@@ -19,22 +19,26 @@ import java.util.function.Predicate;
 // 灵魂绑定管理器类，用于管理所有灵魂绑定物品及其相关事件
 public class SoulBoundListener implements Listener {
 
+    // 开发规范：灵魂绑定物品必须在物品lore中以如下格式命名 "灵魂绑定 I/II/III/IV/V"
+    // 1-2级非职业物品 3-4级职业物品 5级大厅物品
+
     // 所有soulbound类型死亡后都会被销毁 禁止被附魔/铁砧操作
-    // soulbound1：可丢弃且丢弃销毁
-    // soulbound2：不可丢弃
-    // soulbound3：玩家不能移动该物品在背包和物品栏中的位置，也不能改变其数量 可丢弃且丢弃销毁
-    // soulbound4：玩家不能移动该物品在背包和物品栏中的位置，也不能改变其数量 不可丢弃
+    // soulbound1：可丢弃且丢弃销毁的普通物品 适用于：盔甲 工具 等
+    // soulbound2：不可丢弃的非职业绑定物品 适用于：boss 等
+    // soulbound3：可丢弃的职业绑定物品 适用于：鸟人的弓 等
+    // soulbound4：不可丢弃的职业绑定物品 适用于：斥候的抓钩 等
+    // soulbound5：玩家不能移动该物品在背包和物品栏中的位置，也不能改变其数量 不可丢弃 适用于：大厅物品 等
 
     // 存储物品判断条件及其对应的灵魂绑定等级
     private static final List<Entry<Predicate<ItemStack>, Integer>> soulBoundEntries = new ArrayList<>();
 
     /**
      * 注册灵魂绑定物品的方法
-     * @param level 灵魂绑定等级（1、2、3或4）
+     * @param level 灵魂绑定等级（1、2、3、4或5）
      * @param isItem 判断物品的条件
      */
     public static void registerSoulBoundItem(int level, Predicate<ItemStack> isItem) {
-        if (level >= 1 && level <= 4) {
+        if (level >= 1 && level <= 5) {
             soulBoundEntries.add(new SimpleEntry<>(isItem, level));
         }
     }
@@ -44,7 +48,7 @@ public class SoulBoundListener implements Listener {
      * @param item 要检查的物品
      * @return 最高灵魂绑定等级（若无则返回0）
      */
-    private int getSoulBoundLevel(ItemStack item) {
+    public static int getSoulBoundLevel(ItemStack item) {
         int maxLevel = 0;
         for (Entry<Predicate<ItemStack>, Integer> entry : soulBoundEntries) {
             if (entry.getKey().test(item)) {
@@ -61,7 +65,7 @@ public class SoulBoundListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         ItemStack currentItem = event.getCurrentItem();
-        if (currentItem != null && getSoulBoundLevel(currentItem) >= 3) {
+        if (currentItem != null && getSoulBoundLevel(currentItem) >= 5) {
             event.setCancelled(true);
         }
     }
@@ -73,7 +77,7 @@ public class SoulBoundListener implements Listener {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         for (ItemStack item : event.getNewItems().values()) {
-            if (item != null && getSoulBoundLevel(item) >= 3) {
+            if (item != null && getSoulBoundLevel(item) >= 5) {
                 event.setCancelled(true);
                 return;
             }
@@ -91,13 +95,14 @@ public class SoulBoundListener implements Listener {
         switch (level) {
             case 2:
             case 4:
-                // 阻止2级和4级物品丢弃
+            case 5:
+                // 阻止2级、4级、5级物品丢弃
                 event.setCancelled(true);
                 event.getItemDrop().remove();
                 break;
             case 1:
             case 3:
-                // 允许1级和3级正常丢弃并销毁
+                // 允许1级、3级正常丢弃并销毁
                 event.getItemDrop().remove();
                 event.getPlayer().playSound(
                         event.getPlayer().getLocation(),

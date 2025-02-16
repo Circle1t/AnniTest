@@ -2,6 +2,8 @@ package cn.zhuobing.testPlugin.ore;
 
 import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.kits.Miner;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class OreManager {
     private final GameManager gameManager;
+    private final KitManager kitManager;
     private final Map<Location, CoolingOre> coolingOres = new ConcurrentHashMap<>();
     private final DiamondDataManager diamondDataManager;
 
@@ -32,8 +35,9 @@ public class OreManager {
         TOOL_LEVELS.put(Material.NETHERITE_PICKAXE, 6);
     }
 
-    public OreManager(GameManager gameManager) {
+    public OreManager(GameManager gameManager, KitManager kitManager) {
         this.gameManager = gameManager;
+        this.kitManager = kitManager;
         this.diamondDataManager = new DiamondDataManager(AnniTest.getInstance());
         startCoolDownCheckTask();
         updateDiamondBlocks(); // 加载完配置后更新钻石块状态
@@ -78,7 +82,7 @@ public class OreManager {
     private void giveRewards(Player player, OreType oreType, Block block) {
         // 给予经验
         int xp = oreType.xp;
-        if(xp <= 0){
+        if (xp <= 0) {
             // 触发方块的自然掉落机制
             block.breakNaturally(player.getInventory().getItemInMainHand());
             return;
@@ -115,10 +119,22 @@ public class OreManager {
             }
         }
 
+        // 判断玩家职业是否为矿工
+        boolean isMiner = kitManager.getPlayerKit(player.getUniqueId()) != null &&
+                kitManager.getPlayerKit(player.getUniqueId()) instanceof Miner;
+
+        Random random = new Random();
         // 给予物品
         for (ItemStack toGive : actualDrops) {
             int baseAmount = oreType.getRandomDropAmount();
-            toGive.setAmount(OreUtils.calculateDropAmount(baseAmount, fortuneLevel));
+            int finalAmount = OreUtils.calculateDropAmount(baseAmount, fortuneLevel);
+
+            // 如果是矿工，有50%概率翻倍
+            if (isMiner && random.nextBoolean()) {
+                finalAmount *= 2;
+            }
+
+            toGive.setAmount(finalAmount);
             player.getInventory().addItem(toGive).values().forEach(left -> {
                 player.getWorld().dropItemNaturally(player.getLocation(), left);
             });
@@ -192,7 +208,7 @@ public class OreManager {
         return diamondDataManager;
     }
 
-    private void setGameManager(){
+    private void setGameManager() {
         gameManager.setOreManager(this);
     }
 }

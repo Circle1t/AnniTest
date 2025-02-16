@@ -1,15 +1,18 @@
 package cn.zhuobing.testPlugin.anniPlayer;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.ore.OreType;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
 import java.util.Arrays;
@@ -20,11 +23,13 @@ import java.util.UUID;
 public class PlayerListener implements Listener {
     private final TeamManager teamManager;
     private final GameManager gameManager;
+    private final KitManager kitManager;
     private final Set<Material> prohibitedMaterials;
 
-    public PlayerListener(TeamManager teamManager, GameManager gameManager) {
+    public PlayerListener(TeamManager teamManager, GameManager gameManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.gameManager = gameManager;
+        this.kitManager = kitManager;
         // 初始化禁止放置的方块集合
         this.prohibitedMaterials = new HashSet<>();
         // 遍历 OreType 枚举
@@ -81,7 +86,7 @@ public class PlayerListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
         Player killer = victim.getKiller();
@@ -95,8 +100,12 @@ public class PlayerListener implements Listener {
             ChatColor killerColor = teamManager.getTeamColor(killerTeamName);
 
             double killerHealth = killer.getHealth();
+            // 使用 String.format 方法格式化健康值为保留两位小数的字符串
+            String formattedHealth = String.format("%.2f", killerHealth);
+
             String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 被击杀因为 " +
-                    killerColor + killer.getName() + "[" + ChatColor.GOLD + killerHealth + ChatColor.RED + "❤" + killerColor + "]";
+                    killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
+                    + ChatColor.LIGHT_PURPLE + kitManager.getPlayerKitName(killer.getUniqueId()) + killerColor + ")";
             event.getEntity().getServer().broadcastMessage(deathMessage);
         }
         // 取消默认的死亡信息显示

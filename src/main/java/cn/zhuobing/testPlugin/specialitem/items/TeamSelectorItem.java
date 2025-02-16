@@ -32,7 +32,7 @@ public class TeamSelectorItem {
                 ChatColor.GRAY + "右键打开队伍选择界面",
                 ChatColor.DARK_GRAY + "特殊团队物品",
                 "", // 隔一行
-                ChatColor.GOLD + "灵魂绑定 IV"
+                ChatColor.GOLD + "灵魂绑定 V"
         ));
 
         // 设置物品不可破坏
@@ -43,9 +43,9 @@ public class TeamSelectorItem {
         // 将元数据应用到物品上
         item.setItemMeta(meta);
 
-        // 注册灵魂绑定IV级
+        // 注册灵魂绑定V级
         Predicate<ItemStack> isTeamStar = TeamSelectorItem::isTeamStar;
-        SoulBoundListener.registerSoulBoundItem(4, isTeamStar);
+        SoulBoundListener.registerSoulBoundItem(5, isTeamStar);
 
         return item;
     }

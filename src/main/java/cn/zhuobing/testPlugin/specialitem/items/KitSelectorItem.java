@@ -13,7 +13,7 @@ import java.util.function.Predicate;
 // 职业选择器物品类，用于创建和判断职业选择器物品
 public class KitSelectorItem {
     // 职业选择器物品的显示名称
-    private static final String ITEM_IDENTIFIER = ChatColor.RESET + "§6职业选择器";
+    private static final String ITEM_IDENTIFIER = ChatColor.RESET + ChatColor.AQUA.toString() + "职业选择";
 
     /**
      * 创建职业选择器物品的方法
@@ -32,7 +32,7 @@ public class KitSelectorItem {
                 ChatColor.GRAY + "右键打开职业选择界面",
                 ChatColor.DARK_GRAY + "特殊职业物品",
                 "", // 隔一行
-                ChatColor.GOLD + "灵魂绑定 IV"
+                ChatColor.GOLD + "灵魂绑定 V"
         ));
 
         // 设置物品不可破坏
@@ -45,7 +45,7 @@ public class KitSelectorItem {
 
         // 注册灵魂绑定IV级
         Predicate<ItemStack> isKitSelector = KitSelectorItem::isKitSelector;
-        SoulBoundListener.registerSoulBoundItem(4, isKitSelector);
+        SoulBoundListener.registerSoulBoundItem(5, isKitSelector);
 
         return item;
     }

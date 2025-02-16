@@ -47,7 +47,9 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
 import cn.zhuobing.testPlugin.kit.KitListener;
 import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.kits.Acrobat;
 import cn.zhuobing.testPlugin.kit.kits.Civilian;
+import cn.zhuobing.testPlugin.kit.kits.Miner;
 import cn.zhuobing.testPlugin.kit.kits.Scout;
 import cn.zhuobing.testPlugin.nexus.NexusListener;
 import cn.zhuobing.testPlugin.nexus.NexusCommandHandler;
@@ -97,12 +99,12 @@ public class AnniTest extends JavaPlugin {
         nexusManager = new NexusManager(this);
         nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager);
         gameManager = new GameManager(teamManager,null,null);
-        oreManager = new OreManager(gameManager);
+        kitManager = new KitManager(gameManager,teamManager,this);
+        oreManager = new OreManager(gameManager,kitManager);
         enchantManager = new EnchantManager();
         teamSelectorManager = new TeamSelectorManager(teamManager);
         respawnDataManager = new RespawnDataManager(nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
-        kitManager = new KitManager();
 
 
         // 注册命令处理器
@@ -126,7 +128,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
         getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,nexusManager,kitManager,this), this);
         getServer().getPluginManager().registerEvents(new KitListener(kitManager),this);
-        getServer().getPluginManager().registerEvents(new PlayerListener(teamManager,gameManager),this);
+        getServer().getPluginManager().registerEvents(new PlayerListener(teamManager,gameManager,kitManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
@@ -135,7 +137,8 @@ public class AnniTest extends JavaPlugin {
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
         kitManager.registerKit(new Scout(teamManager));
-        getServer().getPluginManager().registerEvents(new Scout(teamManager),this);
+        kitManager.registerKit(new Acrobat(teamManager,kitManager));
+        kitManager.registerKit(new Miner(teamManager));
     }
 
     @Override

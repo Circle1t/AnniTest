@@ -32,7 +32,7 @@ import java.util.function.Predicate;
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
 public class Scout extends Kit implements Listener {
-    private TeamManager teamManager;
+    private final TeamManager teamManager;
     private ItemStack grapple;
     private ItemStack goldSword;
     private ItemStack woodPickaxe;
@@ -60,9 +60,11 @@ public class Scout extends Kit implements Listener {
         ItemMeta meta = icon.getItemMeta();
         meta.setDisplayName(ChatColor.GOLD + "斥候");
         meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "职业特性：",
-                ChatColor.WHITE + "• 拥有抓钩可快速移动",
-                ChatColor.WHITE + "• 摔落伤害减半",
+                ChatColor.YELLOW + "你是战场的先锋。",
+                "",
+                ChatColor.AQUA + "在战场上灵活穿梭，",
+                ChatColor.AQUA + "并借助你的抓钩攀登至新的高度，",
+                ChatColor.AQUA + "从而洞察战场局势。",
                 " " // 预留一行用于显示选择状态
         ));
         icon.setItemMeta(meta);
@@ -91,13 +93,13 @@ public class Scout extends Kit implements Listener {
 
     private void setUp() {
         // 金剑
-        goldSword = createSoulBoundItem(Material.GOLDEN_SWORD, null, 1, false);
-        // 木镐
-        woodPickaxe = createSoulBoundItem(Material.WOODEN_PICKAXE, null, 1, false);
-        // 木斧
-        woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1, false);
+        goldSword = createSoulBoundItem(Material.GOLDEN_SWORD, null, 1,1, false);
         // 抓钩
-        grapple = createSoulBoundItem(Material.FISHING_ROD, grappleName, 2, true);
+        grapple = createSoulBoundItem(Material.FISHING_ROD, grappleName, 1,4, true);
+        // 木镐
+        woodPickaxe = createSoulBoundItem(Material.WOODEN_PICKAXE, null, 1, 1,false);
+        // 木斧
+        woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1,1, false);
     }
 
 

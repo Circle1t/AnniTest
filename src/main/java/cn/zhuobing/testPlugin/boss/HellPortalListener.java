@@ -6,6 +6,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,11 +50,11 @@ public class HellPortalListener implements Listener {
                 String nearestNexusTeam = getNearestNexusTeam(player.getLocation());
                 if (nearestNexusTeam != null && nearestNexusTeam.equals(playerTeam)) {
                     respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
-
-                    // 延迟 1 tick 后打开职业选择界面
+                    player.sendMessage(ChatColor.RED + "战场上改变职业会受到死亡惩罚！");
+                    // 延迟 2 tick 后打开职业选择界面
                     Bukkit.getScheduler().runTaskLater(AnniTest.getInstance(), () -> {
                         kitManager.openKitSelection(player);
-                    }, 1L);
+                    }, 2L);
                 }
             }
             event.setCancelled(true); // 取消默认的地狱门传送事件
