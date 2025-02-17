@@ -1,19 +1,25 @@
 package cn.zhuobing.testPlugin.anniPlayer;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.kits.Acrobat;
+import cn.zhuobing.testPlugin.kit.kits.Assassin;
 import cn.zhuobing.testPlugin.ore.OreType;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -70,6 +76,14 @@ public class PlayerListener implements Listener {
             if (attackerTeamName != null && attackerTeamName.equals(victimTeamName)) {
                 // 阻止攻击行为
                 event.setCancelled(true);
+                return;
+            }
+
+            // 检查玩家是否处于隐身状态
+            if (attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                // 移除隐身效果
+                attacker.removePotionEffect(PotionEffectType.INVISIBILITY);
+                attacker.sendMessage(ChatColor.GOLD + "隐身已解除！");
             }
         }
     }
@@ -110,5 +124,64 @@ public class PlayerListener implements Listener {
         }
         // 取消默认的死亡信息显示
         event.setDeathMessage(null);
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+        OreType oreType = OreType.fromMaterial(block.getType());
+
+        // 检查方块是否为矿石，如果是则不解除隐身
+        if (oreType != null) {
+            return;
+        }
+
+        // 检查玩家是否处于隐身状态
+        if (player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+            // 移除隐身效果
+            player.removePotionEffect(PotionEffectType.INVISIBILITY);
+            player.sendMessage(ChatColor.GOLD + "隐身已解除！");
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlaceBreakInvisibility(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        Block placedBlock = event.getBlock();
+        OreType oreType = OreType.fromMaterial(placedBlock.getType());
+
+        // 检查方块是否为矿石，如果是则不解除隐身
+        if (oreType != null) {
+            return;
+        }
+
+        // 检查玩家是否处于隐身状态
+        if (player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+            // 移除隐身效果
+            player.removePotionEffect(PotionEffectType.INVISIBILITY);
+            player.sendMessage(ChatColor.GOLD + "隐身已解除！");
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            // 检查玩家是否处于隐身状态
+            if (player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                // 检查是否是免疫摔落伤害的职业
+                Kit playerKit = kitManager.getPlayerKit(player.getUniqueId());
+                if(playerKit instanceof Acrobat || playerKit instanceof Assassin) {
+                    return;
+                }
+                // 检查最终伤害是否为 0
+                if (event.getFinalDamage() > 0) {
+                    // 移除隐身效果
+                    player.removePotionEffect(PotionEffectType.INVISIBILITY);
+                    player.sendMessage(ChatColor.GOLD + "隐身已解除！");
+                }
+            }
+        }
     }
 }
