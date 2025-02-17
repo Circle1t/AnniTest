@@ -47,10 +47,7 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
 import cn.zhuobing.testPlugin.kit.KitListener;
 import cn.zhuobing.testPlugin.kit.KitManager;
-import cn.zhuobing.testPlugin.kit.kits.Acrobat;
-import cn.zhuobing.testPlugin.kit.kits.Civilian;
-import cn.zhuobing.testPlugin.kit.kits.Miner;
-import cn.zhuobing.testPlugin.kit.kits.Scout;
+import cn.zhuobing.testPlugin.kit.kits.*;
 import cn.zhuobing.testPlugin.nexus.NexusListener;
 import cn.zhuobing.testPlugin.nexus.NexusCommandHandler;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
@@ -139,6 +136,7 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Scout(teamManager));
         kitManager.registerKit(new Acrobat(teamManager,kitManager));
         kitManager.registerKit(new Miner(teamManager));
+        kitManager.registerKit(new Assassin(teamManager,kitManager));
     }
 
     @Override

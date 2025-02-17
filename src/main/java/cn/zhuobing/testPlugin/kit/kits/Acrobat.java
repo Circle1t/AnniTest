@@ -91,6 +91,9 @@ public class Acrobat extends Kit implements Listener {
     }
 
     private void setUp() {
+
+        //createSoulBoundItem(Material material, String displayName, int amount, int soulBoundLevel, boolean isUnbreakable)
+
         // 木剑
         woodSword = createSoulBoundItem(Material.WOODEN_SWORD, null, 1, 1, false);
         kitItems.add(woodSword.clone());
@@ -104,7 +107,7 @@ public class Acrobat extends Kit implements Listener {
         bow = createSoulBoundItem(Material.BOW, null, 1, 3, false);
         kitItems.add(bow.clone());
         // 箭矢，数量设置为 6
-        arrows = createSoulBoundItem(Material.ARROW, null, 6, 1, true);
+        arrows = createSoulBoundItem(Material.ARROW, null, 6, 3, true);
         kitItems.add(arrows.clone());
         // 指南针
         kitItems.add(CompassItem.createCompass());
@@ -180,7 +183,6 @@ public class Acrobat extends Kit implements Listener {
     }
 
     private boolean isThisKit(Player player) {
-        // 这里需要实现职业检测逻辑
         return kitManager.getPlayerKit(player.getUniqueId()) instanceof Acrobat;
     }
 }

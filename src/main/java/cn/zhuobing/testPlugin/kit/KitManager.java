@@ -15,16 +15,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class KitManager {
     private static KitManager instance;
     private final Map<UUID, String> playerKits = new HashMap<>();
-    private final Map<String, Kit> registeredKits = new HashMap<>();
+    private final Map<String, Kit> registeredKits = new LinkedHashMap<>();
     private final GameManager gameManager;
     private final TeamManager teamManager;
     private final Plugin plugin;
@@ -46,7 +42,7 @@ public class KitManager {
     }
 
     public void openKitSelection(Player player) {
-        Inventory gui = Bukkit.createInventory(null, 9, "选择你的职业");
+        Inventory gui = Bukkit.createInventory(null, 27, "选择你的职业");
 
         // 获取玩家当前选择的职业
         Kit selectedKit = getPlayerKit(player.getUniqueId());
@@ -83,15 +79,15 @@ public class KitManager {
     public void setPlayerKit(UUID playerId, String kitName) {
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
-            SoulBoundUtil.clearSoulBoundLevel2Items(player);
-        }
-        playerKits.put(playerId, kitName.toLowerCase());
 
-        if (gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)) {
-            // 延迟 2 个 tick 打开物品选择界面
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                openKitItemSelection(player, kitName);
-            }, 2L);
+            SoulBoundUtil.clearSoulBoundLevel2Items(player);
+            playerKits.put(playerId, kitName.toLowerCase());
+
+            if (gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    openKitItemSelection(player, kitName);
+                }, 2L);
+            }
         }
     }
 
@@ -142,5 +138,9 @@ public class KitManager {
 
     public Map<String, Kit> getRegisteredKits() {
         return registeredKits;
+    }
+
+    public Plugin getPlugin(){
+        return plugin;
     }
 }
