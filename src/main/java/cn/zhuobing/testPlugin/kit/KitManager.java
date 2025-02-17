@@ -1,10 +1,13 @@
 package cn.zhuobing.testPlugin.kit;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.Inventory;
@@ -12,7 +15,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class KitManager {
     private static KitManager instance;
@@ -80,10 +87,46 @@ public class KitManager {
         }
         playerKits.put(playerId, kitName.toLowerCase());
 
-        if(gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)){
-            // 死亡惩罚
-            player.setHealth(0.0);
+        if (gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)) {
+            // 延迟 2 个 tick 打开物品选择界面
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                openKitItemSelection(player, kitName);
+            }, 2L);
         }
+    }
+
+    // 打开职业物品选择界面
+    private void openKitItemSelection(Player player, String kitName) {
+        Kit kit = registeredKits.get(kitName.toLowerCase());
+        if (kit == null) {
+            return;
+        }
+
+        String teamColor = teamManager.getPlayerTeamName(player);
+        List<ItemStack> items = new ArrayList<>();
+
+        // 添加皮革护甲
+        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_HELMET, teamColor));
+        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor));
+        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
+        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
+
+        Kit playerKit = getPlayerKit(player.getUniqueId());
+        if (playerKit != null) {
+            List<ItemStack> kitItems = playerKit.getKitItems();
+            items.addAll(kitItems);
+        }
+
+        int inventorySize = 27;
+        Inventory gui = Bukkit.createInventory(null, inventorySize, kit.getName() + " 物品选择");
+
+        for (ItemStack item : items) {
+            gui.addItem(item);
+        }
+
+        // 打开箱子音效
+        player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 1.0F, 1.0F);
+        player.openInventory(gui);
     }
 
     // 获取玩家职业

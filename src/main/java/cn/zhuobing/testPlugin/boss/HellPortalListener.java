@@ -50,7 +50,6 @@ public class HellPortalListener implements Listener {
                 String nearestNexusTeam = getNearestNexusTeam(player.getLocation());
                 if (nearestNexusTeam != null && nearestNexusTeam.equals(playerTeam)) {
                     respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
-                    player.sendMessage(ChatColor.RED + "战场上改变职业会受到死亡惩罚！");
                     // 延迟 2 tick 后打开职业选择界面
                     Bukkit.getScheduler().runTaskLater(AnniTest.getInstance(), () -> {
                         kitManager.openKitSelection(player);

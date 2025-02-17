@@ -11,18 +11,21 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
 public class Civilian extends Kit {
     private final TeamManager teamManager;
+    private List<ItemStack> kitItems = new ArrayList<>();
+
     private ItemStack stoneSword;
     private ItemStack stonePickaxe;
     private ItemStack stoneAxe;
     private ItemStack stoneShovel;
     private ItemStack stoneHoe;
-    private ItemStack craftingTable;
 
     public Civilian(TeamManager teamManager) {
         this.teamManager = teamManager;
@@ -67,30 +70,37 @@ public class Civilian extends Kit {
         inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
         inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
 
-        // 基础物品
-        inv.addItem(stoneSword.clone());
-        inv.addItem(stonePickaxe.clone());
-        inv.addItem(stoneAxe.clone());
-        inv.addItem(stoneShovel.clone());
-        inv.addItem(stoneHoe.clone());
-        inv.addItem(new ItemStack(Material.CRAFTING_TABLE));
-        inv.addItem(new ItemStack(Material.CHEST));
-        inv.addItem(CompassItem.createCompass());
+        for (ItemStack item : kitItems) {
+            inv.addItem(item);
+        }
     }
 
     private void setUp() {
         // 石剑
-        stoneSword = createSoulBoundItem(Material.STONE_SWORD, null, 1,3,true);
+        stoneSword = createSoulBoundItem(Material.STONE_SWORD, null, 1, 3, true);
+        kitItems.add(stoneSword.clone());
         // 石镐
-        stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, null, 1,3,true);
+        stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, null, 1, 3, true);
+        kitItems.add(stonePickaxe.clone());
         // 石斧
-        stoneAxe = createSoulBoundItem(Material.STONE_AXE, null, 1,3,true);
+        stoneAxe = createSoulBoundItem(Material.STONE_AXE, null, 1, 3, true);
+        kitItems.add(stoneAxe.clone());
         // 石铲
-        stoneShovel = createSoulBoundItem(Material.STONE_SHOVEL, null, 1,1,true);
+        stoneShovel = createSoulBoundItem(Material.STONE_SHOVEL, null, 1, 1, true);
+        kitItems.add(stoneShovel.clone());
         // 石锄
-        stoneHoe = createSoulBoundItem(Material.STONE_HOE, null, 1,1,true);
+        stoneHoe = createSoulBoundItem(Material.STONE_HOE, null, 1, 1, true);
+        kitItems.add(stoneHoe.clone());
+        // 工作台
+        kitItems.add(new ItemStack(Material.CRAFTING_TABLE));
+        // 箱子
+        kitItems.add(new ItemStack(Material.CHEST));
+        // 指南针
+        kitItems.add(CompassItem.createCompass());
     }
 
-
-
+    @Override
+    public List<ItemStack> getKitItems() {
+        return kitItems;
+    }
 }

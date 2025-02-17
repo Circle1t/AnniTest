@@ -73,7 +73,7 @@ public class CompassListener implements Listener {
             player.setCompassTarget(targetLocation);
             double distance = player.getLocation().distance(targetLocation);
             ChatColor teamColor = teamManager.getTeamColor(targetTeam);
-            String message = ChatColor.GOLD + "距离 " + teamColor + teamManager.getEnglishToChineseMap().get(targetTeam) + "队" + ChatColor.GOLD + " 核心: " + teamColor + String.format("%.2f", distance) + ChatColor.GOLD + " 米";
+            String message = ChatColor.GOLD + "距离 " + teamColor + teamManager.getEnglishToChineseMap().get(targetTeam) + "队" + ChatColor.GOLD + " 核心: " + teamColor + String.format("%.0f", distance) + ChatColor.GOLD + " 米";
             MessageUtil.sendActionBarMessage(player, message);
         } else {
             player.sendMessage(ChatColor.RED + "未找到 " + teamManager.getEnglishToChineseMap().get(targetTeam) + "队 的核心位置！");

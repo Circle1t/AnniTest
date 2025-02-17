@@ -26,7 +26,9 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Predicate;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
@@ -37,6 +39,7 @@ public class Scout extends Kit implements Listener {
     private ItemStack goldSword;
     private ItemStack woodPickaxe;
     private ItemStack woodAxe;
+    private List<ItemStack> kitItems = new ArrayList<>();
     private String grappleName = ChatColor.AQUA + "抓钩";
 
     public Scout(TeamManager teamManager) {
@@ -82,24 +85,31 @@ public class Scout extends Kit implements Listener {
         inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
         inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
 
-        // 基础物品
-        inv.addItem(goldSword.clone());
-        // 将抓钩放在第二个槽位
-        inv.setItem(1, grapple.clone());
-        inv.addItem(woodPickaxe.clone());
-        inv.addItem(woodAxe.clone());
-        inv.addItem(CompassItem.createCompass());
+        for(ItemStack item : kitItems) {
+            inv.addItem(item);
+        }
+
     }
 
     private void setUp() {
         // 金剑
         goldSword = createSoulBoundItem(Material.GOLDEN_SWORD, null, 1,1, false);
+        kitItems.add(goldSword.clone());
         // 抓钩
         grapple = createSoulBoundItem(Material.FISHING_ROD, grappleName, 1,4, true);
+        kitItems.add(grapple.clone());
         // 木镐
         woodPickaxe = createSoulBoundItem(Material.WOODEN_PICKAXE, null, 1, 1,false);
+        kitItems.add(woodPickaxe.clone());
         // 木斧
         woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1,1, false);
+        kitItems.add(woodAxe.clone());
+        //指南针
+        kitItems.add(CompassItem.createCompass());
+    }
+
+    public List<ItemStack> getKitItems(){
+        return kitItems;
     }
 
 
@@ -202,11 +212,5 @@ public class Scout extends Kit implements Listener {
         v.setY(v_y);
         v.setZ(v_z);
         e.setVelocity(v);
-    }
-
-    private boolean isValidHookLocation(Location hookLocation) {
-        // 检查钩子是否在有效方块上（包括底部）
-        return hookLocation.getBlock().getType().isSolid()
-                || hookLocation.clone().add(0, -1, 0).getBlock().getType().isSolid();
     }
 }

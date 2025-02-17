@@ -20,8 +20,10 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
@@ -31,6 +33,7 @@ public class Acrobat extends Kit implements Listener {
     private final KitManager kitManager;
     private HashMap<UUID, Long> cooldowns = new HashMap<>();
     private final int JUMP_COOLDOWN = 10000; // 10秒冷却
+    private List<ItemStack> kitItems = new ArrayList<>();
 
     private ItemStack woodSword;
     private ItemStack woodPickaxe;
@@ -38,7 +41,7 @@ public class Acrobat extends Kit implements Listener {
     private ItemStack bow;
     private ItemStack arrows;
 
-    public Acrobat(TeamManager teamManager,KitManager kitManager) {
+    public Acrobat(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
         setUp();
@@ -82,26 +85,34 @@ public class Acrobat extends Kit implements Listener {
         inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
         inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
 
-        // 基础物品
-        inv.addItem(woodSword.clone());
-        inv.addItem(woodPickaxe.clone());
-        inv.addItem(woodAxe.clone());
-        inv.addItem(bow.clone());
-        inv.addItem(arrows.clone());
-        inv.addItem(CompassItem.createCompass());
+        for (ItemStack item : kitItems) {
+            inv.addItem(item);
+        }
     }
 
     private void setUp() {
         // 木剑
         woodSword = createSoulBoundItem(Material.WOODEN_SWORD, null, 1, 1, false);
+        kitItems.add(woodSword.clone());
         // 木镐
         woodPickaxe = createSoulBoundItem(Material.WOODEN_PICKAXE, null, 1, 1, false);
+        kitItems.add(woodPickaxe.clone());
         // 木斧
         woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1, 1, false);
+        kitItems.add(woodAxe.clone());
         // 弓
         bow = createSoulBoundItem(Material.BOW, null, 1, 3, false);
+        kitItems.add(bow.clone());
         // 箭矢，数量设置为 6
         arrows = createSoulBoundItem(Material.ARROW, null, 6, 1, true);
+        kitItems.add(arrows.clone());
+        // 指南针
+        kitItems.add(CompassItem.createCompass());
+    }
+
+    @Override
+    public List<ItemStack> getKitItems() {
+        return kitItems;
     }
 
     @EventHandler(priority = EventPriority.HIGH)
