@@ -45,7 +45,7 @@ import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
-import cn.zhuobing.testPlugin.kit.KitListener;
+import cn.zhuobing.testPlugin.specialitem.listener.KitSelectorListener;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.*;
 import cn.zhuobing.testPlugin.nexus.NexusListener;
@@ -124,7 +124,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
         getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,nexusManager,kitManager,this), this);
-        getServer().getPluginManager().registerEvents(new KitListener(kitManager),this);
+        getServer().getPluginManager().registerEvents(new KitSelectorListener(kitManager),this);
         getServer().getPluginManager().registerEvents(new PlayerListener(teamManager,gameManager,kitManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
@@ -137,6 +137,8 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Acrobat(teamManager,kitManager));
         kitManager.registerKit(new Miner(teamManager));
         kitManager.registerKit(new Assassin(teamManager,kitManager));
+        kitManager.registerKit(new Enchanter(teamManager,kitManager));
+        kitManager.registerKit(new Archer(teamManager,kitManager));
     }
 
     @Override

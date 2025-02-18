@@ -119,7 +119,7 @@ public class PlayerListener implements Listener {
 
             String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 被击杀因为 " +
                     killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
-                    + ChatColor.LIGHT_PURPLE + kitManager.getPlayerKitName(killer.getUniqueId()) + killerColor + ")";
+                    + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
             event.getEntity().getServer().broadcastMessage(deathMessage);
         }
         // 取消默认的死亡信息显示

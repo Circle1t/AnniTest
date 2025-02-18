@@ -37,6 +37,11 @@ public class Miner extends Kit{
     }
 
     @Override
+    public String getNameWithColor(){
+        return ChatColor.YELLOW + "矿工";
+    }
+
+    @Override
     public String getDescription() {
         return "挖掘珍贵资源，为团队和自己提供装备，起始拥有效率镐、4个煤炭和一个高炉，能更快获取矿物。";
     }
@@ -45,8 +50,10 @@ public class Miner extends Kit{
     public ItemStack getIcon() {
         ItemStack icon = new ItemStack(Material.STONE_PICKAXE);
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + "矿工");
+        meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Miner",
+                "",
                 ChatColor.YELLOW + "你是团队的基石。",
                 "",
                 ChatColor.AQUA + "挖掘珍贵资源，",

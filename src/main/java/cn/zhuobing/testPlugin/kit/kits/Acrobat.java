@@ -53,6 +53,11 @@ public class Acrobat extends Kit implements Listener {
     }
 
     @Override
+    public String getNameWithColor(){
+        return ChatColor.GOLD + "鸟人";
+    }
+
+    @Override
     public String getDescription() {
         return "免疫摔落伤害，空中二段跳的职业";
     }
@@ -61,8 +66,10 @@ public class Acrobat extends Kit implements Listener {
     public ItemStack getIcon() {
         ItemStack icon = new ItemStack(Material.FEATHER);
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + "鸟人");
+        meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Acrobat",
+                "",
                 ChatColor.YELLOW + "你是天空的舞者。",
                 "",
                 ChatColor.AQUA + "免疫所有摔落伤害，",

@@ -1,5 +1,7 @@
-package cn.zhuobing.testPlugin.kit;
+package cn.zhuobing.testPlugin.specialitem.listener;
 
+import cn.zhuobing.testPlugin.kit.Kit;
+import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.KitSelectorItem;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -11,10 +13,10 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.UUID;
 
-public class KitListener implements Listener {
+public class KitSelectorListener implements Listener {
     private final KitManager kitManager;
 
-    public KitListener(KitManager kitManager) {
+    public KitSelectorListener(KitManager kitManager) {
         this.kitManager = kitManager;
     }
 
@@ -34,7 +36,7 @@ public class KitListener implements Listener {
                         UUID playerId = player.getUniqueId();
                         kitManager.setPlayerKit(playerId, kit.getName());
                         player.closeInventory();
-                        player.sendMessage(ChatColor.GREEN + "你已选择 " + ChatColor.GOLD + kit.getName() + ChatColor.GREEN + " 职业");
+                        player.sendMessage(ChatColor.GREEN + "你已选择 " + kit.getNameWithColor() + ChatColor.GREEN + " 职业");
                         break;
                     }
                 }

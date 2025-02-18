@@ -213,7 +213,7 @@ public class TeamCommandHandler implements CommandHandler {
 
         //设置默认职业
         if(kitManager.getPlayerKit(player.getUniqueId()) == null){
-            kitManager.setPlayerKit(player.getUniqueId(),"平民");
+            kitManager.setPlayerKit(player.getUniqueId(),"合成师");
         }
 
         selectedTeam.addEntry(player.getName());

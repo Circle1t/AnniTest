@@ -10,9 +10,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Iterator;
 import java.util.function.Predicate;
 
 public class SoulBoundUtil {
@@ -32,14 +33,17 @@ public class SoulBoundUtil {
         ItemStack item = new ItemStack(material, amount); // 设置物品堆叠数量
         ItemMeta meta = item.getItemMeta();
 
-        // 设置物品名称和 Lore
-        if(displayName != null) {
+        // 设置物品名称
+        if (displayName != null) {
             meta.setDisplayName(displayName);
         }
 
-        meta.setLore(Arrays.asList(
-                ChatColor.GOLD + "灵魂绑定 " + level.getDisplay()
-        ));
+        // 获取或创建物品的 lore
+        List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
+        // 在 lore 最后一行下方添加灵魂绑定信息
+        lore.add(ChatColor.GOLD + "灵魂绑定 " + level.getDisplay());
+
+        meta.setLore(lore);
         meta.setUnbreakable(isUnbreakable);
         meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
@@ -49,7 +53,6 @@ public class SoulBoundUtil {
         SoulBoundListener.registerSoulBoundItem(soulBoundLevel, isItem);
         return item;
     }
-
 
     /**
      * 判断物品是否为灵魂绑定物品
@@ -89,7 +92,7 @@ public class SoulBoundUtil {
             ItemStack item = contents[i];
             if (item != null) {
                 int level = SoulBoundListener.getSoulBoundLevel(item);
-                if(level == 3 || level == 4) {
+                if (level == 3 || level == 4) {
                     contents[i] = null; // 移除灵魂绑定等级为 2 的物品
                 }
             }

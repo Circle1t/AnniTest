@@ -3,6 +3,7 @@ package cn.zhuobing.testPlugin.ore;
 import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.kits.Enchanter;
 import cn.zhuobing.testPlugin.kit.kits.Miner;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -80,6 +81,11 @@ public class OreManager {
     }
 
     private void giveRewards(Player player, OreType oreType, Block block) {
+        Random random = new Random();
+
+        // 判断是否为附魔师
+        boolean isEnchanter = kitManager.getPlayerKit(player.getUniqueId()) != null &&
+                kitManager.getPlayerKit(player.getUniqueId()) instanceof Enchanter;
         // 给予经验
         int xp = oreType.xp;
         if (xp <= 0) {
@@ -87,7 +93,13 @@ public class OreManager {
             block.breakNaturally(player.getInventory().getItemInMainHand());
             return;
         }
-        player.giveExp(xp);
+
+        //如果是附魔师就经验翻倍
+        if(isEnchanter){
+            player.giveExp(xp*2);
+        }else{
+            player.giveExp(xp);
+        }
 
         // 固定音量
         float volume = 0.6f;
@@ -122,8 +134,6 @@ public class OreManager {
         // 判断玩家职业是否为矿工
         boolean isMiner = kitManager.getPlayerKit(player.getUniqueId()) != null &&
                 kitManager.getPlayerKit(player.getUniqueId()) instanceof Miner;
-
-        Random random = new Random();
         // 给予物品
         for (ItemStack toGive : actualDrops) {
             int baseAmount = oreType.getRandomDropAmount();
@@ -136,6 +146,14 @@ public class OreManager {
 
             toGive.setAmount(finalAmount);
             player.getInventory().addItem(toGive).values().forEach(left -> {
+                player.getWorld().dropItemNaturally(player.getLocation(), left);
+            });
+        }
+
+        // 当玩家是附魔师时，有2%概率掉落经验瓶
+        if (isEnchanter && random.nextInt(100) < 2) {
+            ItemStack experienceBottle = new ItemStack(Material.EXPERIENCE_BOTTLE);
+            player.getInventory().addItem(experienceBottle).values().forEach(left -> {
                 player.getWorld().dropItemNaturally(player.getLocation(), left);
             });
         }

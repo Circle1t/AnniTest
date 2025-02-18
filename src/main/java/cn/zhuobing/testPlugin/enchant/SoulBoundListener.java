@@ -1,6 +1,8 @@
 package cn.zhuobing.testPlugin.enchant;
 
+import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -22,7 +24,7 @@ public class SoulBoundListener implements Listener {
     // 开发规范：灵魂绑定物品必须在物品lore中以如下格式命名 "灵魂绑定 I/II/III/IV/V"
     // 1-2级非职业物品 3-4级职业物品 5级大厅物品
 
-    // 所有soulbound类型死亡后都会被销毁 禁止被附魔/铁砧操作
+    // 所有soulbound类型死亡后都会被销毁 禁止被附魔/铁砧操作 禁止移动出玩家背包
     // soulbound1：可丢弃且丢弃销毁的普通物品 适用于：盔甲 工具 等
     // soulbound2：不可丢弃的非职业绑定物品 适用于：boss 等
     // soulbound3：可丢弃的职业绑定物品 适用于：鸟人的弓 等
@@ -68,6 +70,10 @@ public class SoulBoundListener implements Listener {
         if (currentItem != null && getSoulBoundLevel(currentItem) >= 5) {
             event.setCancelled(true);
         }
+        if (currentItem != null && getSoulBoundLevel(currentItem) >= 1 &&
+                event.getInventory().getHolder() != null && !(event.getInventory().getHolder() instanceof Player)) {
+            event.setCancelled(true);
+        }
     }
 
     /**
@@ -78,6 +84,11 @@ public class SoulBoundListener implements Listener {
     public void onInventoryDrag(InventoryDragEvent event) {
         for (ItemStack item : event.getNewItems().values()) {
             if (item != null && getSoulBoundLevel(item) >= 5) {
+                event.setCancelled(true);
+                return;
+            }
+            if (item != null && getSoulBoundLevel(item) >= 1 &&
+                    event.getInventory().getHolder() != null && !(event.getInventory().getHolder() instanceof Player)) {
                 event.setCancelled(true);
                 return;
             }
@@ -151,6 +162,21 @@ public class SoulBoundListener implements Listener {
         ItemStack secondItem = event.getInventory().getItem(1);
         if ((firstItem != null && getSoulBoundLevel(firstItem) >= 1) || (secondItem != null && getSoulBoundLevel(secondItem) >= 1)) {
             event.setResult(null);
+        }
+    }
+
+    /**
+     * 处理物品在库存间移动的事件，阻止灵魂绑定物品移出玩家背包
+     * @param event 物品移动事件
+     */
+    @EventHandler
+    public void onInventoryMoveItem(InventoryMoveItemEvent event) {
+        ItemStack item = event.getItem();
+        if (getSoulBoundLevel(item) >= 1) {
+            // 如果物品是从玩家背包移动到其他库存，取消操作
+            if (event.getSource().getHolder() instanceof Player && !(event.getDestination().getHolder() instanceof Player)) {
+                event.setCancelled(true);
+            }
         }
     }
 }

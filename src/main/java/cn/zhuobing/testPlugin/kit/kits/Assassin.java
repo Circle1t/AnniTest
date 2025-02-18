@@ -64,6 +64,11 @@ public class Assassin extends Kit implements Listener {
     }
 
     @Override
+    public String getNameWithColor(){
+        return ChatColor.GOLD + "刺客";
+    }
+
+    @Override
     public String getDescription() {
         return "隐身突袭，灵活跳跃的职业";
     }
@@ -72,8 +77,10 @@ public class Assassin extends Kit implements Listener {
     public ItemStack getIcon() {
         ItemStack icon = new ItemStack(Material.GOLDEN_SWORD);
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + "刺客");
+        meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Assassin",
+                "",
                 ChatColor.YELLOW + "你是暗影中的猎手。",
                 "",
                 ChatColor.AQUA + "使用技能后隐身并跳跃，",

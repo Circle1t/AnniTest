@@ -9,6 +9,7 @@ import java.util.List;
 
 public abstract class Kit {
     public abstract String getName();
+    public abstract String getNameWithColor();
     public abstract String getDescription();
     public abstract ItemStack getIcon();
     public abstract void applyKit(Player player);

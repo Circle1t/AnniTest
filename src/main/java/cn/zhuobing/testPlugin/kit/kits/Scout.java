@@ -53,6 +53,11 @@ public class Scout extends Kit implements Listener {
     }
 
     @Override
+    public String getNameWithColor(){
+        return ChatColor.GOLD + "斥候";
+    }
+
+    @Override
     public String getDescription() {
         return "使用抓钩快速移动，摔落伤害减半的职业";
     }
@@ -61,8 +66,10 @@ public class Scout extends Kit implements Listener {
     public ItemStack getIcon() {
         ItemStack icon = new ItemStack(Material.FISHING_ROD);
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + "斥候");
+        meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Scout",
+                "",
                 ChatColor.YELLOW + "你是战场的先锋。",
                 "",
                 ChatColor.AQUA + "在战场上灵活穿梭，",

@@ -34,7 +34,12 @@ public class Civilian extends Kit {
 
     @Override
     public String getName() {
-        return "平民";
+        return "合成师";
+    }
+
+    @Override
+    public String getNameWithColor(){
+        return ChatColor.GREEN + "合成师";
     }
 
     @Override
@@ -46,8 +51,10 @@ public class Civilian extends Kit {
     public ItemStack getIcon() {
         ItemStack icon = new ItemStack(Material.CRAFTING_TABLE);
         ItemMeta meta = icon.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + "平民");
+        meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Civilian",
+                "",
                 ChatColor.YELLOW + "你是后勤的保障。",
                 "",
                 ChatColor.AQUA + "穿梭于战场周边，为团队提供坚实后盾。",
