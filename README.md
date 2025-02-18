@@ -8,7 +8,7 @@
 
 借助AI大模型从零开始复现核心战争插件。
 
-项目已经实现了核心战争大部分基础游戏功能。
+项目已经实现了核心战争大部分游戏功能。
 
 
 
@@ -42,11 +42,13 @@
 
 🚀**开发风格**：
 
-* 实现一个包一般需要写三个类 manager command listener ，降低代码耦合
-* command类需要实现预定义的CommandHandler接口
-* 所有manager、command、listener都需要在AnniTest主类中注册才能生效
+* 实现一个包一般需要写三个类 Manager Command Listener ，降低代码耦合
+* Command类需要实现预定义的CommandHandler接口
+* 所有Manager、Command、Listener 和 职业 都需要在AnniTest主类中注册才能生效
+* 已将职业框架搭建完成 职业开发请参考已写好的职业类
 
-
+🔋**特殊说明**
+* 由于技术原因，目前“矿工”“附魔师”职业的相关功能暂时融合在了OreManager中，无摔落伤害职业在PlayerListener中添加了额外的职业判断。职业模块独立化受小部分牵连。
 
 ## 指令说明
 
@@ -68,8 +70,12 @@
 
 
 - **描述**：管理队伍核心。
-- 注意：这个模块并未实现自动保存功能，你需要设置好地图后手动 /nexus save
-- **用法**：`/nexus <set/sethealth/remove/save>`
+- 注意：这个模块为了防止误修改并未实现自动保存功能，你需要设置好地图后手动 /nexus save
+- 用法: /nexus set <队伍>
+  或 /nexus sethealth <队伍> <血量>
+  或 /nexus setborder <队伍> <first/second>
+  或 /nexus remove <队伍> 或 /nexus save
+- **用法**：`/nexus <set/sethealth/setborder/remove/save>`
 
 
 
@@ -97,7 +103,7 @@
 
 - **描述**：将准星对准方块设置为钻石重生点。
 - 注意：钻石只会在阶段三开始出现，在之前会以圆石形态存在
-- **用法**：`/diamond`
+- **用法**：`/diamond <cancel>`
 
 
 
@@ -114,7 +120,7 @@
 
 
 
-- **描述**：获得团队指南针。
+- **描述**：获得核心指南针。
 - **用法**：`/compass`
 
 
@@ -135,6 +141,7 @@
 1. **boss 功能完善**：boss 奖励等。
 2. **Bug 修复**：游戏内仍然存在不少 BUG，但大部分已经被修复，后续会持续排查和解决。
 3. **职业系统开发**：添加后续职业。
+4. **代码优化**
 
 
 

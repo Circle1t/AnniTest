@@ -8,7 +8,7 @@ commands:
     usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawncancel>
   nexus:
     description: 管理队伍核心
-    usage: /nexus <set/sethealth/remove/save>
+    usage: /nexus <set/sethealth/setborder/remove/save>
   annistart:
     description: 游戏启动
     usage: /annistart
@@ -17,7 +17,7 @@ commands:
     usage: /phase set <阶段编号>
   diamond:
     description: 将准星对准方块设置为钻石重生点
-    usage: /diamond
+    usage: /diamond <cancel>
   getteamstar:
     description: 获得队伍选择之星
     usage: /getteamstar

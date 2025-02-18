@@ -15,6 +15,8 @@ import java.util.Map;
 public class NexusManager {
     private final Map<String, Location> teamNexusLocations = new HashMap<>();
     private final Map<String, Integer> teamNexusHealth = new HashMap<>();
+    private final Map<String, Location> borderFirst = new HashMap<>();
+    private final Map<String, Location> borderSecond = new HashMap<>();
     private static final int DEFAULT_HEALTH = 75;
     private final Plugin plugin;
     private File configFile;
@@ -63,6 +65,15 @@ public class NexusManager {
                 teamNexusHealth.put(teamName, health);
             }
         }
+        // 加载保护区域
+        if (config.contains("nexus.borders")) {
+            for (String team : config.getConfigurationSection("nexus.borders").getKeys(false)) {
+                Location first = config.getLocation("nexus.borders." + team + ".first");
+                Location second = config.getLocation("nexus.borders." + team + ".second");
+                if (first != null) borderFirst.put(team, first);
+                if (second != null) borderSecond.put(team, second);
+            }
+        }
     }
 
     public void saveConfig() {
@@ -77,6 +88,13 @@ public class NexusManager {
             String teamName = entry.getKey();
             int health = entry.getValue();
             config.set("nexus.health." + teamName, health);
+        }
+        // 保存保护区域
+        for (String team : borderFirst.keySet()) {
+            config.set("nexus.borders." + team + ".first", borderFirst.get(team));
+        }
+        for (String team : borderSecond.keySet()) {
+            config.set("nexus.borders." + team + ".second", borderSecond.get(team));
         }
         try {
             // 保存配置文件
@@ -118,5 +136,34 @@ public class NexusManager {
     public void removeNexus(String teamName) {
         teamNexusLocations.remove(teamName);
         teamNexusHealth.remove(teamName);
+    }
+
+    // 保护区域设置方法
+    public void setBorder(String team, String position, Location loc) {
+        if (position.equalsIgnoreCase("first")) {
+            borderFirst.put(team, loc);
+        } else {
+            borderSecond.put(team, loc);
+        }
+    }
+
+    // 保护区域检查方法
+    public boolean isInProtectedArea(Location loc) {
+        for (String team : borderFirst.keySet()) {
+            Location first = borderFirst.get(team);
+            Location second = borderSecond.get(team);
+            if (first == null || second == null) continue;
+
+            int minX = Math.min(first.getBlockX(), second.getBlockX());
+            int maxX = Math.max(first.getBlockX(), second.getBlockX());
+            int minZ = Math.min(first.getBlockZ(), second.getBlockZ());
+            int maxZ = Math.max(first.getBlockZ(), second.getBlockZ());
+
+            if (loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
+                    loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -9,24 +9,33 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.Map;
 
 public class NexusListener implements Listener {
-    private final NexusManager dataManager;
+    private final NexusManager nexusManager;
     private final NexusInfoBoard nexusInfoBoard;
     private final GameManager gameManager;
     private final TeamManager teamManager;
 
     private String winningTeam = null;
 
-    public NexusListener(NexusManager dataManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager) {
-        this.dataManager = dataManager;
+    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager) {
+        this.nexusManager = nexusManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.teamManager = teamManager;
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (nexusManager.isInProtectedArea(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+            //event.getPlayer().sendMessage(ChatColor.RED + "此区域禁止放置方块！");
+        }
     }
 
     @EventHandler
@@ -35,7 +44,12 @@ public class NexusListener implements Listener {
         Block block = event.getBlock();
         String playerTeam = getTeamName(player);
 
-        for (Map.Entry<String, Location> entry : dataManager.getNexusLocations().entrySet()) {
+        if (nexusManager.isInProtectedArea(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+            //event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
+        }
+
+        for (Map.Entry<String, Location> entry : nexusManager.getNexusLocations().entrySet()) {
             String teamName = entry.getKey();
             String chineseTeamName = teamManager.getTeamChineseName(teamName);
             Location nexusLocation = entry.getValue();
@@ -62,13 +76,13 @@ public class NexusListener implements Listener {
                 // 挖掘时播放火花粒子效果
                 playFlameParticles(nexusLocation);
 
-                int currentHealth = dataManager.getNexusHealth(teamName);
+                int currentHealth = nexusManager.getNexusHealth(teamName);
                 if (gameManager.getCurrentPhase() == 5) {
                     currentHealth -= 2;
                 } else {
                     currentHealth--;
                 }
-                dataManager.setNexusHealth(teamName, currentHealth);
+                nexusManager.setNexusHealth(teamName, currentHealth);
                 // 更新计分板
                 nexusInfoBoard.updateInfoBoard();
 
@@ -151,7 +165,7 @@ public class NexusListener implements Listener {
     private String checkForWinner() {
         int destroyed = 0;
         String result = null;
-        Map<String, Integer> nexusHealthOfAllTeam = dataManager.getNexusHealthOfAllTeam();
+        Map<String, Integer> nexusHealthOfAllTeam = nexusManager.getNexusHealthOfAllTeam();
         for (Map.Entry<String, Integer> entry : nexusHealthOfAllTeam.entrySet()) {
             if (entry.getValue() <= 0) {
                 destroyed++;
@@ -181,4 +195,5 @@ public class NexusListener implements Listener {
         double offset = 0.02;
         location.getWorld().spawnParticle(Particle.FLAME, center, 10, offset, offset, offset, 0.1);
     }
+
 }

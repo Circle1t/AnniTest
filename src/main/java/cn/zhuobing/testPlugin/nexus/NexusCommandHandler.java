@@ -52,8 +52,14 @@ public class NexusCommandHandler implements CommandHandler {
             case "save":
                 handleSaveCommand(player,args);
                 return true;
+            case "setborder":
+                handleSetBorderCommand(player, args);
+                return true;
             default:
-                player.sendMessage(ChatColor.RED + "未知子命令！用法: /nexus set <队伍> 或 /nexus sethealth <队伍> <血量> 或 /nexus remove <队伍> 或 /nexus save");
+                player.sendMessage(ChatColor.RED + "未知子命令！用法: /nexus set <队伍> " +
+                        "或 /nexus sethealth <队伍> <血量> " +
+                        "或 /nexus setborder <队伍> <first/second>" +
+                        "或 /nexus remove <队伍> 或 /nexus save");
                 return true;
         }
     }
@@ -61,6 +67,30 @@ public class NexusCommandHandler implements CommandHandler {
     private void handleSaveCommand(Player player, String[] args) {
         dataManager.saveConfig();
         player.sendMessage(ChatColor.GREEN + "核心设置保存成功！");
+    }
+
+    private void handleSetBorderCommand(Player player, String[] args) {
+        if (args.length != 3) {
+            player.sendMessage(ChatColor.RED + "用法: /nexus setborder <队伍> <first/second>");
+            return;
+        }
+
+        String teamName = args[1];
+        String position = args[2].toLowerCase();
+
+        if (!teamManager.getTeamColors().containsKey(teamName)) {
+            player.sendMessage(ChatColor.RED + "该队伍不存在！");
+            return;
+        }
+
+        Block targetBlock = player.getTargetBlockExact(5);
+        if (targetBlock == null) {
+            player.sendMessage(ChatColor.RED + "请对准要设置的边界方块！");
+            return;
+        }
+
+        dataManager.setBorder(teamName, position, targetBlock.getLocation());
+        player.sendMessage(ChatColor.GREEN + "成功设置 " + teamName + " 队的" + position + "边界点");
     }
 
     private void handleRemoveCommand(CommandSender sender, String[] args) {
