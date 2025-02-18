@@ -139,6 +139,7 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Assassin(teamManager,kitManager));
         kitManager.registerKit(new Enchanter(teamManager,kitManager));
         kitManager.registerKit(new Archer(teamManager,kitManager));
+        kitManager.registerKit(new Swapper(teamManager,kitManager));
     }
 
     @Override
