@@ -27,3 +27,6 @@ commands:
   boss:
     description: boss相关指令 tp[团队boss点tp位置] set[boss重生点] spawn[手动刷新boss] clear[清除boss]
     usage: /boss <tp/set/spawn/clear> <队伍名称/null>
+  enderfurnace:
+    description: 末影高炉 将准星对准高炉设置
+    usage: /enderfurnace <cancel>

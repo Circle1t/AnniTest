@@ -45,7 +45,7 @@ import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
-import cn.zhuobing.testPlugin.specialitem.listener.KitSelectorListener;
+import cn.zhuobing.testPlugin.specialitem.listener.*;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.*;
 import cn.zhuobing.testPlugin.nexus.NexusListener;
@@ -57,9 +57,7 @@ import cn.zhuobing.testPlugin.ore.OreBreakListener;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.CompassCommand;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.TeamSelectorCommand;
-import cn.zhuobing.testPlugin.specialitem.listener.CompassListener;
 import cn.zhuobing.testPlugin.specialitem.manager.TeamSelectorManager;
-import cn.zhuobing.testPlugin.specialitem.listener.TeamSelectorListener;
 import cn.zhuobing.testPlugin.team.TeamChatListener;
 import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
@@ -103,7 +101,6 @@ public class AnniTest extends JavaPlugin {
         respawnDataManager = new RespawnDataManager(nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
 
-
         // 注册命令处理器
         teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager,kitManager);
         commandHandlers.add(teamCommandHandler);
@@ -131,6 +128,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
 
+
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
         kitManager.registerKit(new Scout(teamManager));
@@ -140,6 +138,7 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Enchanter(teamManager,kitManager));
         kitManager.registerKit(new Archer(teamManager,kitManager));
         kitManager.registerKit(new Swapper(teamManager,kitManager));
+        kitManager.registerKit(new General(teamManager,kitManager));
     }
 
     @Override

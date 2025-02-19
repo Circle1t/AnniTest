@@ -43,11 +43,7 @@ public class NexusListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getBlock();
         String playerTeam = getTeamName(player);
-
-        if (nexusManager.isInProtectedArea(event.getBlock().getLocation())) {
-            event.setCancelled(true);
-            //event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
-        }
+        boolean isNexus = false;
 
         for (Map.Entry<String, Location> entry : nexusManager.getNexusLocations().entrySet()) {
             String teamName = entry.getKey();
@@ -73,6 +69,7 @@ public class NexusListener implements Listener {
                 }
                 event.setCancelled(true); // 阻止方块掉落
 
+                isNexus = true;
                 // 挖掘时播放火花粒子效果
                 playFlameParticles(nexusLocation);
 
@@ -120,6 +117,10 @@ public class NexusListener implements Listener {
 
                 break;
             }
+        }
+        if (nexusManager.isInProtectedArea(event.getBlock().getLocation()) && !isNexus) {
+            event.setCancelled(true);
+            //event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
         }
     }
 

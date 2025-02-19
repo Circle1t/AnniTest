@@ -1,6 +1,7 @@
 package cn.zhuobing.testPlugin.kit;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.kits.General;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
@@ -14,6 +15,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -81,6 +85,24 @@ public class KitManager {
         if (player != null) {
 
             SoulBoundUtil.clearSoulBoundLevel2Items(player);
+            // 获取玩家当前职业
+            Kit currentKit = getPlayerKit(playerId);
+
+            // 获取玩家将要变为的职业
+            if (currentKit instanceof General) {
+                // 如果当前职业是将军，移除缓慢效果
+                player.removePotionEffect(PotionEffectType.SLOWNESS);
+            }
+            if(kitName.equalsIgnoreCase("将军")) {
+                // 如果选择的职业是将军，添加缓慢效果
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 0, false, false));
+                    }
+                }.runTaskLater(plugin, 1L);
+            }
+
             playerKits.put(playerId, kitName.toLowerCase());
 
             if (gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)) {
