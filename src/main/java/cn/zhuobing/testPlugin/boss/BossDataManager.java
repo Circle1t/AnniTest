@@ -19,6 +19,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -286,6 +287,9 @@ public class BossDataManager implements Listener {
 
     public void onBossDeath(EntityDeathEvent event) {
         if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
+            // 清空掉落物列表
+            event.getDrops().clear();
+
             bossAlive = false;
             bossBar.setVisible(false);
 
@@ -298,6 +302,16 @@ public class BossDataManager implements Listener {
                     String teamName = teamManager.getPlayerTeamName(lastAttacker);
                     killerTeamMap.put(lastAttackerUUID, teamName);
                     announceBossKill(lastAttacker, teamName);
+
+                    // 为击杀队伍的所有玩家发放 Boss 奖励
+                    ItemStack bossStar = BossStarItem.createBossStar();
+                    List<Player> teamPlayers = teamManager.getPlayersInTeam(teamName);
+                    for (Player player : teamPlayers) {
+                        if (player != null) {
+                            player.getInventory().addItem(bossStar.clone());
+                            player.sendMessage(ChatColor.LIGHT_PURPLE + "你所在的队伍击杀了 Boss，获得了 Boss 之星！");
+                        }
+                    }
                 }
             }
 

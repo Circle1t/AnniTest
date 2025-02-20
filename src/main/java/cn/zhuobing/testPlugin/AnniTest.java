@@ -127,7 +127,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
-
+        getServer().getPluginManager().registerEvents(new BossStarItem(this),this);
 
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));

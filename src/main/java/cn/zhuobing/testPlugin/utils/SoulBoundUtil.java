@@ -93,7 +93,7 @@ public class SoulBoundUtil {
             if (item != null) {
                 int level = SoulBoundListener.getSoulBoundLevel(item);
                 if (level == 3 || level == 4) {
-                    contents[i] = null; // 移除灵魂绑定等级为 2 的物品
+                    contents[i] = null; // 移除灵魂绑定等级为 3或4 的物品
                 }
             }
         }
