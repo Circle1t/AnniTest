@@ -125,23 +125,32 @@ public class NexusListener implements Listener {
     }
 
     private void playSounds(Location nexusLocation, String teamName) {
-        final double MAX_DISTANCE = 30;
+        final double MAX_DISTANCE = 15;
+        final float ALERT_VOLUME = 0.6f; // 警报音效的音量
+        final float ALERT_PITCH = 2.0f;  // 警报音效的音调
+        final Sound ALERT_SOUND = Sound.BLOCK_NOTE_BLOCK_PLING; // 警报音效
+
+        // 检查 teamName 是否为 null 或空字符串
+        if (teamName == null || teamName.isEmpty()) {
+            return; // 如果 teamName 无效，直接返回
+        }
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             double distance = player.getLocation().distance(nexusLocation);
             if (distance <= MAX_DISTANCE) {
-                // 距离核心 30 格范围内，播放音调不同的铁砧放置声，音量随距离衰减
+                // 距离核心 15 格范围内，播放音调不同的铁砧放置声，音量随距离衰减
                 float volume = (float) (1 - (distance / MAX_DISTANCE));
                 if (volume < 0.1f) {
-                    volume = 0.1f;
+                    volume = 0.1f; // 设置最小音量
                 }
                 // 缩小音调的随机范围，让音调在 0.9 到 1.1 之间浮动
                 float pitch = (float) (1 + (Math.random() * 0.3) - 0.2);
                 player.playSound(nexusLocation, Sound.BLOCK_ANVIL_PLACE, SoundCategory.BLOCKS, volume, pitch);
             } else {
-                // 超出 30 格范围，只有被挖掘核心的队伍玩家能听见音调最高的音符盒放在泥土上的声音
-                Team team = teamManager.getScoreboard().getTeam(teamName);
-                if (team != null && team.hasEntry(player.getName())) {
-                    player.playSound(nexusLocation, Sound.BLOCK_NOTE_BLOCK_HARP, SoundCategory.BLOCKS, 1f, 2f);
+                // 超出 30 格范围，只有被挖掘核心的队伍玩家能听见警报音效
+                String playerTeamName = teamManager.getPlayerTeamName(player);
+                if (playerTeamName != null && playerTeamName.equalsIgnoreCase(teamName)) {
+                    player.playSound(player.getLocation(), ALERT_SOUND, SoundCategory.BLOCKS, ALERT_VOLUME, ALERT_PITCH);
                 }
             }
         }

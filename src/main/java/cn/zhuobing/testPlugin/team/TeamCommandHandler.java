@@ -223,5 +223,9 @@ public class TeamCommandHandler implements CommandHandler {
         teamManager.applyScoreboardToPlayer(player);
         nexusInfoBoard.updateInfoBoard();
         player.sendMessage(ChatColor.GREEN + "你已加入 " + teamColors.get(teamName) + englishToChineseMap.get(teamName) + "队" + ChatColor.GREEN + " ！");
+
+        if(gameManager.getCurrentPhase() > 0){
+            player.setHealth(0.0);
+        }
     }
 }
