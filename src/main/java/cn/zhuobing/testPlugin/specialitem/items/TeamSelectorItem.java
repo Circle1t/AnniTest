@@ -1,6 +1,7 @@
 package cn.zhuobing.testPlugin.specialitem.items;
 
 import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
+import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
@@ -8,25 +9,29 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
-import java.util.function.Predicate;
 
 // 团队选择之星物品类，用于创建和判断团队选择之星物品
 public class TeamSelectorItem {
     // 团队选择之星物品的显示名称
-    private static final String ITEM_IDENTIFIER = ChatColor.RESET + "§6团队选择";
+    private static final String ITEM_IDENTIFIER = ChatColor.GOLD + "团队选择";
+    // 灵魂绑定等级
+    private static final int SOUL_BOUND_LEVEL = 5;
 
     /**
      * 创建团队选择之星物品的方法
      * @return 团队选择之星物品
      */
     public static ItemStack createTeamStar() {
-        // 创建一个 Nether Star 物品
-        ItemStack item = new ItemStack(Material.NETHER_STAR);
-        // 获取物品的元数据
-        ItemMeta meta = item.getItemMeta();
+        // 使用 SoulBoundUtil 创建灵魂绑定物品
+        ItemStack item = SoulBoundUtil.createSoulBoundItem(
+                Material.NETHER_STAR,
+                ITEM_IDENTIFIER,
+                1,
+                SOUL_BOUND_LEVEL,
+                true
+        );
 
-        // 设置物品的显示名称
-        meta.setDisplayName(ITEM_IDENTIFIER);
+        ItemMeta meta = item.getItemMeta();
         // 设置物品的描述信息
         meta.setLore(Arrays.asList(
                 ChatColor.GRAY + "右键打开队伍选择界面",
@@ -35,17 +40,11 @@ public class TeamSelectorItem {
                 ChatColor.GOLD + "灵魂绑定 V"
         ));
 
-        // 设置物品不可破坏
-        meta.setUnbreakable(true);
         // 隐藏不可破坏的标签
         meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 
         // 将元数据应用到物品上
         item.setItemMeta(meta);
-
-        // 注册灵魂绑定V级
-        Predicate<ItemStack> isTeamStar = TeamSelectorItem::isTeamStar;
-        SoulBoundListener.registerSoulBoundItem(5, isTeamStar);
 
         return item;
     }

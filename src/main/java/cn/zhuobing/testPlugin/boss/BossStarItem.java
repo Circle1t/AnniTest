@@ -15,18 +15,14 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.potion.PotionType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Arrays;
@@ -35,30 +31,38 @@ import java.util.Random;
 
 public class BossStarItem implements Listener {
     // 字符常量提取到头部
-    private static final String ITEM_IDENTIFIER = ChatColor.AQUA + "Boss之星";
-    private static final String GUI_TITLE = "Boss物品选择";
+    private static final String ITEM_IDENTIFIER = ChatColor.AQUA + "BOSS之星";
+    private static final String GUI_TITLE = "BOSS物品选择";
     private static final String RIGHT_CLICK_OPEN_MSG = ChatColor.GRAY + "右键打开Boss物品选择界面";
     private static final String SPECIAL_ITEM_MSG = ChatColor.DARK_GRAY + "特殊物品";
-    private static final String CHAINED_HELMET_NAME = ChatColor.BLUE + "烈焰守护头盔";
+    private static final String CHAINED_HELMET_NAME = ChatColor.GOLD + "烈焰守护头盔";
     private static final String CHAINED_HELMET_LORE = ChatColor.GRAY + "穿戴后会获得无限防火效果";
-    private static final String CHAINED_CHESTPLATE_NAME = ChatColor.BLUE + "生命守护胸甲";
+    private static final String CHAINED_CHESTPLATE_NAME = ChatColor.GOLD + "生命守护胸甲";
     private static final String CHAINED_CHESTPLATE_LORE = ChatColor.GRAY + "攻击敌人后获得生命恢复效果";
-    private static final String CHAINED_LEGGINGS_NAME = ChatColor.BLUE + "迅捷守护护腿";
+    private static final String CHAINED_LEGGINGS_NAME = ChatColor.GOLD + "迅捷守护护腿";
     private static final String CHAINED_LEGGINGS_LORE = ChatColor.GRAY + "攻击敌人后获得速度效果";
-    private static final String CHAINED_BOOTS_NAME = ChatColor.BLUE + "轻盈守护靴子";
+    private static final String CHAINED_BOOTS_NAME = ChatColor.GOLD + "轻盈守护靴子";
     private static final String CHAINED_BOOTS_LORE = ChatColor.GRAY + "免疫摔落伤害";
-    private static final String EFFICIENCY_V_PICKAXE_NAME = ChatColor.YELLOW + "高效金镐";
-    private static final String FORTUNE_III_PICKAXE_NAME = ChatColor.YELLOW + "幸运金镐";
+    private static final String EFFICIENCY_V_PICKAXE_NAME = ChatColor.GOLD + "急速之镐";
+    private static final String FORTUNE_III_PICKAXE_NAME = ChatColor.GOLD + "灵运之镐";
     private static final String FLAME_BOW_NAME = ChatColor.RED + "逐日之弓";
+    private static final String FLAME_BOW_LORE = ChatColor.GRAY + "射出的箭带有火焰效果";
     private static final String LEVITATION_BOW_NAME = ChatColor.AQUA + "漂浮之弓";
-    private static final String KNOCKBACK_BOW_NAME = ChatColor.GREEN + "冲击之弓";
+    private static final String LEVITATION_BOW_LORE = ChatColor.GRAY + "有概率使被击中的敌人浮空";
+    private static final String PUNCH_BOW_NAME = ChatColor.GREEN + "冲击之弓";
+    private static final String KNOCKBACK_BOW_LORE = ChatColor.GRAY + "射出的箭带有强大的冲击力";
     private static final String BURNING_SWORD_NAME = ChatColor.RED + "灼热之刃";
+    private static final String BURNING_SWORD_LORE = ChatColor.GRAY + "攻击敌人时会让敌人着火";
     private static final String POISONOUS_SWORD_NAME = ChatColor.GREEN + "剧毒之刃";
-    private static final String SPLASH_STRENGTH_POTION_NAME = ChatColor.RED + "力量药水";
+    private static final String POISONOUS_SWORD_LORE = ChatColor.GRAY + "有 30% 的概率使敌人中毒";
+    private static final String SPLASH_STRENGTH_POTION_NAME = ChatColor.DARK_RED + "力量药水";
     private static final String SPLASH_SPEED_POTION_NAME = ChatColor.YELLOW + "速度药水";
     private static final String SPLASH_REGENERATION_POTION_NAME = ChatColor.GREEN + "再生药水";
-    private static final String SPLASH_INVISIBILITY_POTION_NAME = ChatColor.BLUE + "隐身药水";
+    private static final String SPLASH_INVISIBILITY_POTION_NAME = ChatColor.AQUA + "隐身药水";
+    private static final String DRINKABLE_INSTANT_HEALTH_POTION_NAME = ChatColor.RED + "瞬间治疗";
     private static final String DRINKABLE_HASTE_POTION_NAME = ChatColor.GOLD + "急迫药水";
+    private static final String DRINKABLE_HASTE_POTION_LORE = ChatColor.BLUE + "急迫 （00:20）";
+    private static final String ENCHANTED_BOTTLE_NAME = ChatColor.LIGHT_PURPLE + "附魔之瓶";
 
     private final Plugin plugin;
     private final Random random = new Random();
@@ -147,10 +151,15 @@ public class BossStarItem implements Listener {
             if (weapon != null && SoulBoundUtil.isSoulBoundItem(weapon, Material.DIAMOND_SWORD)
                     && weapon.getItemMeta().getDisplayName().equals(POISONOUS_SWORD_NAME)
                     && random.nextDouble() < 0.3) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 40, 0));
+                if (event.getEntity() instanceof Player) {
+                    Player target = (Player) event.getEntity();
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.POISON, 40, 0));
+                }
             }
         }
     }
+
+
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
@@ -161,15 +170,16 @@ public class BossStarItem implements Listener {
             if (bow != null && SoulBoundUtil.isSoulBoundItem(bow, Material.BOW)
                     && bow.getItemMeta().getDisplayName().equals(LEVITATION_BOW_NAME)
                     && random.nextDouble() < 0.3) {
-                if (event.getHitEntity() != null) {
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 100, 0));
+                if (event.getHitEntity() instanceof Player) {
+                    Player target = (Player) event.getHitEntity();
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 100, 0));
                 }
             }
         }
     }
 
     @EventHandler
-    public void onEntityDamage(EntityDamageEvent event) {
+    public void onEntityFallDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
             ItemStack boots = player.getInventory().getBoots();
@@ -186,30 +196,33 @@ public class BossStarItem implements Listener {
         Inventory inv = plugin.getServer().createInventory(null, 54, GUI_TITLE);
 
         // 盔甲类
-        inv.setItem(0, createChainedHelmet());
-        inv.setItem(1, createChainedChestplate());
-        inv.setItem(2, createChainedLeggings());
-        inv.setItem(3, createChainedBoots());
+        inv.setItem(10, createChainedHelmet());
+        inv.setItem(19, createChainedChestplate());
+        inv.setItem(28, createChainedLeggings());
+        inv.setItem(37, createChainedBoots());
 
         // 工具类
-        inv.setItem(9, createEfficiencyVGoldPickaxe());
-        inv.setItem(10, createFortuneIIIGoldPickaxe());
-
-        // 弓箭类
-        inv.setItem(18, createFlameBow());
-        inv.setItem(19, createLevitationBow());
-        inv.setItem(20, createKnockbackBow());
+        inv.setItem(12, createEfficiencyVGoldPickaxe());
+        inv.setItem(13, createFortuneIIIIronPickaxe());
 
         // 剑类
-        inv.setItem(27, createBurningSword());
-        inv.setItem(28, createPoisonousSword());
+        inv.setItem(21, createBurningSword());
+        inv.setItem(22, createPoisonousSword());
+
+        // 弓箭类
+        inv.setItem(39, createFlameBow());
+        inv.setItem(40, createLevitationBow());
+        inv.setItem(41, createPunchBow());
 
         // 药水类
-        inv.setItem(36, createSplashStrengthPotion());
-        inv.setItem(37, createSplashSpeedPotion());
-        inv.setItem(38, createSplashRegenerationPotion());
-        inv.setItem(39, createSplashInvisibilityPotion());
-        inv.setItem(40, createDrinkableHastePotion());
+        inv.setItem(15, createSplashStrengthPotion());
+        inv.setItem(16, createSplashSpeedPotion());
+        inv.setItem(17, createSplashRegenerationPotion());
+        inv.setItem(24, createSplashInvisibilityPotion());
+        inv.setItem(25,createSplashInstantHealthIIPotion());
+        inv.setItem(26, createDrinkableHastePotion());
+
+        inv.setItem(43, createEnchantedBottle());
 
         player.openInventory(inv);
     }
@@ -343,46 +356,86 @@ public class BossStarItem implements Listener {
     }
 
     private ItemStack createEfficiencyVGoldPickaxe() {
-        ItemStack pickaxe = SoulBoundUtil.createSoulBoundItem(Material.GOLDEN_PICKAXE, EFFICIENCY_V_PICKAXE_NAME, 1, 1, true);
+        ItemStack pickaxe = SoulBoundUtil.createSoulBoundItem(Material.GOLDEN_PICKAXE, EFFICIENCY_V_PICKAXE_NAME, 1, 2, true);
         pickaxe.addUnsafeEnchantment(Enchantment.EFFICIENCY, 5);
         return pickaxe;
     }
 
-    private ItemStack createFortuneIIIGoldPickaxe() {
-        ItemStack pickaxe = SoulBoundUtil.createSoulBoundItem(Material.GOLDEN_PICKAXE, FORTUNE_III_PICKAXE_NAME, 1, 1, true);
+    private ItemStack createFortuneIIIIronPickaxe() {
+        ItemStack pickaxe = SoulBoundUtil.createSoulBoundItem(Material.IRON_PICKAXE, FORTUNE_III_PICKAXE_NAME, 1, 2, true);
         pickaxe.addUnsafeEnchantment(Enchantment.FORTUNE, 3);
         return pickaxe;
     }
 
     private ItemStack createFlameBow() {
-        ItemStack bow = SoulBoundUtil.createSoulBoundItem(Material.BOW, FLAME_BOW_NAME, 1, 1, false);
+        ItemStack bow = SoulBoundUtil.createSoulBoundItem(Material.BOW, FLAME_BOW_NAME, 1, 2, false);
         bow.addUnsafeEnchantment(Enchantment.FLAME, 2);
         bow.addUnsafeEnchantment(Enchantment.INFINITY, 1);
+
+        ItemMeta meta = bow.getItemMeta();
+        meta.setLore(Arrays.asList(
+                FLAME_BOW_LORE,
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        bow.setItemMeta(meta);
+
         return bow;
     }
 
     private ItemStack createLevitationBow() {
-        ItemStack bow = SoulBoundUtil.createSoulBoundItem(Material.BOW, LEVITATION_BOW_NAME, 1, 1, false);
+        ItemStack bow = SoulBoundUtil.createSoulBoundItem(Material.BOW, LEVITATION_BOW_NAME, 1, 2, false);
         bow.addUnsafeEnchantment(Enchantment.INFINITY, 1);
+
+        ItemMeta meta = bow.getItemMeta();
+        meta.setLore(Arrays.asList(
+                LEVITATION_BOW_LORE,
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        bow.setItemMeta(meta);
+
         return bow;
     }
 
-    private ItemStack createKnockbackBow() {
-        ItemStack bow = SoulBoundUtil.createSoulBoundItem(Material.BOW, KNOCKBACK_BOW_NAME, 1, 1, false);
-        bow.addUnsafeEnchantment(Enchantment.KNOCKBACK, 2);
+    private ItemStack createPunchBow() {
+        ItemStack bow = SoulBoundUtil.createSoulBoundItem(Material.BOW, PUNCH_BOW_NAME, 1, 2, false);
+        bow.addUnsafeEnchantment(Enchantment.PUNCH, 2);
         bow.addUnsafeEnchantment(Enchantment.INFINITY, 1);
+
+        ItemMeta meta = bow.getItemMeta();
+        meta.setLore(Arrays.asList(
+                KNOCKBACK_BOW_LORE,
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        bow.setItemMeta(meta);
+
         return bow;
     }
 
     private ItemStack createBurningSword() {
-        ItemStack sword = SoulBoundUtil.createSoulBoundItem(Material.DIAMOND_SWORD, BURNING_SWORD_NAME, 1, 1, true);
+        ItemStack sword = SoulBoundUtil.createSoulBoundItem(Material.DIAMOND_SWORD, BURNING_SWORD_NAME, 1, 2, true);
         sword.addUnsafeEnchantment(Enchantment.FIRE_ASPECT, 3);
+
+        ItemMeta meta = sword.getItemMeta();
+        meta.setLore(Arrays.asList(
+                BURNING_SWORD_LORE,
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        sword.setItemMeta(meta);
+
         return sword;
     }
 
     private ItemStack createPoisonousSword() {
-        ItemStack sword = SoulBoundUtil.createSoulBoundItem(Material.DIAMOND_SWORD, POISONOUS_SWORD_NAME, 1, 1, true);
+        ItemStack sword = SoulBoundUtil.createSoulBoundItem(Material.DIAMOND_SWORD, POISONOUS_SWORD_NAME, 1, 2, true);
         sword.addUnsafeEnchantment(Enchantment.KNOCKBACK, 1);
+
+        ItemMeta meta = sword.getItemMeta();
+        meta.setLore(Arrays.asList(
+                POISONOUS_SWORD_LORE,
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        sword.setItemMeta(meta);
+
         return sword;
     }
 
@@ -402,7 +455,7 @@ public class BossStarItem implements Listener {
         ), true);
 
         // 设置药水颜色（红色）
-        meta.setColor(Color.RED);
+        meta.setColor(Color.PURPLE);
         potion.setItemMeta(meta);
         return potion;
     }
@@ -458,13 +511,46 @@ public class BossStarItem implements Listener {
         return potion;
     }
 
+    private ItemStack createSplashInstantHealthIIPotion() {
+        // 创建灵魂绑定的喷溅药水物品，这里使用的是喷溅药水的材质
+        ItemStack potion = SoulBoundUtil.createSoulBoundItem(Material.SPLASH_POTION, DRINKABLE_INSTANT_HEALTH_POTION_NAME, 1, 1, false);
+        // 获取药水的元数据
+        PotionMeta meta = (PotionMeta) potion.getItemMeta();
+        // 设置药水的显示名称
+        meta.setDisplayName(DRINKABLE_INSTANT_HEALTH_POTION_NAME);
+
+        // 添加瞬间治疗 2 的效果
+        meta.addCustomEffect(new PotionEffect(
+                PotionEffectType.INSTANT_HEALTH, // 瞬间治疗效果类型
+                1, // 瞬间治疗效果持续时间（瞬间生效所以设为 1）
+                1, // 效果等级，1 对应瞬间治疗 II
+                true, // 环境粒子效果
+                true, // 显示图标
+                true  // 显示粒子
+        ), true);
+
+        // 设置药水颜色，这里使用红色代表治疗效果
+        meta.setColor(Color.RED);
+        // 将修改后的元数据应用到药水物品上
+        potion.setItemMeta(meta);
+        // 返回创建好的药水物品
+        return potion;
+    }
+
     private ItemStack createDrinkableHastePotion() {
         ItemStack potion = SoulBoundUtil.createSoulBoundItem(Material.POTION, DRINKABLE_HASTE_POTION_NAME, 1, 1, false);
         PotionMeta meta = (PotionMeta) potion.getItemMeta();
         meta.setDisplayName(DRINKABLE_HASTE_POTION_NAME);
 
+        // 清空原有的 lore
+        meta.setLore(null);
+
         // 设置黄色药水外观
         meta.setColor(Color.YELLOW);
+        meta.setLore(Arrays.asList(
+                DRINKABLE_HASTE_POTION_LORE,
+                ChatColor.GOLD + "灵魂绑定 I"
+        ));
         potion.setItemMeta(meta);
         return potion;
     }
@@ -475,8 +561,23 @@ public class BossStarItem implements Listener {
         ItemStack item = event.getItem();
         if (item != null && item.hasItemMeta() && item.getItemMeta().hasDisplayName()
                 && item.getItemMeta().getDisplayName().equals(DRINKABLE_HASTE_POTION_NAME)) {
-            // 添加急迫I效果，持续10秒
-            player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 10 * 20, 0));
+            // 添加急迫I效果，持续15秒
+            player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 15 * 20, 0));
         }
+    }
+
+    private ItemStack createEnchantedBottle() {
+        // 使用 SoulBoundUtil 创建灵魂绑定物品，设置为灵魂绑定 2 级别
+        ItemStack enchantedBottle = SoulBoundUtil.createSoulBoundItem(Material.EXPERIENCE_BOTTLE, ENCHANTED_BOTTLE_NAME, 32, 2, true);
+
+        // 获取物品的元数据
+        ItemMeta meta = enchantedBottle.getItemMeta();
+        // 设置物品的显示名称
+        meta.setDisplayName(ENCHANTED_BOTTLE_NAME);
+
+        // 将修改后的元数据应用到物品上
+        enchantedBottle.setItemMeta(meta);
+
+        return enchantedBottle;
     }
 }

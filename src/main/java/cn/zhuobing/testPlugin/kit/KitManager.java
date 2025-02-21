@@ -84,7 +84,7 @@ public class KitManager {
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
 
-            SoulBoundUtil.clearSoulBoundLevel2Items(player);
+            SoulBoundUtil.clearSoulBoundLevelItems(player);
             // 获取玩家当前职业
             Kit currentKit = getPlayerKit(playerId);
 

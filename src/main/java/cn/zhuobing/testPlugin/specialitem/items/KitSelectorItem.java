@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.specialitem.items;
 
-import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
+import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
@@ -8,25 +8,29 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
-import java.util.function.Predicate;
 
 // 职业选择器物品类，用于创建和判断职业选择器物品
 public class KitSelectorItem {
     // 职业选择器物品的显示名称
-    private static final String ITEM_IDENTIFIER = ChatColor.RESET + ChatColor.AQUA.toString() + "职业选择";
+    private static final String ITEM_IDENTIFIER = ChatColor.AQUA + "职业选择";
+    // 灵魂绑定等级
+    private static final int SOUL_BOUND_LEVEL = 5;
 
     /**
      * 创建职业选择器物品的方法
      * @return 职业选择器物品
      */
     public static ItemStack createKitSelector() {
-        // 创建一个书物品
-        ItemStack item = new ItemStack(Material.BOOK);
-        // 获取物品的元数据
-        ItemMeta meta = item.getItemMeta();
+        // 使用 SoulBoundUtil 创建灵魂绑定物品
+        ItemStack item = SoulBoundUtil.createSoulBoundItem(
+                Material.BOOK,
+                ITEM_IDENTIFIER,
+                1,
+                SOUL_BOUND_LEVEL,
+                true
+        );
 
-        // 设置物品的显示名称
-        meta.setDisplayName(ITEM_IDENTIFIER);
+        ItemMeta meta = item.getItemMeta();
         // 设置物品的描述信息
         meta.setLore(Arrays.asList(
                 ChatColor.GRAY + "右键打开职业选择界面",
@@ -35,17 +39,11 @@ public class KitSelectorItem {
                 ChatColor.GOLD + "灵魂绑定 V"
         ));
 
-        // 设置物品不可破坏
-        meta.setUnbreakable(true);
         // 隐藏不可破坏的标签
         meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 
         // 将元数据应用到物品上
         item.setItemMeta(meta);
-
-        // 注册灵魂绑定IV级
-        Predicate<ItemStack> isKitSelector = KitSelectorItem::isKitSelector;
-        SoulBoundListener.registerSoulBoundItem(5, isKitSelector);
 
         return item;
     }

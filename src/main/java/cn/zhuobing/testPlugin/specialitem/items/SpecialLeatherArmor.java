@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.specialitem.items;
 
-import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
+import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -11,10 +11,11 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 
 // 特殊皮革装甲类，用于创建和判断特殊皮革装甲
 public class SpecialLeatherArmor {
+    // 灵魂绑定等级
+    private static final int SOUL_BOUND_LEVEL = 1;
 
     /**
      * 创建特殊皮革装甲的方法
@@ -28,13 +29,17 @@ public class SpecialLeatherArmor {
             throw new IllegalArgumentException("提供的物品类型不是皮革装甲！");
         }
 
-        // 创建一个皮革装甲物品
-        ItemStack item = new ItemStack(armorType);
-        // 获取物品的元数据
+        // 使用 SoulBoundUtil 创建灵魂绑定物品
+        ItemStack item = SoulBoundUtil.createSoulBoundItem(
+                armorType,
+                ChatColor.WHITE + getArmorTypeName(armorType),
+                1,
+                SOUL_BOUND_LEVEL,
+                false
+        );
+
         LeatherArmorMeta meta = (LeatherArmorMeta) item.getItemMeta();
 
-        // 设置物品的显示名称，使用 ChatColor.RESET 重置样式
-        meta.setDisplayName(ChatColor.RESET + getArmorTypeName(armorType));
         // 设置物品的描述信息
         List<String> lore = Arrays.asList(
                 ChatColor.DARK_GRAY + "特殊皮革装甲",
@@ -49,48 +54,7 @@ public class SpecialLeatherArmor {
         // 将元数据应用到物品上
         item.setItemMeta(meta);
 
-        // 注册灵魂绑定I级
-        Predicate<ItemStack> isSpecialArmor = SpecialLeatherArmor::isSpecialArmor;
-        SoulBoundListener.registerSoulBoundItem(1, isSpecialArmor);
-
         return item;
-    }
-
-    /**
-     * 判断物品是否为特殊皮革装甲
-     * @param item 要判断的物品
-     * @return 如果物品是特殊皮革装甲则返回 true，否则返回 false
-     */
-    public static boolean isSpecialArmor(ItemStack item) {
-        if (item == null) {
-            return false;
-        }
-        if (!isLeatherArmor(item.getType())) {
-            return false;
-        }
-        if (!item.hasItemMeta()) {
-            return false;
-        }
-        ItemMeta meta = item.getItemMeta();
-        if (!meta.hasDisplayName() ||!meta.hasLore()) {
-            return false;
-        }
-
-        // 检查显示名称
-        String displayName = ChatColor.stripColor(meta.getDisplayName());
-        String expectedName = ChatColor.stripColor(getArmorTypeName(item.getType()));
-        if (!displayName.equals(expectedName)) {
-            return false;
-        }
-
-        // 检查描述信息中是否包含灵魂绑定标识
-        List<String> lore = meta.getLore();
-        for (String line : lore) {
-            if (ChatColor.stripColor(line).contains("灵魂绑定 I")) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

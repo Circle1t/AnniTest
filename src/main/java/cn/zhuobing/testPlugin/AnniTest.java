@@ -61,6 +61,8 @@ import cn.zhuobing.testPlugin.specialitem.manager.TeamSelectorManager;
 import cn.zhuobing.testPlugin.team.TeamChatListener;
 import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -88,6 +90,11 @@ public class AnniTest extends JavaPlugin {
     public void onEnable() {
         instance = this;
         getLogger().info("AnniTest 插件启动");
+
+        // 禁用成就提示广播
+        Bukkit.getWorlds().forEach(world -> {
+            world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+        });
 
         // 初始化核心数据管理类
         teamManager = new TeamManager();

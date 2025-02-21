@@ -140,7 +140,7 @@ public class BossDataManager implements Listener {
         boss.setCollidable(false);
         boss.setCustomName(ChatColor.RED + "凋零 Boss");
         boss.getBossBar().setColor(BarColor.YELLOW);
-        boss.getBossBar().setTitle(ChatColor.YELLOW + "注意：Boss会对你发起攻击！");
+        boss.getBossBar().setTitle(ChatColor.YELLOW + "注意：Boss已生成！它的伤害不容小觑！");
         boss.setCustomNameVisible(true);
 
         updateBossBar();

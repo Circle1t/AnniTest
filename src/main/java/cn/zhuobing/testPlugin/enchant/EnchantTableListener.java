@@ -1,5 +1,6 @@
 package cn.zhuobing.testPlugin.enchant;
 
+import org.bukkit.Bukkit;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -66,12 +67,12 @@ public class EnchantTableListener implements Listener {
      */
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        // 附魔结束后销毁填充的青金石
-        Inventory inventory = event.getInventory();
-        int lapisSlot = 1;
-        inventory.setItem(lapisSlot, null);
-
         if (event.getInventory().getType() == InventoryType.ENCHANTING) {
+            // 附魔结束后销毁填充的青金石
+            Inventory inventory = event.getInventory();
+            int lapisSlot = 1;
+            inventory.setItem(lapisSlot, null);
+
             if (event.getPlayer() instanceof Player) {
                 enchantManager.endEnchanting((Player) event.getPlayer());
             }
