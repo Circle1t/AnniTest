@@ -39,3 +39,6 @@ commands:
   suicide:
     description: 自杀
     usage: /suicide
+  annimap:
+    description: 游戏地图设置
+    usage: /annimap setborder 1/2/3/4

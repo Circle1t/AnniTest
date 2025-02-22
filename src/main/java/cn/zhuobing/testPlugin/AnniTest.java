@@ -47,6 +47,9 @@ import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
+import cn.zhuobing.testPlugin.map.MapCommandHandler;
+import cn.zhuobing.testPlugin.map.MapListener;
+import cn.zhuobing.testPlugin.map.MapManager;
 import cn.zhuobing.testPlugin.specialitem.listener.*;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.*;
@@ -92,6 +95,7 @@ public class AnniTest extends JavaPlugin {
     private KitManager kitManager;
     private StoreManager storeManager;
     private WitchDataManager witchDataManager;
+    private MapManager mapManager;
 
     @Override
     public void onEnable() {
@@ -116,6 +120,7 @@ public class AnniTest extends JavaPlugin {
         respawnDataManager = new RespawnDataManager(nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
         storeManager = new StoreManager(this);
+        mapManager = new MapManager(this);
 
 
         // 注册命令处理器
@@ -130,6 +135,7 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(new StoreCommandHandler(storeManager));
         commandHandlers.add(new PlayerCommandHandler());
         commandHandlers.add(new WitchCommandHandler(witchDataManager));
+        commandHandlers.add(new MapCommandHandler(mapManager));
 
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
@@ -150,6 +156,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BossStarItem(this),this);
         getServer().getPluginManager().registerEvents(new StoreListener(storeManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BrewingStandListener(this),this);
+        getServer().getPluginManager().registerEvents(new MapListener(mapManager),this);
 
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
