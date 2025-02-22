@@ -30,3 +30,12 @@ commands:
   store:
     description: 告示牌商店
     usage: /store <brew/weapon/remove>
+  witch:
+    description: 女巫重生点设置
+    usage: /witch <set/remove> <队伍>
+  kl:
+    description: 自杀
+    usage: /kl
+  suicide:
+    description: 自杀
+    usage: /suicide

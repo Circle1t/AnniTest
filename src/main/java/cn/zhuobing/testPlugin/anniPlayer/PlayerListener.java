@@ -82,6 +82,11 @@ public class PlayerListener implements Listener {
 
             // 检查玩家是否处于隐身状态
             if (attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                // 检查是否空手攻击
+                if (attacker.getInventory().getItemInMainHand().getType() == Material.AIR) {
+                    // 空手攻击敌方，不解除隐身
+                    return;
+                }
                 // 移除隐身效果
                 attacker.removePotionEffect(PotionEffectType.INVISIBILITY);
                 attacker.sendMessage(ChatColor.GOLD + "隐身已解除！");

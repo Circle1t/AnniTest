@@ -25,10 +25,10 @@ public class GameCountdownTask extends BukkitRunnable {
                 ChatColor.GRAY + "你现在可以"+ ChatColor.GOLD + "破坏" + ChatColor.GRAY + "敌方核心"});
 
         PHASE_TITLES.put(3, new String[]{ChatColor.AQUA + "阶段三" + ChatColor.WHITE + "【抢夺/激战】",
-                ChatColor.AQUA + "钻石" + ChatColor.GRAY + "已在中央岛屿生成"});
+                ChatColor.AQUA + "钻石" + ChatColor.GRAY + "已在中央岛屿生成 " + ChatColor.LIGHT_PURPLE + "女巫" + ChatColor.GRAY + "开始出现"});
 
         PHASE_TITLES.put(4, new String[]{ChatColor.AQUA + "阶段四" + ChatColor.WHITE + "【BOSS/酿造】",
-                ChatColor.DARK_PURPLE + "BOSS" + ChatColor.GRAY +"已经生成 你现在可以购买" + ChatColor.DARK_RED + "烈焰粉"});
+                ChatColor.DARK_PURPLE + "BOSS" + ChatColor.GRAY +"已经生成 你现在可以购买" + ChatColor.GOLD + "烈焰粉"});
 
         PHASE_TITLES.put(5, new String[]{ChatColor.AQUA + "阶段五" + ChatColor.WHITE + "【决战/冲锋】",
                 ChatColor.GRAY + "核心挖掘造成"+ChatColor.RED + "双倍" + ChatColor.GRAY + "伤害"});

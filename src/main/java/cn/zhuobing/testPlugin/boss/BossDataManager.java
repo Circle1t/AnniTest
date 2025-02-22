@@ -147,6 +147,13 @@ public class BossDataManager implements Listener {
         bossBar.setVisible(false);
         bossAlive = true;
 
+        // 广播 Boss 生成消息给全服玩家
+        String message = ChatColor.LIGHT_PURPLE + "Boss 已生成！击败Boss将会获得特殊奖励";
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(message);
+            // 播放音效
+            player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0f, 1.0f);
+        }
         // 固定 Boss 位置和攻击逻辑
         boss.setAI(false);
         boss.setRotation(0, 0);

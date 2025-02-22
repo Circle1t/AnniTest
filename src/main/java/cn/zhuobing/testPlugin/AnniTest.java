@@ -34,6 +34,7 @@
 
 package cn.zhuobing.testPlugin;
 
+import cn.zhuobing.testPlugin.anniPlayer.PlayerCommandHandler;
 import cn.zhuobing.testPlugin.anniPlayer.PlayerListener;
 import cn.zhuobing.testPlugin.anniPlayer.PlayerRespawnListener;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
@@ -90,6 +91,7 @@ public class AnniTest extends JavaPlugin {
     private BossDataManager bossDataManager;
     private KitManager kitManager;
     private StoreManager storeManager;
+    private WitchDataManager witchDataManager;
 
     @Override
     public void onEnable() {
@@ -105,7 +107,8 @@ public class AnniTest extends JavaPlugin {
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
         nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager);
-        gameManager = new GameManager(teamManager,null,null);
+        witchDataManager = new WitchDataManager(this,teamManager);
+        gameManager = new GameManager(teamManager,null,null,witchDataManager);
         kitManager = new KitManager(gameManager,teamManager,this);
         oreManager = new OreManager(gameManager,kitManager);
         enchantManager = new EnchantManager();
@@ -125,6 +128,8 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(new CompassCommand(teamManager));
         commandHandlers.add(new BossCommand(bossDataManager, teamManager));
         commandHandlers.add(new StoreCommandHandler(storeManager));
+        commandHandlers.add(new PlayerCommandHandler());
+        commandHandlers.add(new WitchCommandHandler(witchDataManager));
 
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);

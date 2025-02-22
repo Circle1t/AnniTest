@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.game;
 
 import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
+import cn.zhuobing.testPlugin.boss.WitchDataManager;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
@@ -23,13 +24,15 @@ public class GameManager {
     private TeamManager teamManager;
     private BossDataManager bossDataManager;
     private OreManager oreManager;
+    private WitchDataManager witchDataManager;
     private int currentPhase = 0;
     private boolean gameOver = false;
 
-    public GameManager(TeamManager teamManager,BossDataManager bossDataManager,OreManager oreManager) {
+    public GameManager(TeamManager teamManager, BossDataManager bossDataManager, OreManager oreManager, WitchDataManager witchDataManager) {
         this.teamManager = teamManager;
         this.bossDataManager = bossDataManager;
         this.oreManager = oreManager;
+        this.witchDataManager = witchDataManager;
         phaseManager = new GamePhaseManager();
         bossBar = Bukkit.createBossBar(ChatColor.YELLOW + "您正在游玩 核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + "请等待游戏启动...", BarColor.BLUE, BarStyle.SOLID);
         bossBar.setVisible(true);
@@ -99,8 +102,10 @@ public class GameManager {
         if (currentPhase == 4) {
             bossDataManager.spawnBoss();
         }
+        // 阶段 3 时生成女巫，更新钻石
         if(currentPhase == 3) {
             oreManager.updateDiamondBlocks();
+            witchDataManager.startWitchesSpawn();
         }
 
     }
