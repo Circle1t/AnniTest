@@ -39,6 +39,7 @@ import cn.zhuobing.testPlugin.anniPlayer.PlayerRespawnListener;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.*;
 import cn.zhuobing.testPlugin.command.CommandHandler;
+import cn.zhuobing.testPlugin.enchant.BrewingStandListener;
 import cn.zhuobing.testPlugin.enchant.EnchantManager;
 import cn.zhuobing.testPlugin.enchant.EnchantTableListener;
 import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
@@ -143,6 +144,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
         getServer().getPluginManager().registerEvents(new BossStarItem(this),this);
         getServer().getPluginManager().registerEvents(new StoreListener(storeManager,gameManager),this);
+        getServer().getPluginManager().registerEvents(new BrewingStandListener(this),this);
 
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
