@@ -58,6 +58,9 @@ import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.CompassCommand;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.TeamSelectorCommand;
 import cn.zhuobing.testPlugin.specialitem.manager.TeamSelectorManager;
+import cn.zhuobing.testPlugin.store.StoreCommandHandler;
+import cn.zhuobing.testPlugin.store.StoreListener;
+import cn.zhuobing.testPlugin.store.StoreManager;
 import cn.zhuobing.testPlugin.team.TeamChatListener;
 import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
@@ -85,6 +88,7 @@ public class AnniTest extends JavaPlugin {
     private RespawnDataManager respawnDataManager;
     private BossDataManager bossDataManager;
     private KitManager kitManager;
+    private StoreManager storeManager;
 
     @Override
     public void onEnable() {
@@ -107,6 +111,8 @@ public class AnniTest extends JavaPlugin {
         teamSelectorManager = new TeamSelectorManager(teamManager);
         respawnDataManager = new RespawnDataManager(nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
+        storeManager = new StoreManager(this);
+
 
         // 注册命令处理器
         teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager,kitManager);
@@ -117,6 +123,7 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(new TeamSelectorCommand());
         commandHandlers.add(new CompassCommand(teamManager));
         commandHandlers.add(new BossCommand(bossDataManager, teamManager));
+        commandHandlers.add(new StoreCommandHandler(storeManager));
 
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
@@ -135,6 +142,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new WitherSkullListener(bossDataManager),this);
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
         getServer().getPluginManager().registerEvents(new BossStarItem(this),this);
+        getServer().getPluginManager().registerEvents(new StoreListener(storeManager,gameManager),this);
 
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
