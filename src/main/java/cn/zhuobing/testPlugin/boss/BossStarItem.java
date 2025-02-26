@@ -229,15 +229,15 @@ public class BossStarItem implements Listener {
 
     private ItemStack createChainedHelmet() {
         ItemStack helmet = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_HELMET,
-                CHAINED_HELMET_NAME, 1, 2, true);
+                CHAINED_HELMET_NAME, 1, 2, false);
 
         ItemMeta meta = helmet.getItemMeta();
         meta.setLore(Arrays.asList(
                 CHAINED_HELMET_LORE,
                 ChatColor.GOLD + "灵魂绑定 II"
         ));
-        meta.addEnchant(Enchantment.PROTECTION, 3, true);
-
+        meta.addEnchant(Enchantment.PROTECTION, 5, true);
+        meta.addEnchant(Enchantment.UNBREAKING,3,true);
         helmet.setItemMeta(meta);
 
         return helmet;
@@ -328,29 +328,32 @@ public class BossStarItem implements Listener {
 
 
     private ItemStack createChainedChestplate() {
-        ItemStack chestplate = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_CHESTPLATE, CHAINED_CHESTPLATE_NAME, 1, 2, true);
+        ItemStack chestplate = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_CHESTPLATE, CHAINED_CHESTPLATE_NAME, 1, 2, false);
         ItemMeta meta = chestplate.getItemMeta();
         meta.setLore(Arrays.asList(CHAINED_CHESTPLATE_LORE, ChatColor.GOLD + "灵魂绑定 II"));
-        meta.addEnchant(Enchantment.PROTECTION, 3, true);
+        meta.addEnchant(Enchantment.PROTECTION, 5, true);
+        meta.addEnchant(Enchantment.UNBREAKING,3,true);
         chestplate.setItemMeta(meta);
         return chestplate;
     }
 
     private ItemStack createChainedLeggings() {
-        ItemStack leggings = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_LEGGINGS, CHAINED_LEGGINGS_NAME, 1, 2, true);
+        ItemStack leggings = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_LEGGINGS, CHAINED_LEGGINGS_NAME, 1, 2, false);
         ItemMeta meta = leggings.getItemMeta();
         meta.setLore(Arrays.asList(CHAINED_LEGGINGS_LORE, ChatColor.GOLD + "灵魂绑定 II"));
-        meta.addEnchant(Enchantment.PROTECTION, 3, true);
+        meta.addEnchant(Enchantment.PROTECTION, 5, true);
+        meta.addEnchant(Enchantment.UNBREAKING,3,true);
         leggings.setItemMeta(meta);
         return leggings;
     }
 
     private ItemStack createChainedBoots() {
-        ItemStack boots = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_BOOTS, CHAINED_BOOTS_NAME, 1, 2, true);
+        ItemStack boots = SoulBoundUtil.createSoulBoundItem(Material.CHAINMAIL_BOOTS, CHAINED_BOOTS_NAME, 1, 2, false);
         ItemMeta meta = boots.getItemMeta();
         meta.setLore(Arrays.asList(CHAINED_BOOTS_LORE, ChatColor.GOLD + "灵魂绑定 II"));
-        meta.addEnchant(Enchantment.PROTECTION, 3, true);
+        meta.addEnchant(Enchantment.PROTECTION, 5, true);
         meta.addEnchant(Enchantment.FEATHER_FALLING, 4, true);
+        meta.addEnchant(Enchantment.UNBREAKING,3,true);
         boots.setItemMeta(meta);
         return boots;
     }
@@ -358,12 +361,26 @@ public class BossStarItem implements Listener {
     private ItemStack createEfficiencyVGoldPickaxe() {
         ItemStack pickaxe = SoulBoundUtil.createSoulBoundItem(Material.GOLDEN_PICKAXE, EFFICIENCY_V_PICKAXE_NAME, 1, 2, true);
         pickaxe.addUnsafeEnchantment(Enchantment.EFFICIENCY, 5);
+
+        ItemMeta meta = pickaxe.getItemMeta();
+        meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "耐久 X",
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        pickaxe.setItemMeta(meta);
         return pickaxe;
     }
 
     private ItemStack createFortuneIIIIronPickaxe() {
         ItemStack pickaxe = SoulBoundUtil.createSoulBoundItem(Material.IRON_PICKAXE, FORTUNE_III_PICKAXE_NAME, 1, 2, true);
         pickaxe.addUnsafeEnchantment(Enchantment.FORTUNE, 3);
+
+        ItemMeta meta = pickaxe.getItemMeta();
+        meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "耐久 X",
+                ChatColor.GOLD + "灵魂绑定 II"
+        ));
+        pickaxe.setItemMeta(meta);
         return pickaxe;
     }
 

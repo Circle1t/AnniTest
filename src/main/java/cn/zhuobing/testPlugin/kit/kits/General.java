@@ -97,7 +97,8 @@ public class General extends Kit implements Listener {
                 ChatColor.AQUA + "拥有"+ChatColor.RED+"超强"+ChatColor.AQUA+"的初始装备，",
                 ChatColor.AQUA + "吃下“忠橙”获得 10 秒力量 1 效果，",
                 ChatColor.AQUA + "使用“紫蛋”对敌人造成伤害并使其缓慢，",
-                ChatColor.AQUA + "不过肥胖将使你始终拥有缓慢一的效果。",
+                ChatColor.AQUA + "不过肥胖将使你始终拥有缓慢一的效果，",
+                ChatColor.GOLD + "并且将军喝下牛奶后牛奶会被立即蒸发。",
                 " "
         ));
         icon.setItemMeta(meta);
@@ -358,6 +359,23 @@ public class General extends Kit implements Listener {
         for (double i = 0; i < distance; i += 0.5) {
             Location particleLoc = loc1.clone().add(direction.clone().multiply(i));
             world.spawnParticle(Particle.PORTAL, particleLoc, 1, 0, 0, 0, 0);
+        }
+    }
+
+    // 处理玩家喝牛奶事件
+    @EventHandler
+    public void onPlayerDrinkMilk(PlayerItemConsumeEvent event) {
+        Player player = event.getPlayer();
+        ItemStack item = event.getItem();
+        if (item.getType() == Material.MILK_BUCKET && isThisKit(player)) {
+            // 取消事件默认行为，防止清除药水效果
+            event.setCancelled(true);
+            // 将牛奶桶替换为空桶
+            PlayerInventory inventory = player.getInventory();
+            int heldSlot = inventory.getHeldItemSlot();
+            inventory.setItem(heldSlot, new ItemStack(Material.BUCKET));
+            // 提示玩家
+            player.sendMessage(ChatColor.GOLD + "☀ 将军的高温把牛奶蒸发了");
         }
     }
 
