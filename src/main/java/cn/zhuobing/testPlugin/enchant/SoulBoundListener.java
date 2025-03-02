@@ -85,7 +85,14 @@ public class SoulBoundListener implements Listener {
          * @return 如果匹配则返回 true，否则返回 false
          */
         boolean matches(Material mat, String name) {
-            return this.material == mat && Objects.equals(this.displayName, name);
+            if (this.material != mat) {
+                return false;
+            }
+            // 当注册时的displayName为null时，忽略名称检查
+            if (this.displayName == null) {
+                return true;
+            }
+            return Objects.equals(this.displayName, name);
         }
     }
 

@@ -147,8 +147,12 @@ public class General extends Kit implements Listener {
         loyaltyItem = createSoulBoundItem(Material.GLOW_BERRIES, LOYALTY_ITEM_NAME, 1, 3, true);
         kitItems.add(loyaltyItem.clone());
         // 紫蛋
-        purpleEgg = createSoulBoundItem(Material.DRAGON_EGG, PURPLE_EGG_ITEM_NAME, 1, 4, true);
+        purpleEgg = createSoulBoundItem(Material.DRAGON_EGG, null, 1, 4, true);
+        ItemMeta purpleMeta = purpleEgg.getItemMeta();
+        purpleMeta.setDisplayName(PURPLE_EGG_ITEM_NAME); // 设置显示名称
+        purpleEgg.setItemMeta(purpleMeta);
         kitItems.add(purpleEgg.clone());
+
         // 指南针
         compass = CompassItem.createCompass();
         kitItems.add(compass.clone());

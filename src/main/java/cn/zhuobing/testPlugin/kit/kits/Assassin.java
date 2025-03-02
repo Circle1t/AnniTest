@@ -122,7 +122,10 @@ public class Assassin extends Kit implements Listener {
         woodAxe = SoulBoundUtil.createSoulBoundItem(Material.WOODEN_AXE, null, 1, 1, false);
         kitItems.add(woodAxe.clone());
         // 羽毛
-        feather = SoulBoundUtil.createSoulBoundItem(Material.FEATHER, FEATHER_ITEM_NAME, 1, 4, false);
+        feather = SoulBoundUtil.createSoulBoundItem(Material.FEATHER, null, 1, 4, false);
+        ItemMeta itemMeta = feather.getItemMeta();
+        itemMeta.setDisplayName(FEATHER_ITEM_NAME);
+        feather.setItemMeta(itemMeta);
         kitItems.add(feather.clone());
         // 指南针
         kitItems.add(CompassItem.createCompass());

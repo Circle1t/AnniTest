@@ -129,7 +129,10 @@ public class Swapper extends Kit implements Listener {
         kitItems.add(woodShovel.clone());
 
         // 交换者物品
-        swapperItem = createSoulBoundItem(Material.MUSIC_DISC_CAT, SWAPPER_ITEM_NAME, 1, 4, true);
+        swapperItem = createSoulBoundItem(Material.MUSIC_DISC_CAT, null, 1, 4, true);
+        ItemMeta itemMeta = swapperItem.getItemMeta();
+        itemMeta.setDisplayName(SWAPPER_ITEM_NAME);
+        swapperItem.setItemMeta(itemMeta);
         kitItems.add(swapperItem.clone());
 
         // 指南针
