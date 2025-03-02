@@ -168,6 +168,8 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Archer(teamManager,kitManager));
         kitManager.registerKit(new Swapper(teamManager,kitManager));
         kitManager.registerKit(new General(teamManager,kitManager));
+        kitManager.registerKit(new Builder(teamManager,kitManager));
+        kitManager.registerKit(new Dasher(teamManager,kitManager));
     }
 
     @Override

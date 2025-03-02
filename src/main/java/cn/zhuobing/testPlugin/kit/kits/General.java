@@ -227,7 +227,7 @@ public class General extends Kit implements Listener {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
 
-            if (secondsLeft > 0) {
+            if (secondsLeft >= 0) {
                 meta.setDisplayName(PURPLE_EGG_COOLDOWN_PREFIX + secondsLeft + PURPLE_EGG_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(PURPLE_EGG_ITEM_NAME);

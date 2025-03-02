@@ -7,38 +7,27 @@ import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.RayTraceResult;
-import org.bukkit.util.Vector;
 
 import java.util.*;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
-public class Swapper extends Kit implements Listener {
+public class Builder extends Kit implements Listener {
     private final TeamManager teamManager;
     private final KitManager kitManager;
     private List<ItemStack> kitItems = new ArrayList<>();
@@ -47,18 +36,39 @@ public class Swapper extends Kit implements Listener {
     private ItemStack woodPickaxe;
     private ItemStack woodAxe;
     private ItemStack woodShovel;
-    private ItemStack swapperItem;
+    private ItemStack materialBrick;
 
     // 冷却相关字段
     private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int SWAP_COOLDOWN = 20 * 1000; // 20秒冷却
-    private final String SWAPPER_ITEM_NAME = ChatColor.YELLOW + "交换之音 " + ChatColor.GREEN + "准备就绪";
-    private final String SWAPPER_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String SWAPPER_COOLDOWN_SUFFIX = " 秒";
+    private final int OPEN_BOOK_COOLDOWN = 90 * 1000; // 90秒冷却
+    private final String MATERIAL_BOOK_NAME = ChatColor.YELLOW + "材料仓库 " + ChatColor.GREEN + "准备就绪";
+    private final String MATERIAL_BOOK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private final String MATERIAL_BOOK_COOLDOWN_SUFFIX = " 秒";
     private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
 
+    // 放置方块计时
+    private final HashMap<UUID, Long> blockPlaceTimers = new HashMap<>();
 
-    public Swapper(TeamManager teamManager, KitManager kitManager) {
+    // 材料及其最大数量
+    private static final Map<Material, Integer> MATERIAL_MAX_QUANTITIES = new HashMap<>();
+
+    static {
+        MATERIAL_MAX_QUANTITIES.put(Material.GLASS, 20);
+        MATERIAL_MAX_QUANTITIES.put(Material.OAK_SLAB, 20);
+        MATERIAL_MAX_QUANTITIES.put(Material.OAK_PLANKS, 70);
+        MATERIAL_MAX_QUANTITIES.put(Material.OAK_FENCE, 10);
+        MATERIAL_MAX_QUANTITIES.put(Material.TORCH, 5);
+        MATERIAL_MAX_QUANTITIES.put(Material.BRICKS, 40);
+        MATERIAL_MAX_QUANTITIES.put(Material.STONE, 50);
+        MATERIAL_MAX_QUANTITIES.put(Material.WHITE_WOOL, 30);
+        MATERIAL_MAX_QUANTITIES.put(Material.DIRT, 60);
+        MATERIAL_MAX_QUANTITIES.put(Material.IRON_BARS, 10);
+    }
+
+    // 新增 GUI 标题常量
+    private static final String WAREHOUSE_GUI_TITLE = ChatColor.BLACK + "材料仓库";
+
+    public Builder(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
         setUp();
@@ -66,32 +76,32 @@ public class Swapper extends Kit implements Listener {
 
     @Override
     public String getName() {
-        return "交换者";
+        return "建筑师";
     }
 
     @Override
     public String getNameWithColor() {
-        return ChatColor.GREEN + "交换者";
+        return ChatColor.AQUA + "建筑师";
     }
 
     @Override
     public String getDescription() {
-        return "能够与附近的敌人交换位置，每 20 秒可使用一次。交换后敌人会获得 3 秒缓慢 II 效果。交换者是一个适合团队配合的职业，可将敌人拉到有利位置或使自己占据敌人的优势位置。";
+        return "在战火纷飞的世界中，建筑师是那双手能化腐朽为神奇的创造者。自带材料仓库，不断垒砌方块，每 1.5 秒便可收获 2 点经验，助力成长。右键打开材料仓库，虽有冷却，但其中丰富的材料将助你构建起坚不可摧的防线，适用于守家建筑与搭建天桥，是团队坚实的后盾。";
     }
 
     @Override
     public ItemStack getIcon() {
-        ItemStack icon = new ItemStack(Material.MUSIC_DISC_CAT);
+        ItemStack icon = new ItemStack(Material.BRICK);
         ItemMeta meta = icon.getItemMeta();
         meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Swapper",
+                ChatColor.GRAY + "Builder",
                 "",
-                ChatColor.YELLOW + "你是位置的掌控者。",
+                ChatColor.YELLOW + "你是世界的筑梦者，双手能化腐朽为神奇的创造者。",
                 "",
-                ChatColor.AQUA + "每 20 秒可与附近的敌人交换位置，",
-                ChatColor.AQUA + "交换后敌人会获得 3 秒缓慢 II 效果。",
-                ChatColor.AQUA + "适合团队配合，可改变战局。",
+                ChatColor.AQUA + "自带材料仓库，不断放置方块可获经验。",
+                ChatColor.AQUA + "右键书打开仓库，90 秒冷却。",
+                ChatColor.AQUA + "适用于守家建筑与搭建天桥。",
                 " "
         ));
         icon.setItemMeta(meta);
@@ -128,33 +138,47 @@ public class Swapper extends Kit implements Listener {
         woodShovel = createSoulBoundItem(Material.WOODEN_SHOVEL, null, 1, 1, false);
         kitItems.add(woodShovel.clone());
 
-        // 交换者物品
-        swapperItem = createSoulBoundItem(Material.MUSIC_DISC_CAT, null, 1, 4, true);
-        ItemMeta itemMeta = swapperItem.getItemMeta();
-        itemMeta.setDisplayName(SWAPPER_ITEM_NAME);
-        swapperItem.setItemMeta(itemMeta);
-        kitItems.add(swapperItem.clone());
+        // 材料仓库
+        materialBrick = createSoulBoundItem(Material.BRICK, null, 1, 4, true);
+        ItemMeta meta = materialBrick.getItemMeta();
+        meta.setDisplayName(MATERIAL_BOOK_NAME);
+        materialBrick.setItemMeta(meta);
+        kitItems.add(materialBrick.clone());
 
         // 指南针
         kitItems.add(CompassItem.createCompass());
     }
-
 
     @Override
     public List<ItemStack> getKitItems() {
         return kitItems;
     }
 
-    // 执行交换操作
+    // 执行打开仓库操作
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
             Player player = event.getPlayer();
             ItemStack item = event.getItem();
-            if (item != null && isSwapperItem(item) && isThisKit(player)) {
+            if (item != null && isMaterialBrick(item) && isThisKit(player)) {
+                event.setCancelled(true);
                 if (performSpecialAction(player)) {
-                    event.setCancelled(true);
+                    updateMaterialBookItem(player);
                 }
+            }
+        }
+    }
+
+    // 放置方块获取经验
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        if (isThisKit(player)) {
+            UUID playerId = player.getUniqueId();
+            long currentTime = System.currentTimeMillis();
+            if (!blockPlaceTimers.containsKey(playerId) || currentTime - blockPlaceTimers.get(playerId) >= 1500) {
+                player.giveExp(2);
+                blockPlaceTimers.put(playerId, currentTime);
             }
         }
     }
@@ -173,29 +197,29 @@ public class Swapper extends Kit implements Listener {
     }
 
     private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + SWAP_COOLDOWN);
+        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + OPEN_BOOK_COOLDOWN);
         startCooldownCheckTask(player);
-        updateSwapperItem(player);
+        updateMaterialBookItem(player);
     }
 
-    // 统一 isSwapperItem 方法逻辑
-    private boolean isSwapperItem(ItemStack stack) {
-        return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.MUSIC_DISC_CAT);
+    // 统一 isMaterialBook 方法逻辑
+    private boolean isMaterialBrick(ItemStack stack) {
+        return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.BRICK);
     }
 
     // 新增物品更新方法
-    private void updateSwapperItem(Player player) {
+    private void updateMaterialBookItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
 
-        if (isSwapperItem(heldItem) && isThisKit(player)) {
+        if (isMaterialBrick(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
 
             if (secondsLeft >= 0) {
-                meta.setDisplayName(SWAPPER_COOLDOWN_PREFIX + secondsLeft + SWAPPER_COOLDOWN_SUFFIX);
+                meta.setDisplayName(MATERIAL_BOOK_COOLDOWN_PREFIX + secondsLeft + MATERIAL_BOOK_COOLDOWN_SUFFIX);
             } else {
-                meta.setDisplayName(SWAPPER_ITEM_NAME);
+                meta.setDisplayName(MATERIAL_BOOK_NAME);
             }
 
             heldItem.setItemMeta(meta);
@@ -221,11 +245,11 @@ public class Swapper extends Kit implements Listener {
                 if (!isOnCooldown(player)) {
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
                     player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
-                    updateSwapperItemsInInventory(player);
+                    updateMaterialBookItemsInInventory(player);
                     cooldownTasks.remove(player.getUniqueId());
                     this.cancel();
                 } else {
-                    updateSwapperItem(player);
+                    updateMaterialBookItem(player);
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
@@ -233,17 +257,16 @@ public class Swapper extends Kit implements Listener {
         cooldownTasks.put(player.getUniqueId(), task);
     }
 
-    private void updateSwapperItemsInInventory(Player player) {
+    private void updateMaterialBookItemsInInventory(Player player) {
         for (ItemStack item : player.getInventory()) {
-            if (isSwapperItem(item)) {
+            if (isMaterialBrick(item)) {
                 ItemMeta meta = item.getItemMeta();
-                meta.setDisplayName(SWAPPER_ITEM_NAME);
+                meta.setDisplayName(MATERIAL_BOOK_NAME);
                 item.setItemMeta(meta);
             }
         }
         player.updateInventory();
     }
-
 
     private boolean performSpecialAction(Player player) {
         if (isOnCooldown(player)) {
@@ -252,93 +275,44 @@ public class Swapper extends Kit implements Listener {
             return false;
         }
 
-        Player target = getPlayerInSight(player, 15);
-        if (target == null || isSameTeam(player, target)) {
-            //player.sendMessage(ChatColor.RED + "未找到有效目标！");
-            return false;
-        }
-
-        // 获取当前位置
-        Location playerLoc = player.getLocation().clone();
-        Location targetLoc = target.getLocation().clone();
-
-        // 确保交换后视线平视原位置的XZ坐标
-        Location playerNewLoc = targetLoc.clone();
-        Location targetNewLoc = playerLoc.clone();
-
-        // 设置玩家交换后看向原位置XZ坐标的朝向
-        Vector playerToOriginalXZ = new Vector(playerLoc.getX() - targetLoc.getX(), 0, playerLoc.getZ() - targetLoc.getZ());
-        playerNewLoc.setDirection(playerToOriginalXZ);
-
-        // 设置目标玩家交换后看向原位置XZ坐标的朝向
-        Vector targetToOriginalXZ = new Vector(targetLoc.getX() - playerLoc.getX(), 0, targetLoc.getZ() - playerLoc.getZ());
-        targetNewLoc.setDirection(targetToOriginalXZ);
-
-        // 交换位置并设置朝向
-        player.teleport(playerNewLoc);
-        target.teleport(targetNewLoc);
-
-        // 添加缓慢效果
-        target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 3 * 20, 1));
-
-        // 播放交换音效
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
-        target.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
-
-        // 显示粒子效果
-        displayParticleEffect(playerLoc, targetLoc);
-
+        // 打开 GUI
+        openMaterialWarehouse(player);
         startCooldown(player);
         return true;
     }
 
-    private Player getPlayerInSight(Player player, int range) {
-        Location eyeLoc = player.getEyeLocation();
-        // 先进行实体射线追踪，找到可能的目标玩家
-        RayTraceResult entityTrace = player.getWorld().rayTraceEntities(eyeLoc, eyeLoc.getDirection(), range, entity -> entity instanceof Player && !isSameTeam(player, (Player) entity));
-        if (entityTrace == null || !(entityTrace.getHitEntity() instanceof Player)) {
-            return null;
-        }
-        Player target = (Player) entityTrace.getHitEntity();
+    // 新增：打开材料仓库界面
+    private void openMaterialWarehouse(Player player) {
+        Inventory inv = Bukkit.createInventory(player, 27, WAREHOUSE_GUI_TITLE);
 
-        // 再进行方块射线追踪，检查是否有障碍物
-        RayTraceResult blockTrace = player.getWorld().rayTraceBlocks(eyeLoc, eyeLoc.getDirection(), range);
-        if (blockTrace != null) {
-            // 获取方块和目标玩家到玩家的距离
-            double blockDistance = blockTrace.getHitPosition().distance(eyeLoc.toVector());
-            double entityDistance = entityTrace.getHitPosition().distance(eyeLoc.toVector());
-            // 如果方块距离小于目标玩家距离，说明有障碍物，目标不在视线内
-            if (blockDistance < entityDistance) {
-                return null;
-            }
+        // 随机排列材料
+        List<Material> materials = new ArrayList<>(MATERIAL_MAX_QUANTITIES.keySet());
+        Collections.shuffle(materials);
+
+        // 最多选取 6 种材料
+        int materialCount = Math.min(6, materials.size());
+        Random random = new Random();
+        for (int i = 0; i < materialCount; i++) {
+            Material material = materials.get(i);
+            int maxQuantity = MATERIAL_MAX_QUANTITIES.get(material);
+            int quantity = random.nextInt(maxQuantity) + 1;
+
+            ItemStack item = new ItemStack(material, quantity);
+            inv.setItem(i, item);
         }
 
-        return target;
+        player.openInventory(inv);
     }
 
     @EventHandler
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         if (isThisKit(player)) {
-            updateSwapperItem(player);
-        }
-    }
-
-    private boolean isSameTeam(Player p1, Player p2) {
-        return teamManager.getPlayerTeamName(p1).equals(teamManager.getPlayerTeamName(p2));
-    }
-
-    private void displayParticleEffect(Location loc1, Location loc2) {
-        World world = loc1.getWorld();
-        Vector direction = loc2.toVector().subtract(loc1.toVector()).normalize();
-        double distance = loc1.distance(loc2);
-        for (double i = 0; i < distance; i += 0.5) {
-            Location particleLoc = loc1.clone().add(direction.clone().multiply(i));
-            world.spawnParticle(Particle.CLOUD, particleLoc, 1, 0, 0, 0, 0);
+            updateMaterialBookItem(player);
         }
     }
 
     private boolean isThisKit(Player player) {
-        return kitManager.getPlayerKit(player.getUniqueId()) instanceof Swapper;
+        return kitManager.getPlayerKit(player.getUniqueId()) instanceof Builder;
     }
 }

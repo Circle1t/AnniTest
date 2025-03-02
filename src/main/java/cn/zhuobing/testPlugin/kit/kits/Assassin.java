@@ -249,7 +249,7 @@ public class Assassin extends Kit implements Listener {
         if (SoulBoundUtil.isSoulBoundItem(heldItem, Material.FEATHER) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
-            if (secondsLeft > 0) {
+            if (secondsLeft >= 0) {
                 meta.setDisplayName(FEATHER_COOLDOWN_PREFIX + secondsLeft + FEATHER_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(FEATHER_ITEM_NAME);
