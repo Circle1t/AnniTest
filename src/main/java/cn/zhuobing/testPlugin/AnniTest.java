@@ -170,6 +170,8 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new General(teamManager,kitManager));
         kitManager.registerKit(new Builder(teamManager,kitManager));
         kitManager.registerKit(new Dasher(teamManager,kitManager));
+        kitManager.registerKit(new Handyman(teamManager, kitManager, nexusManager, gameManager,nexusInfoBoard));
+        kitManager.registerKit(new Scorpio(teamManager, kitManager));
     }
 
     @Override

@@ -216,7 +216,7 @@ public class Builder extends Kit implements Listener {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
 
-            if (secondsLeft >= 0) {
+            if (isOnCooldown(player)) {
                 meta.setDisplayName(MATERIAL_BOOK_COOLDOWN_PREFIX + secondsLeft + MATERIAL_BOOK_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(MATERIAL_BOOK_NAME);

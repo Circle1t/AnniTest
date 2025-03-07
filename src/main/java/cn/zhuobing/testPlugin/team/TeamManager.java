@@ -173,4 +173,8 @@ public class TeamManager {
         // 为玩家设置计分板
         player.setScoreboard(scoreboard);
     }
+
+    public boolean isSameTeam(Player p1, Player p2) {
+        return getPlayerTeamName(p1).equals(getPlayerTeamName(p2));
+    }
 }

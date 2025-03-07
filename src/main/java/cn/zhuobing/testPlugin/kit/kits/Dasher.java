@@ -193,7 +193,7 @@ public class Dasher extends Kit implements Listener {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
 
-            if (secondsLeft >= 0) {
+            if (isOnCooldown(player)) {
                 meta.setDisplayName(BLINK_COOLDOWN_PREFIX + secondsLeft + BLINK_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(BLINK_ITEM_NAME);

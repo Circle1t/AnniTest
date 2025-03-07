@@ -73,6 +73,32 @@ public class SoulBoundUtil {
     }
 
     /**
+     * 判断物品是否为指定等级的灵魂绑定物品
+     *
+     * @param stack    物品堆栈
+     * @param material 物品材质
+     * @param level    灵魂绑定等级
+     * @return 是否为指定等级的灵魂绑定物品
+     */
+    public static boolean isSoulBoundItem(ItemStack stack, Material material, int level) {
+        if (stack == null || !stack.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (!meta.hasLore()) {
+            return false;
+        }
+        List<String> lore = meta.getLore();
+        String expectedLevelText = "灵魂绑定 " + SoulBoundLevel.fromInt(level).getDisplay();
+        for (String line : lore) {
+            if (ChatColor.stripColor(line).contains(expectedLevelText)) {
+                return stack.getType() == material;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 清除玩家所有灵魂绑定等级为 3或 4 的物品
      *
      * @param player 目标玩家

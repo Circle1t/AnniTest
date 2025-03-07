@@ -192,7 +192,7 @@ public class Swapper extends Kit implements Listener {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
 
-            if (secondsLeft >= 0) {
+            if (isOnCooldown(player)) {
                 meta.setDisplayName(SWAPPER_COOLDOWN_PREFIX + secondsLeft + SWAPPER_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(SWAPPER_ITEM_NAME);
