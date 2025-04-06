@@ -136,6 +136,9 @@ public class NexusListener implements Listener {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if(!teamManager.isInTeam(player)){
+                continue;
+            }
             double distance = player.getLocation().distance(nexusLocation);
             if (distance <= MAX_DISTANCE) {
                 // 距离核心 15 格范围内，播放音调不同的铁砧放置声，音量随距离衰减

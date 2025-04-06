@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.boss;
 
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.AnniConfig;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -45,12 +46,12 @@ public class BossDataManager implements Listener {
     private final Set<UUID> bossPlayers = new HashSet<>(); // 储存进入 boss 点的玩家
     private final GameManager gameManager;
     private final TeamManager teamManager;
+    private String mapFolderName;
 
     public BossDataManager(Plugin plugin, GameManager gameManager, TeamManager teamManager) {
         this.plugin = plugin;
         this.gameManager = gameManager; // 初始化 GameManager
         this.teamManager = teamManager;
-        loadConfig();
         this.bossBar = Bukkit.createBossBar(ChatColor.RED + "凋零 Boss", BarColor.RED, BarStyle.SOLID);
         bossBar.setVisible(false);
         // 设置 gameManager 中的 BossDataManager
@@ -58,12 +59,21 @@ public class BossDataManager implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    private void loadConfig() {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
+    public void loadConfig(String mapFolderName, World world) {
+        this.mapFolderName = mapFolderName;
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
         }
-        configFile = new File(dataFolder, "boss-config.yml");
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "boss-config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
@@ -73,11 +83,11 @@ public class BossDataManager implements Listener {
         }
         config = YamlConfiguration.loadConfiguration(configFile);
 
-        // 加载队伍 Boss 点和 Boss 生成位置
         if (config.contains("boss")) {
             for (String teamName : config.getConfigurationSection("boss").getKeys(false)) {
                 Location location = config.getLocation("boss." + teamName);
                 if (location != null) {
+                    location.setWorld(world);
                     teamBossLocations.put(teamName, location);
                 }
             }
@@ -85,7 +95,21 @@ public class BossDataManager implements Listener {
     }
 
     public void saveConfig() {
-        config.set("boss", null); // 清空原有数据
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "boss-config.yml");
+
+        config.set("boss", null);
         for (Map.Entry<String, Location> entry : teamBossLocations.entrySet()) {
             config.set("boss." + entry.getKey(), entry.getValue());
         }

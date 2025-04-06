@@ -1,16 +1,13 @@
 package cn.zhuobing.testPlugin.boss;
 
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.AnniConfig;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Witch;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,30 +22,36 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class WitchDataManager implements Listener{
+public class WitchDataManager implements Listener {
     private final Map<String, Location> teamWitchLocations = new HashMap<>();
     private final Map<UUID, Witch> activeWitches = new HashMap<>();
     private final Map<UUID, String> witchTeamMapping = new HashMap<>();
     private final Plugin plugin;
     private File configFile;
     private FileConfiguration config;
-    private final TeamManager teamManager;
+    private String mapFolderName;
 
     public WitchDataManager(Plugin plugin, TeamManager teamManager) {
         this.plugin = plugin;
-        this.teamManager = teamManager;
-        loadConfig();
-
         // 注册事件监听器
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    private void loadConfig() {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
+    public void loadConfig(String mapFolderName, World world) {
+        this.mapFolderName = mapFolderName;
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
         }
-        configFile = new File(dataFolder, "witch-config.yml");
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "witch-config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
@@ -62,6 +65,7 @@ public class WitchDataManager implements Listener{
             for (String teamName : config.getConfigurationSection("witch").getKeys(false)) {
                 Location location = config.getLocation("witch." + teamName);
                 if (location != null) {
+                    location.setWorld(world);
                     teamWitchLocations.put(teamName, location);
                 }
             }
@@ -69,6 +73,20 @@ public class WitchDataManager implements Listener{
     }
 
     public void saveConfig() {
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "witch-config.yml");
+
         config.set("witch", null);
         for (Map.Entry<String, Location> entry : teamWitchLocations.entrySet()) {
             config.set("witch." + entry.getKey(), entry.getValue());
@@ -79,7 +97,6 @@ public class WitchDataManager implements Listener{
             e.printStackTrace();
         }
     }
-
     public void setWitchLocation(String teamName, Location location) {
         teamWitchLocations.put(teamName, location);
         saveConfig();

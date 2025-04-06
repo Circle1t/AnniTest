@@ -36,10 +36,10 @@ public class OreManager {
         TOOL_LEVELS.put(Material.NETHERITE_PICKAXE, 6);
     }
 
-    public OreManager(GameManager gameManager, KitManager kitManager) {
+    public OreManager(GameManager gameManager, DiamondDataManager diamondDataManager,KitManager kitManager) {
         this.gameManager = gameManager;
         this.kitManager = kitManager;
-        this.diamondDataManager = new DiamondDataManager(AnniTest.getInstance());
+        this.diamondDataManager = diamondDataManager;
         startCoolDownCheckTask();
         updateDiamondBlocks(); // 加载完配置后更新钻石块状态
 

@@ -71,10 +71,16 @@ public class CompassListener implements Listener {
 
         if (targetLocation != null) {
             player.setCompassTarget(targetLocation);
-            double distance = player.getLocation().distance(targetLocation);
-            ChatColor teamColor = teamManager.getTeamColor(targetTeam);
-            String message = ChatColor.GOLD + "距离 " + teamColor + teamManager.getEnglishToChineseMap().get(targetTeam) + "队" + ChatColor.GOLD + " 核心: " + teamColor + String.format("%.0f", distance) + ChatColor.GOLD + " 米";
-            MessageUtil.sendActionBarMessage(player, message);
+            Location playerLocation = player.getLocation();
+            if (playerLocation.getWorld() != null && targetLocation.getWorld() != null && playerLocation.getWorld().equals(targetLocation.getWorld())) {
+                double distance = playerLocation.distance(targetLocation);
+                ChatColor teamColor = teamManager.getTeamColor(targetTeam);
+                String message = ChatColor.GOLD + "距离 " + teamColor + teamManager.getEnglishToChineseMap().get(targetTeam) + "队" + ChatColor.GOLD + " 核心: " + teamColor + String.format("%.0f", distance) + ChatColor.GOLD + " 米";
+                MessageUtil.sendActionBarMessage(player, message);
+            }
+//            else {
+//                player.sendMessage(ChatColor.RED + "目标核心与你不在同一世界，无法计算距离！");
+//            }
         } else {
             player.sendMessage(ChatColor.RED + "未找到 " + teamManager.getEnglishToChineseMap().get(targetTeam) + "队 的核心位置！");
         }

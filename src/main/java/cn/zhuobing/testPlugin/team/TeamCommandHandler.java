@@ -118,6 +118,12 @@ public class TeamCommandHandler implements CommandHandler {
             return true;
         }
 
+        // 检查队伍选择是否开放
+        if (!gameManager.isTeamSelectionOpen() && currentPhase == 0) {
+            player.sendMessage(ChatColor.RED + "请等待地图确定");
+            return true;
+        }
+
         String teamName = args[0].toLowerCase();
         Map<String, ChatColor> teamColors = teamManager.getTeamColors();
         Scoreboard scoreboard = teamManager.getScoreboard();

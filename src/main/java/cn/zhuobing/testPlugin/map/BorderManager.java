@@ -1,5 +1,6 @@
 package cn.zhuobing.testPlugin.map;
 
+import cn.zhuobing.testPlugin.utils.AnniConfig;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -11,23 +12,32 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapManager {
+public class BorderManager {
     private final List<Location> mapBorders = new ArrayList<>();
     private final Plugin plugin;
     private File configFile;
     private FileConfiguration config;
+    private String mapFolderName;
 
-    public MapManager(Plugin plugin) {
+    public BorderManager(Plugin plugin) {
         this.plugin = plugin;
-        loadConfig();
     }
 
-    private void loadConfig() {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
+    public void loadConfig(String mapFolderName, World world) {
+        this.mapFolderName = mapFolderName;
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
         }
-        configFile = new File(dataFolder, "map-config.yml");
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "border-config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
@@ -41,6 +51,7 @@ public class MapManager {
             for (String key : config.getConfigurationSection("map.borders").getKeys(false)) {
                 Location border = config.getLocation("map.borders." + key);
                 if (border != null) {
+                    border.setWorld(world);
                     mapBorders.add(border);
                 }
             }
@@ -48,6 +59,20 @@ public class MapManager {
     }
 
     public void saveConfig() {
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "border-config.yml");
+
         config.set("map.borders", null);
         for (int i = 0; i < mapBorders.size(); i++) {
             config.set("map.borders.border" + (i + 1), mapBorders.get(i));

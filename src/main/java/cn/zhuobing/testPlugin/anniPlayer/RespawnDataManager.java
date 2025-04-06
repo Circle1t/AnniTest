@@ -1,8 +1,11 @@
 package cn.zhuobing.testPlugin.anniPlayer;
 
+import cn.zhuobing.testPlugin.map.LobbyManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
+import cn.zhuobing.testPlugin.utils.AnniConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -24,20 +27,31 @@ public class RespawnDataManager {
     private final Plugin plugin;
     private File configFile;
     private FileConfiguration config;
+    private LobbyManager lobbyManager;
     private NexusManager nexusManager;
+    private String mapFolderName;
 
-    public RespawnDataManager(NexusManager nexusManager, Plugin plugin) {
+    public RespawnDataManager(LobbyManager lobbyManager, NexusManager nexusManager, Plugin plugin) {
         this.plugin = plugin;
+        this.lobbyManager = lobbyManager;
         this.nexusManager = nexusManager;
-        loadConfig();
     }
 
-    private void loadConfig() {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
+    public void loadConfig(String mapFolderName, World world) {
+        this.mapFolderName = mapFolderName;
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
         }
-        configFile = new File(dataFolder, "respawn-config.yml");
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "respawn-config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
@@ -52,6 +66,7 @@ public class RespawnDataManager {
                 for (String key : config.getConfigurationSection("team.respawnLocations." + teamName).getKeys(false)) {
                     Location location = config.getLocation("team.respawnLocations." + teamName + "." + key);
                     if (location != null) {
+                        location.setWorld(world);
                         locations.add(location);
                     }
                 }
@@ -61,6 +76,20 @@ public class RespawnDataManager {
     }
 
     public void saveConfig() {
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "respawn-config.yml");
+
         config.set("team.respawnLocations", null);
         for (Map.Entry<String, Set<Location>> entry : teamRespawnLocations.entrySet()) {
             String teamName = entry.getKey();
@@ -116,11 +145,12 @@ public class RespawnDataManager {
      * @param event 玩家重生事件，可以为 null
      */
     public void handlePlayerRespawn(Player player, String teamName, PlayerRespawnEvent event) {
-        String targetTeam = teamName != null ? teamName : "lobby";
-        if(!targetTeam.equalsIgnoreCase("lobby") && nexusManager.getNexusHealth(teamName) <= 0) {
-            targetTeam = "lobby";
+        if (teamName == null || nexusManager.getNexusHealth(teamName) <= 0) {
+            // 改为使用LobbyManager处理
+            event.setRespawnLocation(lobbyManager.getRandomRespawn());
+            return;
         }
-        Set<Location> respawnLocations = getRespawnLocations(targetTeam);
+        Set<Location> respawnLocations = getRespawnLocations(teamName);
         if (respawnLocations.isEmpty()) {
             return;
         }

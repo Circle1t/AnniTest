@@ -6,6 +6,9 @@ commands:
   team:
     description: 队伍相关指令/团队重生点相关指令[respawn使用示例 /team respawn red或lobby 可以添加多个重生点]
     usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawncancel>
+  lobby:
+    description: 大厅 <respawn设置重生点>
+    usage: /lobby <respawn>
   nexus:
     description: 管理队伍核心
     usage: /nexus <set/sethealth/setborder/remove/save>

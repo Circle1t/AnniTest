@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerPortalEvent;
 
@@ -31,7 +32,7 @@ public class HellPortalListener implements Listener {
         this.kitManager = kitManager;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerPortal(PlayerPortalEvent event) {
         if (event.getCause() == org.bukkit.event.player.PlayerPortalEvent.TeleportCause.NETHER_PORTAL) {
             Player player = event.getPlayer();
@@ -50,10 +51,10 @@ public class HellPortalListener implements Listener {
                 String nearestNexusTeam = getNearestNexusTeam(player.getLocation());
                 if (nearestNexusTeam != null && nearestNexusTeam.equals(playerTeam)) {
                     respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
-                    // 延迟 2 tick 后打开职业选择界面
+                    // 延迟 1 tick 后打开职业选择界面
                     Bukkit.getScheduler().runTaskLater(AnniTest.getInstance(), () -> {
                         kitManager.openKitSelection(player);
-                    }, 2L);
+                    }, 1L);
                 }
             }
             event.setCancelled(true); // 取消默认的地狱门传送事件

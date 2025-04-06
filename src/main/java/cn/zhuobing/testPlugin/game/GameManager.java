@@ -3,11 +3,14 @@ package cn.zhuobing.testPlugin.game;
 import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.boss.WitchDataManager;
+import cn.zhuobing.testPlugin.map.MapSelectManager;
+import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -17,6 +20,7 @@ import java.util.Map;
 
 public class GameManager {
     private final GamePhaseManager phaseManager;
+    private MapSelectManager mapSelectManager;
     private int remainingTime;
     private BossBar bossBar;
     private boolean gameStarted = false;
@@ -25,14 +29,20 @@ public class GameManager {
     private BossDataManager bossDataManager;
     private OreManager oreManager;
     private WitchDataManager witchDataManager;
+    private NexusInfoBoard nexusInfoBoard;
     private int currentPhase = 0;
     private boolean gameOver = false;
+    private boolean teamSelectionOpen = false;
+    private int halfTime;
 
-    public GameManager(TeamManager teamManager, BossDataManager bossDataManager, OreManager oreManager, WitchDataManager witchDataManager) {
+    public GameManager(TeamManager teamManager, MapSelectManager mapSelectManager,
+                       BossDataManager bossDataManager, OreManager oreManager, WitchDataManager witchDataManager, NexusInfoBoard nexusInfoBoard) {
         this.teamManager = teamManager;
+        this.mapSelectManager = mapSelectManager;
         this.bossDataManager = bossDataManager;
         this.oreManager = oreManager;
         this.witchDataManager = witchDataManager;
+        this.nexusInfoBoard = nexusInfoBoard;
         phaseManager = new GamePhaseManager();
         bossBar = Bukkit.createBossBar(ChatColor.YELLOW + "您正在游玩 核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + "请等待游戏启动...", BarColor.BLUE, BarStyle.SOLID);
         bossBar.setVisible(true);
@@ -41,6 +51,7 @@ public class GameManager {
         }
 
         remainingTime = phaseManager.getPhase(currentPhase).getDuration();
+        halfTime = remainingTime / 2; // 计算倒计时一半的时间
     }
 
     public void startGame() {
@@ -71,7 +82,22 @@ public class GameManager {
         // 设置标题和时间显示
         String timeFormat = "%02d:%02d";
         String timeDisplay = String.format(timeFormat, remainingTime / 60, remainingTime % 60);
-        bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + phase.getName() + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
+
+        // 检查是否到达一半时间，开放队伍选择
+        if (phaseIndex == 0 && remainingTime < halfTime) {
+            teamSelectionOpen = true;
+            bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.GREEN + "请选择你的队伍" + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
+        }else if(phaseIndex == 0 && remainingTime < halfTime + 4) {
+            if(remainingTime == halfTime) {
+                // 地图确定，禁止投票
+                bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.LIGHT_PURPLE + "地图已锁定" + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
+                mapSelectManager.lockVoting();
+            }else {
+                bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.RED + "地图即将锁定..." + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
+            }
+        } else{
+            bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + phase.getName() + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
+        }
         bossBar.setColor(phase.getColor()); // 使用当前阶段的颜色
     }
 
@@ -94,9 +120,21 @@ public class GameManager {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 2.0F, 2.0F);
         }
 
-        // 当游戏进入阶段 1 时，杀死所有选择了队伍的玩家
+        // 当游戏进入阶段 1 时，杀死所有选择了队伍的玩家，并将他们传送到票数最高的地图
         if (currentPhase == 1) {
-            killPlayersInTeams();
+            String highestVotedMap = mapSelectManager.getHighestVotedMap();
+            if (highestVotedMap != null) {
+                World gameWorld = Bukkit.getWorld(highestVotedMap);
+                if (gameWorld != null) {
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (teamManager.isInTeam(player)) {
+                            player.teleport(gameWorld.getSpawnLocation());
+                            player.setHealth(0);
+                        }
+                    }
+                }
+            }
+            nexusInfoBoard.updateInfoBoard();
         }
         // 当游戏进入阶段 4 时, 出现boss
         if (currentPhase == 4) {
@@ -108,6 +146,10 @@ public class GameManager {
             witchDataManager.startWitchesSpawn();
         }
 
+    }
+
+    public boolean isTeamSelectionOpen() {
+        return teamSelectionOpen;
     }
 
     public BossBar getBossBar() {
@@ -163,5 +205,13 @@ public class GameManager {
 
     public void setOreManager(OreManager oreManager){
         this.oreManager = oreManager;
+    }
+
+    public void setMapSelectManager(MapSelectManager mapSelectManager) {
+        this.mapSelectManager = mapSelectManager;
+    }
+
+    public void setNexusInfoBoard(NexusInfoBoard nexusInfoBoard) {
+        this.nexusInfoBoard = nexusInfoBoard;
     }
 }

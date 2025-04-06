@@ -1,9 +1,7 @@
 package cn.zhuobing.testPlugin.store;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import cn.zhuobing.testPlugin.utils.AnniConfig;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -28,6 +26,7 @@ public class StoreManager {
     private final List<Location> weaponSignLocations;
     private final LinkedHashMap<Material, String> itemDisplayNames;
     private boolean isPhase4 = false; // 是否进入阶段四
+    private String mapFolderName;
 
     public StoreManager(Plugin plugin) {
         this.plugin = plugin;
@@ -37,7 +36,6 @@ public class StoreManager {
         this.weaponSignLocations = new ArrayList<>();
         this.itemDisplayNames = new LinkedHashMap<>();
         initializeItems();
-        loadConfig();
     }
 
     public void setPhase4(boolean isPhase4) {
@@ -86,8 +84,21 @@ public class StoreManager {
         itemDisplayNames.put(material, displayName);
     }
 
-    private void loadConfig() {
-        configFile = new File(plugin.getDataFolder(), "store-config.yml");
+    public void loadConfig(String mapFolderName, World world) {
+        this.mapFolderName = mapFolderName;
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "store-config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.getParentFile().mkdirs();
@@ -101,23 +112,42 @@ public class StoreManager {
             }
         }
         config = YamlConfiguration.loadConfiguration(configFile);
-        loadBrewSignLocations();
-        loadWeaponSignLocations();
+        loadBrewSignLocations(world);
+        loadWeaponSignLocations(world);
     }
 
-    private void loadBrewSignLocations() {
+    private void saveConfig() {
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "store-config.yml");
+        try {
+            config.save(configFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void loadBrewSignLocations(World world) {
         List<String> locations = config.getStringList("brew-signs");
         brewSignLocations.clear();
 
         for (String locStr : locations) {
             try {
                 String[] parts = locStr.split(",");
-                String worldName = parts[0];
                 Location loc = new Location(
-                        Bukkit.getWorld(worldName),
+                        world,
+                        Double.parseDouble(parts[0]),
                         Double.parseDouble(parts[1]),
-                        Double.parseDouble(parts[2]),
-                        Double.parseDouble(parts[3])
+                        Double.parseDouble(parts[2])
                 );
 
                 brewSignLocations.add(loc);
@@ -127,19 +157,18 @@ public class StoreManager {
         }
     }
 
-    private void loadWeaponSignLocations() {
+    private void loadWeaponSignLocations(World world) {
         List<String> locations = config.getStringList("weapon-signs");
         weaponSignLocations.clear();
 
         for (String locStr : locations) {
             try {
                 String[] parts = locStr.split(",");
-                String worldName = parts[0];
                 Location loc = new Location(
-                        Bukkit.getWorld(worldName),
+                        world,
+                        Double.parseDouble(parts[0]),
                         Double.parseDouble(parts[1]),
-                        Double.parseDouble(parts[2]),
-                        Double.parseDouble(parts[3])
+                        Double.parseDouble(parts[2])
                 );
 
                 weaponSignLocations.add(loc);
@@ -327,14 +356,6 @@ public class StoreManager {
                 .toList();
         config.set("weapon-signs", locations);
         saveConfig();
-    }
-
-    private void saveConfig() {
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public boolean isBrewSignLocation(Location location) {

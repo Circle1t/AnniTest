@@ -1,5 +1,6 @@
 package cn.zhuobing.testPlugin.nexus;
 
+import cn.zhuobing.testPlugin.utils.AnniConfig;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -21,20 +22,27 @@ public class NexusManager {
     private final Plugin plugin;
     private File configFile;
     private FileConfiguration config;
+    private String mapFolderName;
 
     public NexusManager(Plugin plugin) {
         this.plugin = plugin;
-        loadConfig();
     }
 
-    private void loadConfig() {
-        // 获取插件数据文件夹
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
+    public void loadConfig(String mapFolderName, World world) {
+        this.mapFolderName = mapFolderName;
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
         }
-        // 创建配置文件
-        configFile = new File(dataFolder, "nexus-config.yml");
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "nexus-config.yml");
         if (!configFile.exists()) {
             try {
                 configFile.createNewFile();
@@ -42,54 +50,69 @@ public class NexusManager {
                 e.printStackTrace();
             }
         }
-        // 加载配置文件
         config = YamlConfiguration.loadConfiguration(configFile);
-        // 加载核心位置
+
         if (config.contains("nexus.locations")) {
             for (String teamName : config.getConfigurationSection("nexus.locations").getKeys(false)) {
                 Location location = config.getLocation("nexus.locations." + teamName);
-                teamNexusLocations.put(teamName, location);
-                // 将核心位置的方块替换为末地石
-                if (location != null) {
-                    World world = location.getWorld();
-                    if (world != null) {
-                        world.getBlockAt(location).setType(Material.END_STONE);
-                    }
+                if (world == null) {
+                    plugin.getLogger().warning("未获取到游戏地图world！");
+                    return;
                 }
+                if (location != null) {
+                    location.setWorld(world);
+                }
+                teamNexusLocations.put(teamName, location);
+                world.getBlockAt(location).setType(Material.END_STONE);
+
             }
         }
-        // 加载核心血量
         if (config.contains("nexus.health")) {
             for (String teamName : config.getConfigurationSection("nexus.health").getKeys(false)) {
                 int health = config.getInt("nexus.health." + teamName);
                 teamNexusHealth.put(teamName, health);
             }
         }
-        // 加载保护区域
         if (config.contains("nexus.borders")) {
             for (String team : config.getConfigurationSection("nexus.borders").getKeys(false)) {
                 Location first = config.getLocation("nexus.borders." + team + ".first");
                 Location second = config.getLocation("nexus.borders." + team + ".second");
-                if (first != null) borderFirst.put(team, first);
-                if (second != null) borderSecond.put(team, second);
+                if (first == null || second == null) {
+                    break;
+                }
+                first.setWorld(world);
+                second.setWorld(world);
+                borderFirst.put(team, first);
+                borderSecond.put(team, second);
             }
         }
     }
 
     public void saveConfig() {
-        // 保存核心位置
+        File mapsFolder = new File(plugin.getDataFolder(), "maps");
+        if (!mapsFolder.exists()) {
+            mapsFolder.mkdirs();
+        }
+        File mapFolder = new File(mapsFolder, mapFolderName);
+        if (!mapFolder.exists()) {
+            mapFolder.mkdirs();
+        }
+        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        if (!configFolder.exists()) {
+            configFolder.mkdirs();
+        }
+        configFile = new File(configFolder, "nexus-config.yml");
+
         for (Map.Entry<String, Location> entry : teamNexusLocations.entrySet()) {
             String teamName = entry.getKey();
             Location location = entry.getValue();
             config.set("nexus.locations." + teamName, location);
         }
-        // 保存核心血量
         for (Map.Entry<String, Integer> entry : teamNexusHealth.entrySet()) {
             String teamName = entry.getKey();
             int health = entry.getValue();
             config.set("nexus.health." + teamName, health);
         }
-        // 保存保护区域
         for (String team : borderFirst.keySet()) {
             config.set("nexus.borders." + team + ".first", borderFirst.get(team));
         }
@@ -97,7 +120,6 @@ public class NexusManager {
             config.set("nexus.borders." + team + ".second", borderSecond.get(team));
         }
         try {
-            // 保存配置文件
             config.save(configFile);
         } catch (IOException e) {
             e.printStackTrace();

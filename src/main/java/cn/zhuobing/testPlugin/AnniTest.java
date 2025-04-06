@@ -47,9 +47,8 @@ import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
-import cn.zhuobing.testPlugin.map.MapCommandHandler;
-import cn.zhuobing.testPlugin.map.MapListener;
-import cn.zhuobing.testPlugin.map.MapManager;
+import cn.zhuobing.testPlugin.map.*;
+import cn.zhuobing.testPlugin.ore.DiamondDataManager;
 import cn.zhuobing.testPlugin.specialitem.listener.*;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.*;
@@ -62,6 +61,7 @@ import cn.zhuobing.testPlugin.ore.OreBreakListener;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.CompassCommand;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.TeamSelectorCommand;
+import cn.zhuobing.testPlugin.specialitem.manager.MapSelectorManager;
 import cn.zhuobing.testPlugin.specialitem.manager.TeamSelectorManager;
 import cn.zhuobing.testPlugin.store.StoreCommandHandler;
 import cn.zhuobing.testPlugin.store.StoreListener;
@@ -82,11 +82,13 @@ public class AnniTest extends JavaPlugin {
     private static AnniTest instance;
 
     private final List<CommandHandler> commandHandlers = new ArrayList<>();
+    private LobbyManager lobbyManager;
     private TeamManager teamManager;
     private NexusManager nexusManager;
     private NexusInfoBoard nexusInfoBoard;
     private GameManager gameManager;
     private OreManager oreManager;
+    private DiamondDataManager diamondDataManager;
     private EnchantManager enchantManager;
     private TeamSelectorManager teamSelectorManager;
     private TeamCommandHandler teamCommandHandler;
@@ -95,7 +97,9 @@ public class AnniTest extends JavaPlugin {
     private KitManager kitManager;
     private StoreManager storeManager;
     private WitchDataManager witchDataManager;
-    private MapManager mapManager;
+    private MapSelectorManager mapSelectorManager;
+    private MapSelectManager mapSelectManager;
+    private BorderManager borderManager;
 
     @Override
     public void onEnable() {
@@ -107,23 +111,29 @@ public class AnniTest extends JavaPlugin {
             world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
         });
 
+        getLogger().info("初始化核心数据管理类...");
         // 初始化核心数据管理类
+        lobbyManager = new LobbyManager(this);
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
-        nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager);
         witchDataManager = new WitchDataManager(this,teamManager);
-        gameManager = new GameManager(teamManager,null,null,witchDataManager);
+        gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null);
+        nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager,gameManager,null);
         kitManager = new KitManager(gameManager,teamManager,this);
-        oreManager = new OreManager(gameManager,kitManager);
+        diamondDataManager = new DiamondDataManager(this);
+        oreManager = new OreManager(gameManager,diamondDataManager,kitManager);
         enchantManager = new EnchantManager();
         teamSelectorManager = new TeamSelectorManager(teamManager);
-        respawnDataManager = new RespawnDataManager(nexusManager,this);
+        respawnDataManager = new RespawnDataManager(lobbyManager,nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager);
         storeManager = new StoreManager(this);
-        mapManager = new MapManager(this);
+        borderManager = new BorderManager(this);
+        mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
+        mapSelectorManager = new MapSelectorManager(mapSelectManager);
 
-
+        getLogger().info("注册命令处理器...");
         // 注册命令处理器
+        commandHandlers.add(new LobbyCommandHandler(lobbyManager));
         teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager,kitManager);
         commandHandlers.add(teamCommandHandler);
         commandHandlers.add(new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager));
@@ -135,12 +145,13 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(new StoreCommandHandler(storeManager));
         commandHandlers.add(new PlayerCommandHandler());
         commandHandlers.add(new WitchCommandHandler(witchDataManager));
-        commandHandlers.add(new MapCommandHandler(mapManager));
+        commandHandlers.add(new MapCommandHandler(borderManager));
 
+        getLogger().info("注册事件监听器...");
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager), this);
-        getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager), this);
+        getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager,teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager,this), this);
         getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new EnchantTableListener(enchantManager), this);
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
@@ -156,8 +167,11 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BossStarItem(this),this);
         getServer().getPluginManager().registerEvents(new StoreListener(storeManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BrewingStandListener(this),this);
-        getServer().getPluginManager().registerEvents(new MapListener(mapManager),this);
+        getServer().getPluginManager().registerEvents(new MapSelectorListener(mapSelectorManager,mapSelectManager),this);
+        getServer().getPluginManager().registerEvents(new LobbyListener(lobbyManager),this);
+        getServer().getPluginManager().registerEvents(new BorderListener(borderManager,mapSelectManager),this);
 
+        getLogger().info("注册职业...");
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
         kitManager.registerKit(new Scout(teamManager));
@@ -172,7 +186,35 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Dasher(teamManager,kitManager));
         kitManager.registerKit(new Handyman(teamManager, kitManager, nexusManager, gameManager,nexusInfoBoard));
         kitManager.registerKit(new Scorpio(teamManager, kitManager));
+
+
+        // 初始化完成后加载大厅世界
+        if (lobbyManager.getLobbyWorld() == null) {
+            getLogger().severe("大厅地图加载失败！");
+        }else{
+            getLogger().info("大厅地图加载成功！");
+        }
+
+        getLogger().info("AnniTest 插件初始化完成！");
     }
+
+    @Override
+    public void onDisable() {
+        getLogger().info("AnniTest 插件正在关闭，开始卸载游戏地图副本和大厅副本...");
+
+        // 卸载游戏地图副本
+        if (mapSelectManager != null) {
+            mapSelectManager.unloadGameWorld();
+        }
+        // 卸载大厅副本
+        if (lobbyManager != null) {
+            lobbyManager.unloadLobbyWorld();
+        }
+
+
+        getLogger().info("大厅副本和游戏地图副本卸载完成，AnniTest 插件已关闭。");
+    }
+
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -188,4 +230,8 @@ public class AnniTest extends JavaPlugin {
         return instance;
     }
 
+    // 获取大厅管理器
+    public LobbyManager getLobbyManager() {
+        return lobbyManager;
+    }
 }

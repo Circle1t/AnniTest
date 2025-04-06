@@ -8,10 +8,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class MapCommandHandler implements CommandHandler {
-    private final MapManager mapManager;
+    private final BorderManager borderManager;
 
-    public MapCommandHandler(MapManager mapManager) {
-        this.mapManager = mapManager;
+    public MapCommandHandler(BorderManager borderManager) {
+        this.borderManager = borderManager;
     }
 
     @Override
@@ -50,7 +50,7 @@ public class MapCommandHandler implements CommandHandler {
             }
 
             Location targetBlockLocation = player.getTargetBlockExact(5).getLocation();
-            mapManager.setBorder(borderNumber, targetBlockLocation);
+            borderManager.setBorder(borderNumber, targetBlockLocation);
             player.sendMessage(ChatColor.GREEN + "已设置边界 " + borderNumber + "！");
         } catch (NumberFormatException e) {
             player.sendMessage(ChatColor.RED + "边界编号必须是整数！");
