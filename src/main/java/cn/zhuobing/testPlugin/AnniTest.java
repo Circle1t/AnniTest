@@ -61,6 +61,7 @@ import cn.zhuobing.testPlugin.ore.OreBreakListener;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.CompassCommand;
 import cn.zhuobing.testPlugin.specialitem.itemCommand.TeamSelectorCommand;
+import cn.zhuobing.testPlugin.specialitem.manager.MapConfigurerManager;
 import cn.zhuobing.testPlugin.specialitem.manager.MapSelectorManager;
 import cn.zhuobing.testPlugin.specialitem.manager.TeamSelectorManager;
 import cn.zhuobing.testPlugin.store.StoreCommandHandler;
@@ -100,16 +101,13 @@ public class AnniTest extends JavaPlugin {
     private MapSelectorManager mapSelectorManager;
     private MapSelectManager mapSelectManager;
     private BorderManager borderManager;
+    private MapConfigurerManager mapConfigurerManager;
 
     @Override
     public void onEnable() {
         instance = this;
         getLogger().info("AnniTest 插件启动");
 
-        // 禁用成就提示广播
-        Bukkit.getWorlds().forEach(world -> {
-            world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
-        });
 
         getLogger().info("初始化核心数据管理类...");
         // 初始化核心数据管理类
@@ -130,6 +128,7 @@ public class AnniTest extends JavaPlugin {
         borderManager = new BorderManager(this);
         mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
+        mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
 
         getLogger().info("注册命令处理器...");
         // 注册命令处理器
@@ -145,7 +144,7 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(new StoreCommandHandler(storeManager));
         commandHandlers.add(new PlayerCommandHandler());
         commandHandlers.add(new WitchCommandHandler(witchDataManager));
-        commandHandlers.add(new MapCommandHandler(borderManager));
+        commandHandlers.add(new MapCommandHandler(borderManager,lobbyManager,mapSelectManager));
 
         getLogger().info("注册事件监听器...");
         // 注册事件监听器
@@ -170,6 +169,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MapSelectorListener(mapSelectorManager,mapSelectManager),this);
         getServer().getPluginManager().registerEvents(new LobbyListener(lobbyManager),this);
         getServer().getPluginManager().registerEvents(new BorderListener(borderManager,mapSelectManager),this);
+        getServer().getPluginManager().registerEvents(new MapConfigurerListener(mapConfigurerManager, mapSelectManager),this);
 
         getLogger().info("注册职业...");
         // 注册职业

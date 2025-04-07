@@ -10,7 +10,7 @@ commands:
     description: 大厅 <respawn设置重生点>
     usage: /lobby <respawn>
   nexus:
-    description: 管理队伍核心
+    description: 管理队伍核心 这个模块为了防止误修改并未实现自动保存功能，你需要设置好地图后手动 /nexus save
     usage: /nexus <set/sethealth/setborder/remove/save>
   annistart:
     description: 游戏启动
@@ -43,5 +43,5 @@ commands:
     description: 自杀
     usage: /suicide
   annimap:
-    description: 游戏地图设置
-    usage: /annimap setborder 1/2/3/4
+    description: 游戏地图设置 <边界设置>/<设置地图映射名>/<设置地图图标>/<离开当前地图>
+    usage: /annimap <setborder 1/2/3/4>/<setmapname>/<setmapicon>/<leave>

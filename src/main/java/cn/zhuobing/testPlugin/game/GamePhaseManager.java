@@ -11,7 +11,7 @@ public class GamePhaseManager {
     public GamePhaseManager() {
         phases = new ArrayList<>();
         // 初始化阶段信息
-        phases.add(new GamePhase("游戏即将开始", 30, BarColor.BLUE));
+        phases.add(new GamePhase("游戏即将开始 请为地图投票", 30, BarColor.BLUE));
         phases.add(new GamePhase("阶段一", 600, BarColor.BLUE));
         phases.add(new GamePhase("阶段二", 600, BarColor.BLUE));
         phases.add(new GamePhase("阶段三", 600, BarColor.BLUE));

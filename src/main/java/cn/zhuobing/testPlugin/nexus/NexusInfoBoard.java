@@ -99,7 +99,7 @@ public class NexusInfoBoard {
                 List<String> candidateMaps = mapSelectManager.getCandidateMaps();
                 for (String mapName : candidateMaps) {
                     int voteCount = mapSelectManager.getVoteCount(mapName);
-                    String info = ChatColor.WHITE + mapName + " : " + ChatColor.GRAY + voteCount + " 票";
+                    String info = ChatColor.WHITE + mapSelectManager.getMapMappingName(mapName) + " : " + ChatColor.GRAY + voteCount + " 票";
                     Score mapScore = objective.getScore(info);
                     mapScore.setScore(score);
                     score--;
@@ -146,7 +146,7 @@ public class NexusInfoBoard {
                 emptyLine.setScore(score);
                 score--;
                 // 在 AnniTest logo 上一行展示“地图：” + 地图名称
-                String gameMap = mapSelectManager.getGameMap();
+                String gameMap = mapSelectManager.getGameMapMappingName();
                 if (gameMap != null) {
                     Score mapNameScore = objective.getScore(ChatColor.WHITE + "地图：" + ChatColor.GREEN + gameMap);
                     mapNameScore.setScore(score);

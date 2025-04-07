@@ -19,11 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.bukkit.Bukkit.getLogger;
 
@@ -32,9 +28,12 @@ public class MapSelectManager {
     private File configFile;
     private FileConfiguration config;
     private List<String> candidateMaps = new ArrayList<>();
+    private List<String> originalMaps = new ArrayList<>();
+    private final Map<String, String> mapFolderNameMapping = new HashMap<>(); // 存储地图文件夹名与地图名的映射
     private final Map<String, Material> mapIcons = new HashMap<>();
     private final Map<String, Integer> voteCounts = new HashMap<>(); // 存储地图的投票数
     private final Map<UUID, String> playerVotedMap = new HashMap<>(); // 存储玩家UUID和他们投票的地图名称
+    private final List<UUID> editingPlayers = new ArrayList<>(); // 储存处于编辑地图状态的玩家
     private String gameMap;
     private boolean votingLocked = false;
 
@@ -94,6 +93,18 @@ public class MapSelectManager {
             }
         }
 
+        if (config.contains("originalMap")) {
+            originalMaps = config.getStringList("originalMap");
+        }
+
+        // 加载地图文件夹名与地图名的映射
+        if (config.contains("mapFolderNameMapping")) {
+            Map<?, ?> mapping = config.getConfigurationSection("mapFolderNameMapping").getValues(false);
+            for (Map.Entry<?, ?> entry : mapping.entrySet()) {
+                mapFolderNameMapping.put((String) entry.getKey(), (String) entry.getValue());
+            }
+        }
+
         // 初始化投票计数
         for (String mapName : candidateMaps) {
             voteCounts.put(mapName, 0);
@@ -102,9 +113,21 @@ public class MapSelectManager {
 
     public void saveConfig() {
         config.set("gameMaps", candidateMaps);
+        config.set("originalMap", originalMaps);
+
+        // 保存地图图标设置
         for (Map.Entry<String, Material> entry : mapIcons.entrySet()) {
             config.set("mapIcons." + entry.getKey(), entry.getValue().name());
         }
+        try {
+            config.save(configFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // 保存地图文件夹名与地图名的映射
+        config.set("mapFolderNameMapping", mapFolderNameMapping);
+
         try {
             config.save(configFile);
         } catch (IOException e) {
@@ -116,8 +139,17 @@ public class MapSelectManager {
         return candidateMaps;
     }
 
+    public List<String> getOriginalMaps(){
+        return originalMaps;
+    }
+
     public Material getMapIcon(String mapName) {
         return mapIcons.getOrDefault(mapName, Material.GRASS_BLOCK);
+    }
+
+    public void setMappingName(String mapName,String mappingName) {
+        mapFolderNameMapping.put(mapName,mappingName);
+        saveConfig();
     }
 
     public void setMapIcon(String mapName, Material icon) {
@@ -144,7 +176,7 @@ public class MapSelectManager {
         }
         nexusInfoBoard.updateInfoBoard();
         if (player != null) {
-            player.sendMessage(ChatColor.GREEN + "你已为 " + ChatColor.YELLOW + mapName + ChatColor.GREEN + " 地图投票！");
+            player.sendMessage(ChatColor.GREEN + "你已为 " + ChatColor.YELLOW + mapFolderNameMapping.get(mapName) + ChatColor.GREEN + " 地图投票！");
         }
     }
 
@@ -245,6 +277,7 @@ public class MapSelectManager {
                 world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
                 world.setGameRule(GameRule.MOB_GRIEFING, false);
                 world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
+                world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS,false);
 
                 // 设置PVP
                 world.setPVP(true);
@@ -274,7 +307,7 @@ public class MapSelectManager {
                 witchDataManager.loadConfig(gameMap,world);
                 getLogger().info("正在加载witchDataManager");
 
-                getLogger().info("游戏地图加载完成！地图：" + gameMap);
+                getLogger().info("配置文件加载完成！地图：" + gameMap);
             } else {
                 getLogger().severe("地图 " + gameMap + " 加载失败");
             }
@@ -291,7 +324,110 @@ public class MapSelectManager {
         return gameMap;
     }
 
-    // 新增方法：删除游戏地图副本文件夹
+    public String getGameMapMappingName(){
+        return mapFolderNameMapping.getOrDefault(gameMap,gameMap);
+    }
+
+    public String getMapMappingName(String mapName){
+        return mapFolderNameMapping.getOrDefault(mapName, mapName);
+    }
+
+    public void removeEditingPlayer(Player player) {
+        editingPlayers.remove(player.getUniqueId());
+    }
+
+    // 进入地图的方法
+    public void enterMap(Player player, String mapName) {
+        if(editingPlayers.contains(player.getUniqueId())) {
+            player.sendMessage(ChatColor.RED + "请退出当前地图后再加入其他地图！");
+            return;
+        }
+        World existing = plugin.getServer().getWorld(mapName);
+        if (existing != null) {
+            player.teleport(existing.getSpawnLocation());
+        } else {
+            File templateDir = new File(plugin.getDataFolder(), "maps/" + mapName);
+            if (!templateDir.exists()) {
+                player.sendMessage(ChatColor.RED + "地图模板不存在！");
+                return;
+            }
+
+            File worldsDir = new File(".");
+            File targetWorldDir = new File(worldsDir, mapName);
+
+            if (!worldsDir.exists()) {
+                worldsDir.mkdirs();
+            }
+
+            try {
+                if (targetWorldDir.exists()) {
+                    deleteDirectory(targetWorldDir);
+                }
+                copyDirectory(templateDir.toPath(), targetWorldDir.toPath());
+            } catch (IOException e) {
+                player.sendMessage(ChatColor.RED + "地图复制失败！");
+                return;
+            }
+
+            WorldCreator creator = new WorldCreator(mapName);
+            creator.environment(Environment.NORMAL);
+            World world = plugin.getServer().createWorld(creator);
+
+            if (world != null) {
+                world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+                world.setGameRule(GameRule.MOB_GRIEFING, false);
+                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
+                world.setPVP(true);
+                player.teleport(world.getSpawnLocation());
+                editingPlayers.add(player.getUniqueId());
+
+                getLogger().info("地图 " + mapName + " 加载成功");
+
+                player.sendMessage(ChatColor.GREEN + "已进入地图: " + ChatColor.YELLOW + mapFolderNameMapping.get(mapName));
+                // 加载boss配置，从原地图文件夹读取配置文件
+                bossDataManager.loadConfig(mapName,world);
+                getLogger().info("正在加载bossDataManager");
+                // 加载border配置，从原地图文件夹读取配置文件
+                borderManager.loadConfig(mapName,world);
+                getLogger().info("正在加载borderManager");
+                // 加载diamond配置，从原地图文件夹读取配置文件
+                diamondDataManager.loadConfig(mapName,world);
+                getLogger().info("正在加载diamondDataManager");
+                // 加载nexus配置，从原地图文件夹读取配置文件
+                nexusManager.loadConfig(mapName,world);
+                getLogger().info("正在加载nexusManager");
+                // 加载respawn配置，从原地图文件夹读取配置文件
+                respawnDataManager.loadConfig(mapName,world);
+                getLogger().info("正在加载respawnDataManager");
+                // 加载store配置，从原地图文件夹读取配置文件
+                storeManager.loadConfig(mapName,world);
+                getLogger().info("正在加载storeManager");
+                // 加载witch配置，从原地图文件夹读取配置文件
+                witchDataManager.loadConfig(mapName,world);
+                getLogger().info("正在加载witchDataManager");
+
+                getLogger().info("配置文件加载完成！地图：" + mapName);
+            } else {
+                player.sendMessage(ChatColor.RED + "地图加载失败！");
+            }
+        }
+    }
+
+    public void unloadMap(String mapName) {
+        World world = plugin.getServer().getWorld(mapName);
+        if (world != null) {
+            getLogger().info("正在卸载地图: " + mapName);
+            plugin.getServer().unloadWorld(world, false);
+            File worldDir = new File(".", mapName); // 使用服务器根目录
+            deleteDirectory(worldDir);
+            getLogger().info("地图 " + mapName + " 已成功卸载");
+        } else {
+            getLogger().info("地图 " + mapName + " 不存在，无法卸载");
+        }
+    }
+
+
+    // 删除游戏地图副本文件夹
     public void unloadGameWorld() {
         if (gameMap != null) {
             File gameWorldDir = new File(".", gameMap); // 使用服务器根目录

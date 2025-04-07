@@ -87,7 +87,7 @@ public class GameManager {
         if (phaseIndex == 0 && remainingTime < halfTime) {
             teamSelectionOpen = true;
             bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.GREEN + "请选择你的队伍" + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);
-        }else if(phaseIndex == 0 && remainingTime < halfTime + 4) {
+        }else if(phaseIndex == 0 && remainingTime <= halfTime + 5) {
             if(remainingTime == halfTime) {
                 // 地图确定，禁止投票
                 bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + "  |  " + ChatColor.LIGHT_PURPLE + "地图已锁定" + ChatColor.RESET + "  |  " + ChatColor.WHITE + timeDisplay);

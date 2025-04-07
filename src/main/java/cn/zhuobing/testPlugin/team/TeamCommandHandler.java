@@ -85,6 +85,7 @@ public class TeamCommandHandler implements CommandHandler {
         }
 
         Location playerLocation = player.getLocation();
+        playerLocation.setWorld(player.getWorld());
         respawnDataManager.addRespawnLocation(teamName, playerLocation);
         player.sendMessage(ChatColor.GREEN + "已为 " + teamName + " 添加重生点！");
         return true;

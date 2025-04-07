@@ -14,22 +14,27 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-public class MapSelectorManager {
+public class MapConfigurerManager {
     private final MapSelectManager mapSelectManager;
 
-    public MapSelectorManager(MapSelectManager mapSelectManager) {
+    public MapConfigurerManager(MapSelectManager mapSelectManager) {
         this.mapSelectManager = mapSelectManager;
     }
 
-    public Inventory createMapSelectorGUI(Player player) {
+    public Inventory createMapConfigurerGUI(Player player) {
         List<String> candidateMaps = mapSelectManager.getCandidateMaps();
-        // 确保Inventory至少有1行（9格）
-        int size = Math.max(9, (int) Math.ceil(candidateMaps.size() / 9.0) * 9);
-        Inventory inv = Bukkit.createInventory(null, size, ChatColor.RESET + "地图投票");
+        List<String> originalMaps = mapSelectManager.getOriginalMaps();
+        int totalMaps = candidateMaps.size() + originalMaps.size();
+        int size = Math.max(9, (int) Math.ceil(totalMaps / 9.0) * 9);
+        Inventory inv = Bukkit.createInventory(null, size, ChatColor.RESET + "地图配置");
 
         int slot = 0;
         for (String mapName : candidateMaps) {
             Material icon = mapSelectManager.getMapIcon(mapName);
+            inv.setItem(slot++, createMapIconItem(mapName, icon, player));
+        }
+        for (String mapName : originalMaps) {
+            Material icon = Material.SAND; // 可以自定义原始地图的图标
             inv.setItem(slot++, createMapIconItem(mapName, icon, player));
         }
 
@@ -39,20 +44,13 @@ public class MapSelectorManager {
     private ItemStack createMapIconItem(String mapName, Material icon, Player player) {
         ItemStack item = new ItemStack(icon);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatColor.RESET + mapSelectManager.getMapMappingName(mapName));
+        meta.setDisplayName(ChatColor.RESET + mapName);
 
-        int voteCount = mapSelectManager.getVoteCount(mapName);
-        String votePrompt;
         UUID playerUUID = player.getUniqueId();
-        if (mapSelectManager.hasVoted(playerUUID, mapName)) {
-            votePrompt = ChatColor.GREEN + "已投票";
-        } else {
-            votePrompt = ChatColor.YELLOW + "点击为该地图投票";
-        }
+        String clickPrompt = ChatColor.YELLOW + "点击进入该地图";
 
         meta.setLore(Arrays.asList(
-                votePrompt,
-                ChatColor.GOLD + "当前票数: " + voteCount
+                clickPrompt
         ));
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);

@@ -51,25 +51,15 @@ public class LobbyManager {
             plugin.getLogger().info("配置文件中 'lobbyMap' 键不存在或值为 null");
         }
 
-        // 加载大厅重生点
-        if (config.contains("respawnPoints")) {
-            for (String key : config.getConfigurationSection("respawnPoints").getKeys(false)) {
-                Location loc = config.getLocation("respawnPoints." + key);
-                if (loc != null) {
-                    loc.setWorld(lobbyWorld);
-                    lobbyRespawns.add(loc);
-                }
-            }
-        }
     }
 
     public void saveConfig() {
-        // 保存重生点
         config.set("respawnPoints", null);
         for (int i = 0; i < lobbyRespawns.size(); i++) {
-            config.set("respawnPoints." + i, lobbyRespawns.get(i));
+            Location loc = lobbyRespawns.get(i);
+            loc.setWorld(null);
+            config.set("respawnPoints." + i, loc);
         }
-
         try {
             config.save(configFile);
         } catch (IOException e) {
@@ -111,8 +101,19 @@ public class LobbyManager {
             // 5. 配置规则（确保PVP关闭）
             lobbyWorld.setPVP(false);
             lobbyWorld.setGameRule(GameRule.SHOW_DEATH_MESSAGES, false);
-            plugin.getLogger().info("大厅世界加载成功！");
+            lobbyWorld.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS,false);
 
+            // 加载大厅重生点
+            if (config.contains("respawnPoints")) {
+                for (String key : config.getConfigurationSection("respawnPoints").getKeys(false)) {
+                    Location loc = config.getLocation("respawnPoints." + key);
+                    if (loc != null) {
+                        loc.setWorld(lobbyWorld);
+                        lobbyRespawns.add(loc);
+                    }
+                }
+            }
+            plugin.getLogger().info("大厅世界加载成功！");
         } catch (IOException e) {
             plugin.getLogger().info("大厅世界加载过程中发生IO异常: " + e.getMessage());
         }
@@ -147,6 +148,12 @@ public class LobbyManager {
     }
 
     public Location getRandomRespawn() {
+        if (lobbyRespawns.isEmpty()) {
+            // 添加默认重生点（大厅出生点）
+            Location defaultSpawn = lobbyWorld.getSpawnLocation();
+            lobbyRespawns.add(defaultSpawn);
+            plugin.getLogger().warning("重生点列表为空，已添加默认出生点！");
+        }
         return lobbyRespawns.get(new Random().nextInt(lobbyRespawns.size()));
     }
 
