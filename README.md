@@ -185,11 +185,20 @@
 >
 >originalMap：还未被配置的地图，可以在游戏内配置
 > 
+>mapFolderNameMapping：文件夹名与地图名的映射 例如配置为 `Canyon: 沙洲峡谷`
+> 
+> ---
+> 
 >lobbyMap：大厅地图的地图文件名
 > 
 >respawnPoints：大厅重生点位置 可添加多个
 > 
-> 注意：请不要配置大厅重生点的world属性！
+> ---
+>注意：第一次使用大厅地图请手动配置大厅重生点！你只需要修改模板上的x,y,z复制粘贴到yml文件里即可。
+> 
+>建议进入大厅后在游戏内使用指令`/lobby respawn`指令再次配置大厅重生点
+> 
+> 请不要配置大厅重生点的world属性！否则可能出现大厅传送失败的bug！
 ```
 gameMaps:
 - TestMap
@@ -203,7 +212,7 @@ mapFolderNameMapping:
   ConfigureTest: 配置测试
   TestMap: 游戏测试
   ExampleMap: 未配置的测试地图
-
+  
 ```
 
 ```
