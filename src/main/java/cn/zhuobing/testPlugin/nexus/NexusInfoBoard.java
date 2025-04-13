@@ -99,7 +99,7 @@ public class NexusInfoBoard {
                 List<String> candidateMaps = mapSelectManager.getCandidateMaps();
                 for (String mapName : candidateMaps) {
                     int voteCount = mapSelectManager.getVoteCount(mapName);
-                    String info = ChatColor.WHITE + mapSelectManager.getMapMappingName(mapName) + " : " + ChatColor.GRAY + voteCount + " 票";
+                    String info = ChatColor.GREEN + mapSelectManager.getMapMappingName(mapName) + ChatColor.GRAY + " : " + ChatColor.YELLOW + "[ " + ChatColor.YELLOW + voteCount + " ]";
                     Score mapScore = objective.getScore(info);
                     mapScore.setScore(score);
                     score--;

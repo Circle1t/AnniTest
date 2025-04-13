@@ -70,6 +70,7 @@ import cn.zhuobing.testPlugin.store.StoreManager;
 import cn.zhuobing.testPlugin.team.TeamChatListener;
 import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.command.Command;
@@ -94,6 +95,7 @@ public class AnniTest extends JavaPlugin {
     private TeamSelectorManager teamSelectorManager;
     private TeamCommandHandler teamCommandHandler;
     private RespawnDataManager respawnDataManager;
+    private BossWorldManager bossWorldManager;
     private BossDataManager bossDataManager;
     private KitManager kitManager;
     private StoreManager storeManager;
@@ -109,9 +111,13 @@ public class AnniTest extends JavaPlugin {
         getLogger().info("AnniTest 插件启动");
 
 
+        getLogger().info("初始化核心基础配置信息...");
+        AnniConfigManager.loadConfig(this);
+
         getLogger().info("初始化核心数据管理类...");
         // 初始化核心数据管理类
         lobbyManager = new LobbyManager(this);
+        bossWorldManager = new BossWorldManager(lobbyManager,this);
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
         witchDataManager = new WitchDataManager(this,teamManager);
@@ -123,10 +129,10 @@ public class AnniTest extends JavaPlugin {
         enchantManager = new EnchantManager();
         teamSelectorManager = new TeamSelectorManager(teamManager);
         respawnDataManager = new RespawnDataManager(lobbyManager,nexusManager,this);
-        bossDataManager = new BossDataManager(this,gameManager,teamManager);
+        bossDataManager = new BossDataManager(this,gameManager,teamManager,bossWorldManager);
         storeManager = new StoreManager(this);
         borderManager = new BorderManager(this);
-        mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
+        mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
 
@@ -140,7 +146,11 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(new DiamondCommand(oreManager));
         commandHandlers.add(new TeamSelectorCommand());
         commandHandlers.add(new CompassCommand(teamManager));
-        commandHandlers.add(new BossCommand(bossDataManager, teamManager));
+
+        BossCommand bossCommand = new BossCommand(bossDataManager, teamManager);
+        commandHandlers.add(bossCommand);
+        getCommand("boss").setTabCompleter(bossCommand);
+
         commandHandlers.add(new StoreCommandHandler(storeManager));
         commandHandlers.add(new PlayerCommandHandler());
         commandHandlers.add(new WitchCommandHandler(witchDataManager));
@@ -205,6 +215,10 @@ public class AnniTest extends JavaPlugin {
         // 卸载游戏地图副本
         if (mapSelectManager != null) {
             mapSelectManager.unloadGameWorld();
+        }
+        // 卸载boss大厅副本
+        if(bossWorldManager != null){
+            bossWorldManager.unloadBossWorld();
         }
         // 卸载大厅副本
         if (lobbyManager != null) {

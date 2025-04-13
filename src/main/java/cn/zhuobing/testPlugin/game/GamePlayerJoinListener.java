@@ -49,10 +49,12 @@ public class GamePlayerJoinListener implements Listener {
         event.setJoinMessage(joinMessage);
 
         // 检查玩家是否选择了队伍
-        if (!teamManager.isInTeam(player)) {
+        if (!teamManager.isInTeam(player) || !gameManager.isGameStarted()) {
             // 玩家没有选择队伍，尝试传送到大厅重生点
             if (!lobbyManager.teleportToLobby(player)) {
-                player.sendMessage(ChatColor.RED + "大厅传送失败！");
+                // 大厅传送失败，将玩家踢出服务器并解释原因
+                String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "大厅传送失败，请联系管理员！";
+                player.kickPlayer(kickMessage);
             } else {
                 // 清空玩家背包
                 player.getInventory().clear();
@@ -93,12 +95,18 @@ public class GamePlayerJoinListener implements Listener {
         if (currentPhase != 5 && currentPhase != 0) {
             gameManager.updateBossBar(currentPhase, gameManager.getRemainingTime());
         }
+
+        if(currentPhase == 0){
+            gameManager.checkAndStartGame(); // 检查是否满足启动条件
+        }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         // 将退出消息设置为 null，这样就不会有退出信息提示
         event.setQuitMessage(null);
+        if(!gameManager.isGameStarted()){
+            gameManager.updatePlayerCountOnBossBar(); // 更新 BossBar 上的玩家人数
+        }
     }
-
 }

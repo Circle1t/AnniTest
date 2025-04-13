@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.map;
 
-import cn.zhuobing.testPlugin.utils.AnniConfig;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -23,6 +23,11 @@ public class BorderManager {
         this.plugin = plugin;
     }
 
+    /**
+     * 加载边界配置文件
+     * @param mapFolderName 地图文件夹名称
+     * @param world 地图所在的世界
+     */
     public void loadConfig(String mapFolderName, World world) {
         this.mapFolderName = mapFolderName;
         File mapsFolder = new File(plugin.getDataFolder(), "maps");
@@ -33,7 +38,7 @@ public class BorderManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
@@ -55,9 +60,40 @@ public class BorderManager {
                     mapBorders.add(border);
                 }
             }
+            // 如果有边界配置，只加载边界内的区块
+            if (!mapBorders.isEmpty()) {
+                loadChunksInBorder(world);
+            }
         }
     }
 
+    /**
+     * 只加载边界内的区块
+     * @param world 地图所在的世界
+     */
+    private void loadChunksInBorder(World world) {
+        int minX = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+
+        for (Location border : mapBorders) {
+            minX = Math.min(minX, border.getBlockX());
+            maxX = Math.max(maxX, border.getBlockX());
+            minZ = Math.min(minZ, border.getBlockZ());
+            maxZ = Math.max(maxZ, border.getBlockZ());
+        }
+
+        for (int x = minX >> 4; x <= maxX >> 4; x++) {
+            for (int z = minZ >> 4; z <= maxZ >> 4; z++) {
+                world.loadChunk(x, z);
+            }
+        }
+    }
+
+    /**
+     * 保存边界配置到文件
+     */
     public void saveConfig() {
         File mapsFolder = new File(plugin.getDataFolder(), "maps");
         if (!mapsFolder.exists()) {
@@ -67,7 +103,7 @@ public class BorderManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
@@ -84,6 +120,11 @@ public class BorderManager {
         }
     }
 
+    /**
+     * 设置指定编号的边界位置
+     * @param borderNumber 边界编号
+     * @param location 边界位置
+     */
     public void setBorder(int borderNumber, Location location) {
         if (borderNumber >= 1 && borderNumber <= 4) {
             if (borderNumber > mapBorders.size()) {
@@ -96,6 +137,11 @@ public class BorderManager {
         }
     }
 
+    /**
+     * 获取指定编号的边界位置
+     * @param borderNumber 边界编号
+     * @return 边界位置
+     */
     public Location getBorder(int borderNumber) {
         if (borderNumber >= 1 && borderNumber <= mapBorders.size()) {
             return mapBorders.get(borderNumber - 1);
@@ -103,6 +149,11 @@ public class BorderManager {
         return null;
     }
 
+    /**
+     * 判断指定位置是否在边界内
+     * @param loc 指定位置
+     * @return 是否在边界内
+     */
     public boolean isInsideBorder(Location loc) {
         if (mapBorders.size() != 4) {
             return false;

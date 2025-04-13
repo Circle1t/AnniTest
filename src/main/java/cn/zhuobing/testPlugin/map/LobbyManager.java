@@ -8,13 +8,19 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.World.Environment;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static cn.zhuobing.testPlugin.utils.DirectoryUtil.copyDirectory;
+import static cn.zhuobing.testPlugin.utils.DirectoryUtil.deleteDirectory;
 
 public class LobbyManager {
     private final Plugin plugin;
@@ -31,15 +37,43 @@ public class LobbyManager {
     private void loadConfig() {
         File dataFolder = plugin.getDataFolder();
         configFile = new File(dataFolder, "lobby-config.yml");
-
         if (!configFile.exists()) {
+            // 如果文件不存在，尝试创建
+            if (!configFile.getParentFile().exists()) {
+                configFile.getParentFile().mkdirs();
+            }
             try {
-                configFile.createNewFile();
+                if (configFile.createNewFile()) {
+                    plugin.getLogger().info("lobby-config.yml 文件创建成功");
+                    // 写入默认配置
+                    InputStream defaultConfigStream = plugin.getResource("lobby-config.yml");
+                    if (defaultConfigStream != null) {
+                        config = YamlConfiguration.loadConfiguration(new InputStreamReader(defaultConfigStream));
+                        config.save(configFile);
+                    } else {
+                        // 如果没有默认配置资源，写入默认内容
+                        String defaultContent = "# lobby-config.yml\n" +
+                                "lobbyMap: \"defaultLobby\"  # 大厅地图模板名称（需存放在 plugins/插件名/maps/ 目录下）\n" +
+                                "respawnPoints:            # 大厅重生点坐标列表（自动生成，请勿手动编辑）\n" +
+                                "  '0':                      # 第一个重生点，可以添加多个\n" +
+                                "    ==: org.bukkit.Location    \n" +
+                                "    x: 100.5              # X坐标（你可以在本地游戏中获取 X Y Z 坐标，并配置在此处）\n" +
+                                "    y: 64.0               # Y坐标\n" +
+                                "    z: 200.5              # Z坐标\n" +
+                                "    yaw: 0.0              # 水平朝向角度\n" +
+                                "    pitch: 0.0            # 垂直俯仰角度";
+                        try (FileWriter writer = new FileWriter(configFile)) {
+                            writer.write(defaultContent);
+                        }
+                        config = YamlConfiguration.loadConfiguration(configFile);
+                    }
+                } else {
+                    plugin.getLogger().severe("无法创建 lobby-config.yml 文件");
+                }
             } catch (IOException e) {
-                e.printStackTrace();
+                plugin.getLogger().severe("创建 lobby-config.yml 文件时出错: " + e.getMessage());
             }
         }
-
         config = YamlConfiguration.loadConfiguration(configFile);
 
         // 加载大厅地图名称
@@ -50,7 +84,6 @@ public class LobbyManager {
         } else {
             plugin.getLogger().info("配置文件中 'lobbyMap' 键不存在或值为 null");
         }
-
     }
 
     public void saveConfig() {
@@ -98,10 +131,16 @@ public class LobbyManager {
                 return;
             }
 
-            // 5. 配置规则（确保PVP关闭）
-            lobbyWorld.setPVP(false);
-            lobbyWorld.setGameRule(GameRule.SHOW_DEATH_MESSAGES, false);
-            lobbyWorld.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS,false);
+            // ===== 大厅规则配置 =====
+            lobbyWorld.setPVP(false); // 禁用大厅PVP
+            lobbyWorld.setGameRule(GameRule.SHOW_DEATH_MESSAGES, false); // 隐藏死亡消息
+            lobbyWorld.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
+            lobbyWorld.setDifficulty(Difficulty.EASY); // 和平模式
+
+            // ===== 大厅天气控制 =====
+            lobbyWorld.setStorm(false);                // 强制关闭下雨
+            lobbyWorld.setWeatherDuration(Integer.MAX_VALUE); // 永久晴朗
+            lobbyWorld.setThundering(false);           // 关闭雷暴
 
             // 加载大厅重生点
             if (config.contains("respawnPoints")) {
@@ -113,16 +152,14 @@ public class LobbyManager {
                     }
                 }
             }
-            plugin.getLogger().info("大厅世界加载成功！");
+            if(!lobbyRespawns.isEmpty()){
+                plugin.getLogger().info("大厅世界加载成功！");
+            }else{
+                plugin.getLogger().info("大厅世界重生点列表为空！大厅无法进入...");
+            }
         } catch (IOException e) {
             plugin.getLogger().info("大厅世界加载过程中发生IO异常: " + e.getMessage());
         }
-    }
-
-    // 验证世界完整性的方法
-    private boolean validateWorldTemplate(File dir) {
-        return new File(dir, "level.dat").exists() &&
-                new File(dir, "region").exists();
     }
 
     public void addRespawnPoint(Location location) {
@@ -162,7 +199,8 @@ public class LobbyManager {
         if (lobbyWorld != null) {
             // 1. 传送所有玩家
             for (Player p : lobbyWorld.getPlayers()) {
-                p.teleport(plugin.getServer().getWorlds().get(0).getSpawnLocation());
+                String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "服务器已关闭";
+                p.kickPlayer(kickMessage);
             }
 
             // 2. 卸载世界
@@ -172,39 +210,5 @@ public class LobbyManager {
             File worldDir = lobbyWorld.getWorldFolder();
             deleteDirectory(worldDir);
         }
-    }
-
-    // 辅助方法：递归删除文件夹
-    private void deleteDirectory(File directory) {
-        if (directory.exists()) {
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        deleteDirectory(file);
-                    } else {
-                        file.delete();
-                    }
-                }
-            }
-            directory.delete();
-        }
-    }
-
-    // 辅助方法：复制目录
-    private void copyDirectory(Path source, Path target) throws IOException {
-        Files.walk(source)
-                .forEach(sourcePath -> {
-                    try {
-                        Path targetPath = target.resolve(source.relativize(sourcePath));
-                        if (Files.isDirectory(sourcePath)) {
-                            Files.createDirectories(targetPath);
-                        } else {
-                            Files.copy(sourcePath, targetPath);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
     }
 }

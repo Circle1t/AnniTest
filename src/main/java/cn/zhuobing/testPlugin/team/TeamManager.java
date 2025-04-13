@@ -18,6 +18,7 @@ import java.util.UUID;
 
 public class TeamManager {
     private final Scoreboard scoreboard;
+    private final List<String> teamNames = new ArrayList<>();
     private final Map<String, ChatColor> teamColors = new HashMap<>();
     private final Map<String, String> englishToChineseMap = new HashMap<>();
     private final Map<String, Integer> teamPlayerCounts = new HashMap<>();
@@ -44,6 +45,7 @@ public class TeamManager {
         Team team = scoreboard.registerNewTeam(englishName);
         team.setPrefix(ChatColor.WHITE + "[" + color.toString() + chineseName + ChatColor.WHITE + "]" + color.toString());
         team.setColor(color);
+        teamNames.add(englishName);
         teamColors.put(englishName, color);
         englishToChineseMap.put(englishName, chineseName);
         // 初始化队伍的玩家数量为 0
@@ -75,6 +77,10 @@ public class TeamManager {
 
     public Map<String, ChatColor> getTeamColors() {
         return teamColors;
+    }
+
+    public List<String> getAllTeamNames(){
+        return teamNames;
     }
 
     public ChatColor getTeamColor(String englishName) {

@@ -6,10 +6,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class BossCommand implements CommandHandler {
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class BossCommand implements CommandHandler, TabCompleter {
     private final BossDataManager bossDataManager;
     private final TeamManager teamManager;
 
@@ -22,6 +26,10 @@ public class BossCommand implements CommandHandler {
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!cmd.getName().equalsIgnoreCase("boss")) {
             return false;
+        }
+
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "只有玩家能执行这个命令！");
         }
 
         Player player = (Player) sender;
@@ -50,6 +58,14 @@ public class BossCommand implements CommandHandler {
             bossDataManager.clearBoss();
             player.sendMessage(ChatColor.GREEN + "boss已清除");
         }
+        else if(args.length == 1 && args[0].equalsIgnoreCase("enter")) {
+            bossDataManager.enterBossMap(player);
+            return true;
+        }
+        else if(args.length == 1 && args[0].equalsIgnoreCase("leave")) {
+            bossDataManager.leaveBossMap(player);
+            return true;
+        }
 
         return true;
     }
@@ -61,13 +77,35 @@ public class BossCommand implements CommandHandler {
         }
 
         Location currentLocation = player.getLocation();
-        bossDataManager.setBossLocation(teamName, currentLocation);
+        bossDataManager.setBossTeamTpLocation(teamName, currentLocation);
         player.sendMessage(ChatColor.GREEN + "成功设置 " + teamName + " 队的 Boss 传送点！");
     }
 
     private void setBossLocation(Player player) {
-        Location currentLocation = player.getLocation();
-        bossDataManager.setBossLocation(teamManager.getPlayerTeamName(player),currentLocation);
-        player.sendMessage(ChatColor.GREEN + "成功设置 Boss 的生成位置！");
+        Location loc = player.getLocation();
+        bossDataManager.setBossSpawnLocation(loc);
+        player.sendMessage(ChatColor.GREEN + "成功设置Boss生成位置！");
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> mainCommands = Arrays.asList("tp", "set", "spawn", "clear", "enter", "leave");
+            for (String cmd : mainCommands) {
+                if (cmd.startsWith(args[0].toLowerCase())) {
+                    completions.add(cmd);
+                }
+            }
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("tp")) {
+            // 假设 teamManager 有获取所有有效队伍名称的方法
+            List<String> teamNames = teamManager.getAllTeamNames();
+            for (String teamName : teamNames) {
+                if (teamName.startsWith(args[1].toLowerCase())) {
+                    completions.add(teamName);
+                }
+            }
+        }
+        return completions;
     }
 }

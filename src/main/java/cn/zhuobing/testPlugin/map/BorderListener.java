@@ -16,6 +16,10 @@ public class BorderListener implements Listener {
         this.mapSelectManager = mapSelectManager;
     }
 
+    /**
+     * 处理方块放置事件
+     * @param event 方块放置事件
+     */
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();

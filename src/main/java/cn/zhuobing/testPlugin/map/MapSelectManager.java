@@ -7,6 +7,7 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.ore.DiamondDataManager;
+import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.store.StoreManager;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -15,12 +16,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.World.Environment;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static cn.zhuobing.testPlugin.utils.DirectoryUtil.copyDirectory;
+import static cn.zhuobing.testPlugin.utils.DirectoryUtil.deleteDirectory;
 import static org.bukkit.Bukkit.getLogger;
 
 public class MapSelectManager {
@@ -40,6 +42,7 @@ public class MapSelectManager {
     private final BossDataManager bossDataManager;
     private final BorderManager borderManager;
     private final DiamondDataManager diamondDataManager;
+    private final OreManager oreManager;
     private final NexusManager nexusManager;
     private final RespawnDataManager respawnDataManager;
     private final StoreManager storeManager;
@@ -47,11 +50,12 @@ public class MapSelectManager {
     private final NexusInfoBoard nexusInfoBoard;
 
     public MapSelectManager(BossDataManager bossDataManager, BorderManager borderManager,
-                            NexusManager nexusManager, DiamondDataManager diamondDataManager, RespawnDataManager respawnDataManager,
+                            NexusManager nexusManager, DiamondDataManager diamondDataManager, OreManager oreManager, RespawnDataManager respawnDataManager,
                             StoreManager storeManager, WitchDataManager witchDataManager, GameManager gameManager, NexusInfoBoard nexusInfoBoard, Plugin plugin) {
         this.bossDataManager = bossDataManager;
         this.borderManager = borderManager;
         this.diamondDataManager = diamondDataManager;
+        this.oreManager = oreManager;
         this.nexusManager = nexusManager;
         this.respawnDataManager = respawnDataManager;
         this.storeManager = storeManager;
@@ -68,10 +72,46 @@ public class MapSelectManager {
         File dataFolder = plugin.getDataFolder();
         configFile = new File(dataFolder, "maps-config.yml");
         if (!configFile.exists()) {
+            // 如果文件不存在，尝试创建
+            if (!configFile.getParentFile().exists()) {
+                configFile.getParentFile().mkdirs();
+            }
             try {
-                configFile.createNewFile();
+                if (configFile.createNewFile()) {
+                    plugin.getLogger().info("maps-config.yml 文件创建成功");
+                    // 写入默认配置
+                    InputStream defaultConfigStream = plugin.getResource("maps-config.yml");
+                    if (defaultConfigStream != null) {
+                        config = YamlConfiguration.loadConfiguration(new InputStreamReader(defaultConfigStream));
+                        config.save(configFile);
+                    } else {
+                        // 如果没有默认配置资源，设置一些基本的默认值
+                        String defaultConfigContent = "# maps-config.yml\n" +
+                                "gameMaps:                 # 游戏候选地图列表（文件夹名称，需存放在 plugins/插件名/maps/ 目录下）\n" +
+                                "  - \"map1\"                # 地图模板1\n" +
+                                "  - \"map2\"                # 地图模板2\n" +
+                                "\n" +
+                                "originalMaps:             # 原始地图列表（还未被配置的地图）\n" +
+                                "  - \"original_map1\"       # 原始地图1\n" +
+                                "  - \"original_map2\"       # 原始地图2\n" +
+                                "\n" +
+                                "mapIcons:                 # 地图投票图标配置\n" +
+                                "  map1: GRASS_BLOCK       # 地图1的展示材质（必须使用有效的材质名称）\n" +
+                                "  map2: NETHERRACK        # 地图2的展示材质\n" +
+                                "\n" +
+                                "mapFolderNameMapping:     # 地图文件夹名与显示名称映射\n" +
+                                "  map1: \"草原地图\"        # 显示在投票界面的地图名称\n" +
+                                "  map2: \"地狱岩地图\"";
+                        try (FileWriter writer = new FileWriter(configFile)) {
+                            writer.write(defaultConfigContent);
+                        }
+                        config = YamlConfiguration.loadConfiguration(configFile);
+                    }
+                } else {
+                    plugin.getLogger().severe("无法创建 maps-config.yml 文件");
+                }
             } catch (IOException e) {
-                e.printStackTrace();
+                plugin.getLogger().severe("创建 maps-config.yml 文件时出错: " + e.getMessage());
             }
         }
         config = YamlConfiguration.loadConfiguration(configFile);
@@ -83,12 +123,17 @@ public class MapSelectManager {
         if (config.contains("mapIcons")) {
             for (String mapName : candidateMaps) {
                 String iconName = config.getString("mapIcons." + mapName);
-                try {
-                    Material icon = Material.valueOf(iconName);
-                    mapIcons.put(mapName, icon);
-                } catch (IllegalArgumentException e) {
-                    // 处理无效的材质名称
-                    System.err.println("无效的地图材质图标" + mapName + ": " + iconName);
+                if (iconName != null) {
+                    try {
+                        Material icon = Material.valueOf(iconName);
+                        mapIcons.put(mapName, icon);
+                    } catch (IllegalArgumentException e) {
+                        // 处理无效的材质名称
+                        plugin.getLogger().info("无效的地图材质图标" + mapName + ": " + iconName);
+                    }
+                } else {
+                    // 处理图标名称为 null 的情况
+                    plugin.getLogger().info("地图 " + mapName + " 的图标名称为 null，请检查配置文件。");
                 }
             }
         }
@@ -119,12 +164,6 @@ public class MapSelectManager {
         for (Map.Entry<String, Material> entry : mapIcons.entrySet()) {
             config.set("mapIcons." + entry.getKey(), entry.getValue().name());
         }
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
         // 保存地图文件夹名与地图名的映射
         config.set("mapFolderNameMapping", mapFolderNameMapping);
 
@@ -273,21 +312,23 @@ public class MapSelectManager {
             World world = plugin.getServer().createWorld(creator);
 
             if (world != null) {
-                // 设置世界规则
-                world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
-                world.setGameRule(GameRule.MOB_GRIEFING, false);
-                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
-                world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS,false);
+                // ===== 世界规则配置 =====
+                world.setGameRule(GameRule.DO_MOB_SPAWNING, false);       // 禁止自然生物生成（如怪物、动物）
+                world.setGameRule(GameRule.MOB_GRIEFING, false);          // 禁止怪物破坏地形（如苦力怕炸方块）
+                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);      // 启用昼夜循环（时间正常流逝）
+                world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false); // 禁用成就提示
+                world.setDifficulty(Difficulty.NORMAL);
 
-                // 设置PVP
-                world.setPVP(true);
+                // ===== 天气控制 =====
+                world.setStorm(false);                // 关闭下雨/下雪
+                world.setWeatherDuration(Integer.MAX_VALUE); // 设置天气持续时间最大值（几乎永久晴朗）
+
+                // ===== PVP 设置 =====
+                world.setPVP(true); // 启用玩家间战斗
             }
             if (world != null) {
                 getLogger().info("地图 " + gameMap + " 加载成功");
 
-                // 加载boss配置，从原地图文件夹读取配置文件
-                bossDataManager.loadConfig(gameMap,world);
-                getLogger().info("正在加载bossDataManager");
                 // 加载border配置，从原地图文件夹读取配置文件
                 borderManager.loadConfig(gameMap,world);
                 getLogger().info("正在加载borderManager");
@@ -374,18 +415,26 @@ public class MapSelectManager {
             World world = plugin.getServer().createWorld(creator);
 
             if (world != null) {
-                world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
-                world.setGameRule(GameRule.MOB_GRIEFING, false);
-                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);
-                world.setPVP(true);
+                // ===== 世界规则配置 =====
+                world.setGameRule(GameRule.DO_MOB_SPAWNING, false);       // 禁止自然生物生成（如怪物、动物）
+                world.setGameRule(GameRule.MOB_GRIEFING, false);          // 禁止怪物破坏地形（如苦力怕炸方块）
+                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);      // 启用昼夜循环（时间正常流逝）
+                world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false); // 禁用成就提示
+
+                // ===== 天气控制 =====
+                world.setStorm(false);                // 关闭下雨/下雪
+                world.setWeatherDuration(Integer.MAX_VALUE); // 设置天气持续时间最大值（几乎永久晴朗）
+
+                // ===== PVP 设置 =====
+                world.setPVP(false); // 不启用玩家间战斗
+
                 player.teleport(world.getSpawnLocation());
                 editingPlayers.add(player.getUniqueId());
 
                 getLogger().info("地图 " + mapName + " 加载成功");
 
-                player.sendMessage(ChatColor.GREEN + "已进入地图: " + ChatColor.YELLOW + mapFolderNameMapping.get(mapName));
-                // 加载boss配置，从原地图文件夹读取配置文件
-                bossDataManager.loadConfig(mapName,world);
+                player.sendMessage(ChatColor.GREEN + "已进入地图: " + ChatColor.YELLOW + mapFolderNameMapping.getOrDefault(mapName,world.getName()));
+
                 getLogger().info("正在加载bossDataManager");
                 // 加载border配置，从原地图文件夹读取配置文件
                 borderManager.loadConfig(mapName,world);
@@ -430,42 +479,22 @@ public class MapSelectManager {
     // 删除游戏地图副本文件夹
     public void unloadGameWorld() {
         if (gameMap != null) {
-            File gameWorldDir = new File(".", gameMap); // 使用服务器根目录
-            deleteDirectory(gameWorldDir);
-        }
-    }
-
-    // 辅助方法：递归删除文件夹
-    private void deleteDirectory(File directory) {
-        if (directory.exists()) {
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        deleteDirectory(file);
-                    } else {
-                        file.delete();
-                    }
+            World world = plugin.getServer().getWorld(gameMap);
+            if (world != null) {
+                // 1. 传送所有玩家
+                for (Player p : world.getPlayers()) {
+                    String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "游戏地图已被卸载！";
+                    p.kickPlayer(kickMessage);
                 }
-            }
-            directory.delete();
-        }
-    }
 
-    // 辅助方法：复制目录
-    private void copyDirectory(Path source, Path target) throws IOException {
-        Files.walk(source)
-                .forEach(sourcePath -> {
-                    try {
-                        Path targetPath = target.resolve(source.relativize(sourcePath));
-                        if (Files.isDirectory(sourcePath)) {
-                            Files.createDirectories(targetPath);
-                        } else {
-                            Files.copy(sourcePath, targetPath);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+                // 2. 卸载世界
+                plugin.getServer().unloadWorld(world, false);
+
+                // 3. 删除副本
+                File worldDir = world.getWorldFolder();
+                deleteDirectory(worldDir);
+            }
+            gameMap = null;
+        }
     }
 }

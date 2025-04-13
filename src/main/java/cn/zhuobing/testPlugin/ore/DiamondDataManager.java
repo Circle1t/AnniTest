@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.ore;
 
-import cn.zhuobing.testPlugin.utils.AnniConfig;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -33,7 +33,7 @@ public class DiamondDataManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
@@ -67,7 +67,7 @@ public class DiamondDataManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }

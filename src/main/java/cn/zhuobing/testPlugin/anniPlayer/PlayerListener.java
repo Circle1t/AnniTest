@@ -10,6 +10,7 @@ import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,6 +21,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.Arrays;
@@ -188,6 +190,14 @@ public class PlayerListener implements Listener {
                     player.sendMessage(ChatColor.GOLD + "隐身已解除！");
                 }
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerFish(PlayerFishEvent event) {
+        if (event.getState() == PlayerFishEvent.State.CAUGHT_ENTITY) {
+            // 清除捕获的实体以取消拽动效果，但允许鱼竿正常收回
+            event.getHook().remove();
         }
     }
 }

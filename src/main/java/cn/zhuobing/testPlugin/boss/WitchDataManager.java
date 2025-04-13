@@ -1,7 +1,7 @@
 package cn.zhuobing.testPlugin.boss;
 
 import cn.zhuobing.testPlugin.team.TeamManager;
-import cn.zhuobing.testPlugin.utils.AnniConfig;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -47,7 +47,7 @@ public class WitchDataManager implements Listener {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
@@ -81,7 +81,7 @@ public class WitchDataManager implements Listener {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }

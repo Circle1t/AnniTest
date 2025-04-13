@@ -1,8 +1,9 @@
 package cn.zhuobing.testPlugin.boss;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.map.BossWorldManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
-import cn.zhuobing.testPlugin.utils.AnniConfig;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -33,7 +34,8 @@ import java.io.IOException;
 import java.util.*;
 
 public class BossDataManager implements Listener {
-    private final Map<String, Location> teamBossLocations = new HashMap<>();
+    private Location bossSpawnLocation; // Boss生成点字段
+    private final Map<String, Location> teamTpLocations = new HashMap<>();
     private final Plugin plugin;
     private File configFile;
     private FileConfiguration config;
@@ -46,91 +48,104 @@ public class BossDataManager implements Listener {
     private final Set<UUID> bossPlayers = new HashSet<>(); // 储存进入 boss 点的玩家
     private final GameManager gameManager;
     private final TeamManager teamManager;
-    private String mapFolderName;
+    private final BossWorldManager bossWorldManager; // 新增字段
 
-    public BossDataManager(Plugin plugin, GameManager gameManager, TeamManager teamManager) {
+    public BossDataManager(Plugin plugin, GameManager gameManager, TeamManager teamManager, BossWorldManager bossWorldManager) {
         this.plugin = plugin;
         this.gameManager = gameManager; // 初始化 GameManager
         this.teamManager = teamManager;
+        this.bossWorldManager = bossWorldManager;
         this.bossBar = Bukkit.createBossBar(ChatColor.RED + "凋零 Boss", BarColor.RED, BarStyle.SOLID);
         bossBar.setVisible(false);
         // 设置 gameManager 中的 BossDataManager
         setBossDataManager();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        loadConfig();
     }
 
-    public void loadConfig(String mapFolderName, World world) {
-        this.mapFolderName = mapFolderName;
-        File mapsFolder = new File(plugin.getDataFolder(), "maps");
-        if (!mapsFolder.exists()) {
-            mapsFolder.mkdirs();
-        }
-        File mapFolder = new File(mapsFolder, mapFolderName);
-        if (!mapFolder.exists()) {
-            mapFolder.mkdirs();
-        }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
-        if (!configFolder.exists()) {
-            configFolder.mkdirs();
-        }
-        configFile = new File(configFolder, "boss-config.yml");
-        if (!configFile.exists()) {
-            try {
-                configFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    public void loadConfig() {
+        configFile = new File(plugin.getDataFolder(), "boss-config.yml");
         config = YamlConfiguration.loadConfiguration(configFile);
 
-        if (config.contains("boss")) {
-            for (String teamName : config.getConfigurationSection("boss").getKeys(false)) {
-                Location location = config.getLocation("boss." + teamName);
-                if (location != null) {
-                    location.setWorld(world);
-                    teamBossLocations.put(teamName, location);
-                }
+        // 加载Boss生成点
+        if (config.contains("bossSpawn")) {
+            Location loc = config.getLocation("bossSpawn");
+            if (loc != null) loc.setWorld(bossWorldManager.getBossWorld());
+            bossSpawnLocation = loc;
+        }
+
+        // 加载队伍传送点
+        if (config.contains("teamTpLocations")) {
+            for (String team : config.getConfigurationSection("teamTpLocations").getKeys(false)) {
+                Location loc = config.getLocation("teamTpLocations." + team);
+                if (loc != null) loc.setWorld(bossWorldManager.getBossWorld());
+                teamTpLocations.put(team, loc);
             }
         }
     }
 
     public void saveConfig() {
-        File mapsFolder = new File(plugin.getDataFolder(), "maps");
-        if (!mapsFolder.exists()) {
-            mapsFolder.mkdirs();
-        }
-        File mapFolder = new File(mapsFolder, mapFolderName);
-        if (!mapFolder.exists()) {
-            mapFolder.mkdirs();
-        }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
-        if (!configFolder.exists()) {
-            configFolder.mkdirs();
-        }
-        configFile = new File(configFolder, "boss-config.yml");
-
-        config.set("boss", null);
-        for (Map.Entry<String, Location> entry : teamBossLocations.entrySet()) {
-            config.set("boss." + entry.getKey(), entry.getValue());
+        config.set("bossSpawn", bossSpawnLocation);
+        config.set("teamTpLocations", null);
+        for (Map.Entry<String, Location> entry : teamTpLocations.entrySet()) {
+            config.set("teamTpLocations." + entry.getKey(), entry.getValue());
         }
         try {
             config.save(configFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        loadConfig();
     }
 
-    public void setBossLocation(String teamName, Location location) {
-        teamBossLocations.put(teamName, location);
+    public void enterBossMap(Player player) {
+        addBossPlayer(player); // 添加到Boss玩家列表
+
+        // 判断玩家是否有队伍
+        String teamName = teamManager.getPlayerTeamName(player);
+        if (teamName != null) {
+            Location teamSpawn = teamTpLocations.get(teamName);
+            if (teamSpawn != null) {
+                player.teleport(teamSpawn);
+            }
+        }else{
+            bossWorldManager.enterBossMap(player);
+        }
+    }
+
+    public void leaveBossMap(Player player) {
+        bossWorldManager.leaveBossMap(player);
+        removeBossPlayer(player); // 移除Boss玩家列表
+    }
+
+    // 设置Boss生成点的方法
+    public void setBossSpawnLocation(Location location) {
+        this.bossSpawnLocation = location;
         saveConfig();
     }
 
-    public Location getBossLocation(String teamName) {
-        return teamBossLocations.get(teamName);
+
+    public void setBossTeamTpLocation(String teamName, Location location) {
+        teamTpLocations.put(teamName, location);
+        saveConfig();
     }
 
+    public Location getBossSpawnLocation() {
+        return bossSpawnLocation;
+    }
+
+
     public boolean hasBossLocation(String teamName) {
-        return teamBossLocations.containsKey(teamName);
+        return teamTpLocations.containsKey(teamName);
+    }
+
+    public void setTeamTpLocation(String teamName, Location location) {
+        teamTpLocations.put(teamName, location);
+        saveConfig();
+    }
+
+    public Location getTeamTpLocation(String teamName) {
+        return teamTpLocations.get(teamName);
     }
 
     public void spawnBossManually(Player player) {
@@ -142,7 +157,7 @@ public class BossDataManager implements Listener {
     }
 
     public void spawnBoss() {
-        Location bossLocation = getBossLocation("boss");
+        Location bossLocation = getBossSpawnLocation();
         if (bossLocation == null || bossAlive) {
             return;
         }
@@ -156,7 +171,7 @@ public class BossDataManager implements Listener {
         // 设置血量和 BossBar
         AttributeInstance maxHealth = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         if (maxHealth != null) {
-            maxHealth.setBaseValue(300);
+            maxHealth.setBaseValue(AnniConfigManager.BOSS_HEALTH);
             boss.setHealth(maxHealth.getBaseValue());
         }
 

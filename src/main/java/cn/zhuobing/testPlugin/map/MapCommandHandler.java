@@ -6,9 +6,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
 
@@ -23,6 +25,14 @@ public class MapCommandHandler implements CommandHandler {
         this.mapSelectManager = mapSelectManager;
     }
 
+    /**
+     * 处理命令
+     * @param sender 命令发送者
+     * @param command 命令对象
+     * @param label 命令标签
+     * @param args 命令参数
+     * @return 命令处理结果
+     */
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!command.getName().equalsIgnoreCase("annimap")) {
@@ -92,7 +102,7 @@ public class MapCommandHandler implements CommandHandler {
                 return true;
             }
             String mapName = player.getWorld().getName();
-            String mappingName = args[2];
+            String mappingName = args[1];
             mapSelectManager.setMappingName(mapName, mappingName);
             player.sendMessage(ChatColor.GREEN + "已将地图 " + mapName + " 的映射名设置为 " + mappingName);
             return true;
@@ -115,7 +125,6 @@ public class MapCommandHandler implements CommandHandler {
             }
             return true;
         }
-
         return true;
     }
 }

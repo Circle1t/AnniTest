@@ -53,7 +53,7 @@ public class Acrobat extends Kit implements Listener {
     }
 
     @Override
-    public String getNameWithColor(){
+    public String getNameWithColor() {
         return ChatColor.GOLD + "鸟人";
     }
 
@@ -168,7 +168,7 @@ public class Acrobat extends Kit implements Listener {
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
         if (isThisKit(player)
-                && !player.getAllowFlight()
+                &&!player.getAllowFlight()
                 && player.getGameMode() != GameMode.CREATIVE
                 && isOnGround(player)) {
 
@@ -178,6 +178,8 @@ public class Acrobat extends Kit implements Listener {
                 if (remaining <= 0) {
                     player.setAllowFlight(true);
                     cooldowns.remove(player.getUniqueId());
+                    // 播放凋零攻击“哈”的音效
+                    player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.8f, 1.0f);
                 }
             } else {
                 player.setAllowFlight(true);

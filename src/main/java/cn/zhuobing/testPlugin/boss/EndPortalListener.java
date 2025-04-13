@@ -41,7 +41,7 @@ public class EndPortalListener implements Listener {
                 return;
             }
 
-            Location bossLocation = bossDataManager.getBossLocation(teamName);
+            Location bossLocation = bossDataManager.getTeamTpLocation(teamManager.getPlayerTeamName(player));
             if (bossLocation == null) {
                 player.sendMessage(ChatColor.RED + "你所在队伍的Boss点尚未设置！");
                 event.setCancelled(true);

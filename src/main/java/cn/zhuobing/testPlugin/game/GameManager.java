@@ -7,6 +7,7 @@ import cn.zhuobing.testPlugin.map.MapSelectManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -17,6 +18,8 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
+
+import static cn.zhuobing.testPlugin.utils.AnniConfigManager.MIN_PLAYERS_TO_START;
 
 public class GameManager {
     private final GamePhaseManager phaseManager;
@@ -52,6 +55,7 @@ public class GameManager {
 
         remainingTime = phaseManager.getPhase(currentPhase).getDuration();
         halfTime = remainingTime / 2; // 计算倒计时一半的时间
+        checkAndStartGame(); // 检查是否满足启动条件
     }
 
     public void startGame() {
@@ -126,6 +130,8 @@ public class GameManager {
             if (highestVotedMap != null) {
                 World gameWorld = Bukkit.getWorld(highestVotedMap);
                 if (gameWorld != null) {
+                    //刷新钻石状态
+                    oreManager.updateDiamondBlocks();
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         if (teamManager.isInTeam(player)) {
                             player.teleport(gameWorld.getSpawnLocation());
@@ -136,14 +142,14 @@ public class GameManager {
             }
             nexusInfoBoard.updateInfoBoard();
         }
-        // 当游戏进入阶段 4 时, 出现boss
-        if (currentPhase == 4) {
-            bossDataManager.spawnBoss();
-        }
         // 阶段 3 时生成女巫，更新钻石
         if(currentPhase == 3) {
             oreManager.updateDiamondBlocks();
             witchDataManager.startWitchesSpawn();
+        }
+        // 当游戏进入阶段 4 时, 出现boss
+        if (currentPhase == 4) {
+            bossDataManager.spawnBoss();
         }
 
     }
@@ -213,5 +219,26 @@ public class GameManager {
 
     public void setNexusInfoBoard(NexusInfoBoard nexusInfoBoard) {
         this.nexusInfoBoard = nexusInfoBoard;
+    }
+
+    public void checkAndStartGame() {
+        if(gameStarted){
+            return;
+        }
+        if (Bukkit.getOnlinePlayers().size() >= MIN_PLAYERS_TO_START && !gameStarted) {
+            startGame();
+            updateBossBar(currentPhase, remainingTime);
+        } else {
+            updatePlayerCountOnBossBar();
+        }
+    }
+
+    public void updatePlayerCountOnBossBar() {
+        int onlinePlayers = Bukkit.getOnlinePlayers().size();
+        bossBar.setTitle(ChatColor.YELLOW + "您正在游玩 核心战争" + ChatColor.RESET + "  |  " + ChatColor.GREEN + "请等待游戏启动: (" + onlinePlayers + "/" + MIN_PLAYERS_TO_START + ")");
+    }
+
+    public boolean isGameStarted() {
+        return gameStarted;
     }
 }

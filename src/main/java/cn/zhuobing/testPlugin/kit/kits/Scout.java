@@ -149,6 +149,9 @@ public class Scout extends Kit implements Listener {
                 Entity hook = event.getHook();
                 setHookVelocity(hook, player);
             } else if (event.getState() == State.IN_GROUND || event.getState() == State.CAUGHT_ENTITY) {
+                if(event.getCaught() != null) {
+                    return;
+                }
                 // 钩子命中目标后的逻辑
                 Location playerLoc = player.getLocation();
                 Location hookLoc = event.getHook().getLocation();
@@ -158,16 +161,13 @@ public class Scout extends Kit implements Listener {
                 } else {
                     pullEntityToLocation(player, hookLoc);
                 }
-
-                // 重置鱼竿耐久度
-                player.getInventory().getItemInMainHand().setDurability((short) 0);
             }
         }
     }
 
     private void setHookVelocity(Entity hook, Player player) {
         Vector direction = player.getLocation().getDirection().normalize();
-        hook.setVelocity(direction.multiply(1.5)); // 降低速度，1.5 是一个适中的值
+        hook.setVelocity(direction.multiply(1.8)); // 抓钩抛出速度
         hook.setGravity(true); // 启用重力，使钩子有抛物线效果
     }
 

@@ -28,8 +28,8 @@ commands:
     description: 获得指南针
     usage: /compass
   boss:
-    description: boss相关指令 tp[团队boss点tp位置] set[boss重生点] spawn[手动刷新boss] clear[清除boss]
-    usage: /boss <tp/set/spawn/clear> <队伍名称/null>
+    description: boss相关指令 tp[团队boss点tp位置] set[boss重生点] spawn[手动刷新boss] clear[清除boss] enter[进入boss点] leave[离开boss点]
+    usage: /boss <tp 队伍名称>/<set/spawn/clear/enter/leave>
   store:
     description: 告示牌商店
     usage: /store <brew/weapon/remove>
@@ -43,5 +43,5 @@ commands:
     description: 自杀
     usage: /suicide
   annimap:
-    description: 游戏地图设置 <边界设置>/<设置地图映射名>/<设置地图图标>/<离开当前地图>
-    usage: /annimap <setborder 1/2/3/4>/<setmapname>/<setmapicon>/<leave>
+    description: 游戏地图设置 <边界设置>/<地图底部边界设置>/<设置地图映射名>/<设置地图图标>/<离开当前地图>
+    usage: /annimap <setborder 1/2/3/4>/<setundersurface>/<setmapname>/<setmapicon>/<leave>

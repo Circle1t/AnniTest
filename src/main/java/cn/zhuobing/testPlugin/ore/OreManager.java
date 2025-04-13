@@ -41,9 +41,10 @@ public class OreManager {
         this.kitManager = kitManager;
         this.diamondDataManager = diamondDataManager;
         startCoolDownCheckTask();
-        updateDiamondBlocks(); // 加载完配置后更新钻石块状态
-
         setGameManager();
+
+
+        updateDiamondBlocks(); // 加载完配置后更新钻石块状态
     }
 
     private void startCoolDownCheckTask() {

@@ -2,7 +2,7 @@ package cn.zhuobing.testPlugin.anniPlayer;
 
 import cn.zhuobing.testPlugin.map.LobbyManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
-import cn.zhuobing.testPlugin.utils.AnniConfig;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -47,7 +47,7 @@ public class RespawnDataManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
@@ -84,7 +84,7 @@ public class RespawnDataManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }

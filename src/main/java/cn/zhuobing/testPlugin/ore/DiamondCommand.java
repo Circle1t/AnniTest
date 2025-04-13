@@ -55,5 +55,6 @@ public class DiamondCommand implements CommandHandler {
             targetBlock.setType(Material.DIAMOND_ORE);
             player.sendMessage(ChatColor.GREEN + "成功设置钻石生成点！");
         }
+        oreManager.updateDiamondBlocks();
     }
 }

@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.store;
 
-import cn.zhuobing.testPlugin.utils.AnniConfig;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -94,7 +94,7 @@ public class StoreManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
@@ -104,8 +104,8 @@ public class StoreManager {
                 configFile.getParentFile().mkdirs();
                 configFile.createNewFile();
                 config = YamlConfiguration.loadConfiguration(configFile);
-                config.set("brew-signs", new ArrayList<>());
-                config.set("weapon-signs", new ArrayList<>());
+                config.set("brew-signs.locations", new ArrayList<>());
+                config.set("weapon-signs.locations", new ArrayList<>());
                 saveConfig();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -125,55 +125,65 @@ public class StoreManager {
         if (!mapFolder.exists()) {
             mapFolder.mkdirs();
         }
-        File configFolder = new File(mapFolder, AnniConfig.ANNI_MAP_CONFIG);
+        File configFolder = new File(mapFolder, AnniConfigManager.MAP_CONFIG_FOLDER);
         if (!configFolder.exists()) {
             configFolder.mkdirs();
         }
         configFile = new File(configFolder, "store-config.yml");
+
+        config.set("brew-signs.locations", null);
+        int index = 0;
+        for (Location location : brewSignLocations) {
+            config.set("brew-signs.locations." + index, location);
+            index++;
+        }
+
+        config.set("weapon-signs.locations", null);
+        index = 0;
+        for (Location location : weaponSignLocations) {
+            config.set("weapon-signs.locations." + index, location);
+            index++;
+        }
+
         try {
             config.save(configFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
     private void loadBrewSignLocations(World world) {
-        List<String> locations = config.getStringList("brew-signs");
         brewSignLocations.clear();
-
-        for (String locStr : locations) {
-            try {
-                String[] parts = locStr.split(",");
-                Location loc = new Location(
-                        world,
-                        Double.parseDouble(parts[0]),
-                        Double.parseDouble(parts[1]),
-                        Double.parseDouble(parts[2])
-                );
-
-                brewSignLocations.add(loc);
-            } catch (Exception e) {
-                plugin.getLogger().warning("无效的坐标格式: " + locStr);
+        if (config.contains("brew-signs.locations")) {
+            for (String key : config.getConfigurationSection("brew-signs.locations").getKeys(false)) {
+                Location location = config.getLocation("brew-signs.locations." + key);
+                if (location != null) {
+                    location.setWorld(world);
+                    brewSignLocations.add(location);
+                    Block block = location.getBlock();
+                    if (block.getState() instanceof Sign) {
+                        Sign sign = (Sign) block.getState();
+                        updateBrewSignContent(sign);
+                    }
+                }
             }
         }
     }
 
     private void loadWeaponSignLocations(World world) {
-        List<String> locations = config.getStringList("weapon-signs");
         weaponSignLocations.clear();
-
-        for (String locStr : locations) {
-            try {
-                String[] parts = locStr.split(",");
-                Location loc = new Location(
-                        world,
-                        Double.parseDouble(parts[0]),
-                        Double.parseDouble(parts[1]),
-                        Double.parseDouble(parts[2])
-                );
-
-                weaponSignLocations.add(loc);
-            } catch (Exception e) {
-                plugin.getLogger().warning("无效的坐标格式: " + locStr);
+        if (config.contains("weapon-signs.locations")) {
+            for (String key : config.getConfigurationSection("weapon-signs.locations").getKeys(false)) {
+                Location location = config.getLocation("weapon-signs.locations." + key);
+                if (location != null) {
+                    location.setWorld(world);
+                    weaponSignLocations.add(location);
+                    Block block = location.getBlock();
+                    if (block.getState() instanceof Sign) {
+                        Sign sign = (Sign) block.getState();
+                        updateWeaponSignContent(sign);
+                    }
+                }
             }
         }
     }
@@ -300,7 +310,7 @@ public class StoreManager {
         Block block = location.getBlock();
         if (block.getState() instanceof Sign) {
             Sign sign = (Sign) block.getState();
-            updateSignContent(sign, ChatColor.LIGHT_PURPLE + "[酿造商店]");
+            updateBrewSignContent(sign);
         }
 
         brewSignLocations.add(location);
@@ -314,8 +324,7 @@ public class StoreManager {
         Block block = location.getBlock();
         if (block.getState() instanceof Sign) {
             Sign sign = (Sign) block.getState();
-            // 将武器商店告示牌标题设置为白色
-            updateSignContent(sign, ChatColor.WHITE + "[武器商店]");
+            updateWeaponSignContent(sign);
         }
 
         weaponSignLocations.add(location);
@@ -335,9 +344,16 @@ public class StoreManager {
         return removed;
     }
 
-    private void updateSignContent(Sign sign, String storeType) {
+    private void updateBrewSignContent(Sign sign) {
         sign.setLine(0, " ");
-        sign.setLine(1,  storeType);
+        sign.setLine(1, ChatColor.LIGHT_PURPLE + "[酿造商店]");
+        sign.setLine(2, ChatColor.GREEN + "右键打开");
+        sign.update(true);
+    }
+
+    private void updateWeaponSignContent(Sign sign) {
+        sign.setLine(0, " ");
+        sign.setLine(1, ChatColor.WHITE + "[武器商店]");
         sign.setLine(2, ChatColor.GREEN + "右键打开");
         sign.update(true);
     }

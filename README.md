@@ -161,75 +161,112 @@
 - **用法**：`/witch <set/remove> <队伍>`
 
 ### `/annimap`
-- **描述**：游戏地图设置 <边界设置>/<设置地图映射名（文件夹名->地图名）>/<设置地图图标>/<离开当前地图配置>
-- **用法**：`/annimap <setborder 1/2/3/4>/<setmapname 地图名>/<setmapicon Material枚举类型（例如STONE）>/<leave>`
+- **描述**：游戏地图设置 <边界设置>/<设置地图底部 将会创建基岩并舍去基岩下方方块>/<设置地图映射名（文件夹名->地图名）>/<设置地图图标>/<离开当前地图配置>
+- **用法**：`/annimap <setborder 1/2/3/4>/<setundersurface>/<setmapname 地图名>/<setmapicon Material枚举类型（例如STONE）>/<leave>`
 
 
 ## TODO
 
-1. **Bug 修复**：游戏内仍然存在不少 BUG，但大部分已经被修复，后续会持续排查和解决。
+**配置文件更新**：目前正在做配置文件统一化整理工作
 
-2. **职业系统开发**：添加后续职业。
+**指令优化**：正在逐步添加指令tab填充功能
 
-3. **代码优化**
+**Bug 修复**：游戏内仍然存在不少 BUG，但大部分已经被修复，后续会持续排查和解决。
+
+**职业系统开发**：添加后续职业。
+
+
+
 
 
 ## 地图模块使用方式
-1. 在插件plugins目录下，插件在第一次启动后会自动生成AnniTest文件夹，其中有3个文件 `maps,lobby-config.yml,maps-config.yml`
+1. 在插件plugins目录下，插件在第一次启动后会自动生成AnniTest文件夹，其中有4个文件 `maps,lobby-config.yml,maps-config.yml,boss-config.yml,anni-config.yml`
 2. 你需要在maps文件夹中放入你的地图文件，注意`uid.dat`如果存在需要删除
-3. 打开`maps-config.yml`,`lobby-config.yml`，并按照如下格式配置:
+3. 打开`maps-config.yml`,`lobby-config.yml`，`boss-config.yml`并按照如下格式配置:
 
->gameMaps：插件读取的游戏地图
-> 
->mapIcons：对应地图的图标 
->
->originalMap：还未被配置的地图，可以在游戏内配置
-> 
->mapFolderNameMapping：文件夹名与地图名的映射 例如配置为 `Canyon: 沙洲峡谷`
-> 
-> ---
-> 
->lobbyMap：大厅地图的地图文件名
-> 
->respawnPoints：大厅重生点位置 可添加多个
-> 
-> ---
 >注意：第一次使用大厅地图请手动配置大厅重生点！你只需要修改模板上的x,y,z复制粘贴到yml文件里即可。
 > 
 >建议进入大厅后在游戏内使用指令`/lobby respawn`指令再次配置大厅重生点
 > 
 > 请不要配置大厅重生点的world属性！否则可能出现大厅传送失败的bug！
 ```
-gameMaps:
-- TestMap
-- ConfigureTest
-mapIcons:
-  TestMap: STONE
-  ConfigureTest: REDSTONE_ORE
-originalMap:
-- ExampleMap
-mapFolderNameMapping:
-  ConfigureTest: 配置测试
-  TestMap: 游戏测试
-  ExampleMap: 未配置的测试地图
+# maps-config.yml
+gameMaps:                 # 游戏候选地图列表（文件夹名称，需存放在 plugins/插件名/maps/ 目录下）
+  - "map1"                # 地图模板1
+  - "map2"                # 地图模板2
+
+originalMaps:             # 原始地图列表（还未被配置的地图）
+  - "original_map1"       # 原始地图1
+  - "original_map2"       # 原始地图2
+
+mapIcons:                 # 地图投票图标配置
+  map1: GRASS_BLOCK       # 地图1的展示材质（必须使用有效的材质名称）
+  map2: NETHERRACK        # 地图2的展示材质
+
+mapFolderNameMapping:     # 地图文件夹名与显示名称映射
+  map1: "草原地图"         # 显示在投票界面的地图名称
+  map2: "地狱岩地图"
   
 ```
 
 ```
-lobbyMap: Lobby
-respawnPoints:
-  '0':
-    ==: org.bukkit.Location
-    x: 0.508359001630939
-    y: -57.0
-    z: -1.6422587492495024
-    pitch: -1.1140729
-    yaw: -85.72153
+# lobby-config.yml
+lobbyMap: "defaultLobby"  # 大厅地图模板名称（需存放在 plugins/插件名/maps/ 目录下）
+respawnPoints:            # 大厅重生点坐标列表（自动生成，请勿手动编辑）
+  '0':                      # 第一个重生点，可以添加多个
+    x: 100.5              # X坐标（你可以在本地游戏中获取 X Y Z 坐标，并配置在此处）
+    y: 64.0               # Y坐标
+    z: 200.5              # Z坐标
+    yaw: 0.0              # 水平朝向角度
+    pitch: 0.0            # 垂直俯仰角度
 
 
 ```
 
+```
+# boss-config.yml
+bossMap: "BossTemplate"    # Boss地图模板名称（需存放在 plugins/插件名/maps/ 目录下）
+bossSpawn:                 # Boss生成点坐标（建议参数都在游戏里配置）
+  world: AnniBoss          # 必须为 AnniBoss 世界
+  x: 100.5
+  y: 64.0
+  z: 200.5
+  yaw: 0.0
+  pitch: 0.0
+teamTpLocations:           # 队伍传送点坐标
+  red:                     # 红队传送点
+    world: AnniBoss
+    x: -150.5
+    y: 64.0
+    z: 300.5
+    yaw: 90.0
+    pitch: 0.0
+  blue:                    # 蓝队传送点
+    world: AnniBoss
+    x: 200.5
+    y: 64.0
+    z: -100.5
+    yaw: -90.0
+    pitch: 0.0
+
+```
+
+```
+# anni-config.yml - 核心配置文件  更新中
+
+# 游戏设置
+settings:
+  min-players-to-start: 4 # 启动游戏需要的最小玩家数
+  boss-health: 500 # Boss的基础血量
+
+# 路径配置
+paths:
+  map-config-folder: AnniMapConfig # 地图配置文件夹名称
+
+
+```
 4. 请以管理员身份进入服务器，你将会获得一个地图配置器，通过它你可以进入选中的地图进行属性配置。配置过程请参照指令目录。
+5. boss地图配置需要输入指令进入 /boss enter
 ## 反馈
 
 
