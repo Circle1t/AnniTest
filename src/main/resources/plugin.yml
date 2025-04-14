@@ -4,7 +4,7 @@ main: cn.zhuobing.testPlugin.AnniTest
 api-version: '1.20'
 commands:
   team:
-    description: 用于队伍选择和团队重生点的设置与移除。使用示例：/team respawn red 或 /team respawn lobby 可添加多个重生点。
+    description: 用于队伍选择和团队重生点的设置与移除。使用示例：/team respawn red 可添加多个重生点。
     usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawnremove>
   lobby:
     description: 用于设置游戏大厅的重生点。
@@ -28,7 +28,7 @@ commands:
     description: 玩家获得核心指南针。
     usage: /compass
   boss:
-    description: 一系列与游戏中 boss 相关的指令，涵盖传送至团队 boss 点、设置 boss 重生点、手动刷新 boss、清除 boss 以及进入和离开 boss 点。
+    description: 一系列与游戏中 boss 相关的指令，涵盖设置团队 boss 传送点、设置 boss 重生点、手动刷新 boss、清除 boss 以及进入和离开 boss 点。
     usage: /boss <tp 队伍名称>/<set/spawn/clear/enter/leave>
   store:
     description: 用于告示牌商店的设置与管理，可设置酿造商店、武器商店，也可移除商店设置。

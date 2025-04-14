@@ -38,28 +38,38 @@ public class BossCommand implements CommandHandler, TabCompleter {
             player.sendMessage(ChatColor.RED + "你没有权限执行此命令！");
             return true;
         }
-
         if (args.length > 2) {
             player.sendMessage(ChatColor.RED + "用法: /boss tp <队伍名称> 或 /boss set/spawn/clear");
+            return true;
+        }
+
+        // 不用进入boss点就能执行的命令
+        if(args.length == 1 && args[0].equalsIgnoreCase("enter")) {
+            bossDataManager.enterBossMap(player);
+            return true;
+        }
+        if(args.length == 1 && args[0].equalsIgnoreCase("spawn")){
+            bossDataManager.spawnBossManually(player);
+            return true;
+        }
+        if(args.length == 1 && args[0].equalsIgnoreCase("clear")){
+            bossDataManager.clearBoss();
+            player.sendMessage(ChatColor.GREEN + "boss已清除");
+            return true;
+        }
+
+        if(!player.getWorld().getName().equals("AnniBoss")){
+            player.sendMessage(ChatColor.RED + "请进入boss地图后再尝试此命令！");
             return true;
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("tp")) {
             String teamName = args[1].toLowerCase();
             setBossLocationForTeam(player, teamName);
+            return true;
         }
         else if (args.length == 1 && args[0].equalsIgnoreCase("set")) {
             setBossLocation(player);
-        }
-        else if(args.length == 1 && args[0].equalsIgnoreCase("spawn")){
-            bossDataManager.spawnBossManually(player);
-        }
-        else if(args.length == 1 && args[0].equalsIgnoreCase("clear")){
-            bossDataManager.clearBoss();
-            player.sendMessage(ChatColor.GREEN + "boss已清除");
-        }
-        else if(args.length == 1 && args[0].equalsIgnoreCase("enter")) {
-            bossDataManager.enterBossMap(player);
             return true;
         }
         else if(args.length == 1 && args[0].equalsIgnoreCase("leave")) {

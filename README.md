@@ -71,11 +71,9 @@
 
 #### 3. 地图基础配置
 
-请参照文档中 “**地图模块使用方式**” 进行地图基础配置。
+请参照文档中 “**地图模块使用方式**” 进行lobby和boss地图基础配置。
 
 需要注意的是，**必须先完成大厅地图的手动配置，才能进入服务器**。
-
-同时，**建议在文件中添加好 boss 地图并在配置文件中配置好地图名，以便后续配置**。
 
 在添加至少一张**未配置地图**（originalMap）后，方可开始后续配置。
 
@@ -112,16 +110,14 @@
 
 ### `/annimap`
 
-- **描述**：用于游戏地图的各种设置，包括边界设置、地图底部设置、地图映射名设置、地图图标设置以及离开当前地图配置。
+- **描述**：用于游戏地图的各种设置，包括边界设置、地图映射名设置、地图图标设置以及离开当前地图配置。
 - 用法
   - `/annimap setborder <1/2/3/4>`：设置地图边界的四个角。
-  - `/annimap setundersurface`：设置地图底部。
   - `/annimap setmapname <地图名>`：设置地图的映射名。
   - `/annimap setmapicon <Material枚举类型（例如STONE）>`：设置地图的图标。
   - `/annimap leave`：离开当前地图配置。
 - 使用示例
   - `/annimap setborder 1`：设置地图边界的第一个角。
-  - `/annimap setundersurface`：设置地图底部，创建基岩并舍去基岩下方方块。
   - `/annimap setmapname new_map_name`：将当前地图的映射名设置为 `new_map_name`。
   - `/annimap setmapicon STONE`：将当前地图的图标设置为石头。
   - `/annimap leave`：离开当前地图配置。
@@ -136,22 +132,22 @@
 
 ### `/boss`
 
-- **描述**：一系列与游戏中 boss 相关的指令，包括传送至团队 boss 点、设置 boss 重生点、手动刷新 boss、清除 boss 以及进入和离开 boss 点。
+- **描述**：一系列与游戏中 boss 相关的指令，包括设置团队 boss 传送点、设置 boss 重生点、手动刷新 boss、清除 boss 以及进入和离开 boss 点。
 - 用法
-  - `/boss tp <队伍名称>`：传送到指定队伍的 boss 点。
-  - `/boss set <队伍名称/null>`：设置指定队伍或全局的 boss 重生点。
-  - `/boss spawn <队伍名称/null>`：手动刷新指定队伍或全局的 boss。
-  - `/boss clear <队伍名称/null>`：清除指定队伍或全局的 boss。
-  - `/boss enter <队伍名称/null>`：进入指定队伍或全局的 boss 点。
-  - `/boss leave <队伍名称/null>`：离开指定队伍或全局的 boss 点。
+  - `/boss tp <队伍名称>`：设置指定队伍的 boss 传送点。
+  - `/boss set`：设置 boss 重生点。
+  - `/boss spawn`：手动刷新 boss。
+  - `/boss clear`：清除 boss。
+  - `/boss enter`：进入 boss 点。
+  - `/boss leave`：离开 boss 点。
 - 使用示例
-  - `/boss tp red`：传送到红色队伍的 boss 点。
-  - `/boss set red`：设置红色队伍的 boss 重生点。
-  - `/boss spawn red`：手动刷新红色队伍的 boss。
-  - `/boss clear red`：清除红色队伍的 boss。
-  - `/boss enter red`：进入红色队伍的 boss 点。
-  - `/boss leave red`：离开红色队伍的 boss 点。
-- **注意事项**：部分指令可能需要相应的权限才能使用，操作时请确保具备足够权限。
+  - `/boss tp red`：设置红色队伍的 boss 传送点。
+  - `/boss set`：设置 boss 重生点。
+  - `/boss spawn`：手动刷新 boss。
+  - `/boss clear：清除 boss。
+  - `/boss enter`：进入 boss 点。
+  - `/boss leave`：离开 boss 点。
+- **注意事项**：只有管理员能操作。
 
 ### `/compass`
 
