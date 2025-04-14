@@ -7,9 +7,14 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class StoreCommandHandler implements CommandHandler {
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class StoreCommandHandler implements CommandHandler, TabCompleter {
     private final StoreManager storeManager;
 
     public StoreCommandHandler(StoreManager storeManager) {
@@ -93,5 +98,19 @@ public class StoreCommandHandler implements CommandHandler {
 
     private void sendUsageMessage(Player player) {
         player.sendMessage(ChatColor.RED + "用法: /store brew /store weapon /store remove");
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> subCommands = Arrays.asList("brew", "weapon", "remove");
+            for (String subCommand : subCommands) {
+                if (subCommand.startsWith(args[0].toLowerCase())) {
+                    completions.add(subCommand);
+                }
+            }
+        }
+        return completions;
     }
 }

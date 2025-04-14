@@ -4,44 +4,44 @@ main: cn.zhuobing.testPlugin.AnniTest
 api-version: '1.20'
 commands:
   team:
-    description: 队伍相关指令/团队重生点相关指令[respawn使用示例 /team respawn red或lobby 可以添加多个重生点]
-    usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawncancel>
+    description: 用于队伍选择和团队重生点的设置与移除。使用示例：/team respawn red 或 /team respawn lobby 可添加多个重生点。
+    usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawnremove>
   lobby:
-    description: 大厅 <respawn设置重生点>
+    description: 用于设置游戏大厅的重生点。
     usage: /lobby <respawn>
   nexus:
-    description: 管理队伍核心 这个模块为了防止误修改并未实现自动保存功能，你需要设置好地图后手动 /nexus save
-    usage: /nexus <set/sethealth/setborder/remove/save>
+    description: 管理队伍核心相关设置，包括核心位置、血量、保护区域边界的设置，以及核心的移除。为防止误修改，此模块未实现自动保存功能，设置好地图后需手动执行 /nexus save 保存设置。
+    usage: /nexus <set/sethealth/setborder <first/second> /remove/save>
   annistart:
-    description: 游戏启动
+    description: 启动游戏。
     usage: /annistart
   phase:
-    description: 设置游戏阶段
+    description: 设置游戏的阶段。
     usage: /phase set <阶段编号>
   diamond:
-    description: 将准星对准方块设置为钻石重生点
+    description: 将准星对准的方块设置为钻石重生点，也可通过 /diamond cancel 取消已设置的钻石重生点。
     usage: /diamond <cancel>
   getteamstar:
-    description: 获得队伍选择之星
+    description: 玩家获得队伍选择之星。
     usage: /getteamstar
   compass:
-    description: 获得指南针
+    description: 玩家获得核心指南针。
     usage: /compass
   boss:
-    description: boss相关指令 tp[团队boss点tp位置] set[boss重生点] spawn[手动刷新boss] clear[清除boss] enter[进入boss点] leave[离开boss点]
+    description: 一系列与游戏中 boss 相关的指令，涵盖传送至团队 boss 点、设置 boss 重生点、手动刷新 boss、清除 boss 以及进入和离开 boss 点。
     usage: /boss <tp 队伍名称>/<set/spawn/clear/enter/leave>
   store:
-    description: 告示牌商店
+    description: 用于告示牌商店的设置与管理，可设置酿造商店、武器商店，也可移除商店设置。
     usage: /store <brew/weapon/remove>
   witch:
-    description: 女巫重生点设置
+    description: 设置和移除队伍女巫的重生点。
     usage: /witch <set/remove> <队伍>
   kl:
-    description: 自杀
+    description: 自杀指令，效果等同于 /kill，可绕过部分权限问题。
     usage: /kl
   suicide:
-    description: 自杀
+    description: 自杀指令，效果等同于 /kill，可绕过部分权限问题。
     usage: /suicide
   annimap:
-    description: 游戏地图设置 <边界设置>/<地图底部边界设置>/<设置地图映射名>/<设置地图图标>/<离开当前地图>
+    description: 用于游戏地图的各种设置，包括边界设置、地图底部设置、地图映射名设置、地图图标设置以及离开当前地图配置。
     usage: /annimap <setborder 1/2/3/4>/<setundersurface>/<setmapname>/<setmapicon>/<leave>

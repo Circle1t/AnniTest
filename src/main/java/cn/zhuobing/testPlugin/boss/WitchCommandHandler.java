@@ -1,17 +1,25 @@
 package cn.zhuobing.testPlugin.boss;
 
 import cn.zhuobing.testPlugin.command.CommandHandler;
+import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-public class WitchCommandHandler implements CommandHandler {
-    private final WitchDataManager witchDataManager;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-    public WitchCommandHandler(WitchDataManager witchDataManager) {
+public class WitchCommandHandler implements CommandHandler, TabCompleter {
+    private final WitchDataManager witchDataManager;
+    private final TeamManager teamManager;
+
+    public WitchCommandHandler(WitchDataManager witchDataManager, TeamManager teamManager) {
         this.witchDataManager = witchDataManager;
+        this.teamManager = teamManager;
     }
 
     @Override
@@ -53,5 +61,26 @@ public class WitchCommandHandler implements CommandHandler {
         }
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> subCommands = Arrays.asList("set", "remove");
+            for (String subCommand : subCommands) {
+                if (subCommand.startsWith(args[0].toLowerCase())) {
+                    completions.add(subCommand);
+                }
+            }
+        } else if (args.length == 2) {
+            List<String> teamNames = new ArrayList<>(teamManager.getTeamColors().keySet());
+            for (String teamName : teamNames) {
+                if (teamName.startsWith(args[1].toLowerCase())) {
+                    completions.add(teamName);
+                }
+            }
+        }
+        return completions;
     }
 }

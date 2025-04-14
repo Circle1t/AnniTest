@@ -7,7 +7,6 @@ import cn.zhuobing.testPlugin.map.MapSelectManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
-import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -16,13 +15,14 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 import java.util.Map;
 
 import static cn.zhuobing.testPlugin.utils.AnniConfigManager.MIN_PLAYERS_TO_START;
 
 public class GameManager {
-    private final GamePhaseManager phaseManager;
+    private final GamePhaseManager gamePhaseManager;
     private MapSelectManager mapSelectManager;
     private int remainingTime;
     private BossBar bossBar;
@@ -33,27 +33,30 @@ public class GameManager {
     private OreManager oreManager;
     private WitchDataManager witchDataManager;
     private NexusInfoBoard nexusInfoBoard;
+    private Plugin plugin;
     private int currentPhase = 0;
     private boolean gameOver = false;
     private boolean teamSelectionOpen = false;
     private int halfTime;
 
     public GameManager(TeamManager teamManager, MapSelectManager mapSelectManager,
-                       BossDataManager bossDataManager, OreManager oreManager, WitchDataManager witchDataManager, NexusInfoBoard nexusInfoBoard) {
+                       BossDataManager bossDataManager, OreManager oreManager,
+                       WitchDataManager witchDataManager, NexusInfoBoard nexusInfoBoard, Plugin plugin) {
         this.teamManager = teamManager;
         this.mapSelectManager = mapSelectManager;
         this.bossDataManager = bossDataManager;
         this.oreManager = oreManager;
         this.witchDataManager = witchDataManager;
         this.nexusInfoBoard = nexusInfoBoard;
-        phaseManager = new GamePhaseManager();
+        this.plugin = plugin;
+        gamePhaseManager = new GamePhaseManager();
         bossBar = Bukkit.createBossBar(ChatColor.YELLOW + "您正在游玩 核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + "请等待游戏启动...", BarColor.BLUE, BarStyle.SOLID);
         bossBar.setVisible(true);
         for (Player player : Bukkit.getOnlinePlayers()) {
             bossBar.addPlayer(player);
         }
 
-        remainingTime = phaseManager.getPhase(currentPhase).getDuration();
+        remainingTime = gamePhaseManager.getPhase(currentPhase).getDuration();
         halfTime = remainingTime / 2; // 计算倒计时一半的时间
         checkAndStartGame(); // 检查是否满足启动条件
     }
@@ -75,7 +78,7 @@ public class GameManager {
     }
 
     public void updateBossBar(int phaseIndex, int remainingTime) {
-        GamePhase phase = phaseManager.getPhase(phaseIndex);
+        GamePhase phase = gamePhaseManager.getPhase(phaseIndex);
         if (phase == null) return;
 
         int totalDuration = phase.getDuration();
@@ -105,8 +108,8 @@ public class GameManager {
         bossBar.setColor(phase.getColor()); // 使用当前阶段的颜色
     }
 
-    public GamePhaseManager getPhaseManager() {
-        return phaseManager;
+    public GamePhaseManager getGamePhaseManager() {
+        return gamePhaseManager;
     }
 
     public int getCurrentPhase() {
@@ -114,8 +117,12 @@ public class GameManager {
     }
 
     public void setCurrentPhase(int currentPhase) {
+        if(currentPhase >= gamePhaseManager.getPhaseCount()) {
+            plugin.getLogger().warning("[你可以忽略此条消息]设置的游戏阶段超出索引范围！");
+            return;
+        }
         this.currentPhase = currentPhase;
-        this.remainingTime = phaseManager.getPhase(currentPhase).getDuration();
+        this.remainingTime = gamePhaseManager.getPhase(currentPhase).getDuration();
         updateBossBar(currentPhase, remainingTime);
         startCountdown();
 

@@ -110,10 +110,32 @@ public class AnniTest extends JavaPlugin {
         instance = this;
         getLogger().info("AnniTest 插件启动");
 
-
         getLogger().info("初始化核心基础配置信息...");
         AnniConfigManager.loadConfig(this);
 
+        // 初始化核心数据管理类
+        initManagers();
+
+        // 注册命令处理器
+        initCommandHandlers();
+
+        // 注册事件监听器
+        initListeners();
+
+        // 注册职业
+        initKits();
+
+        // 初始化完成后检查大厅世界是否加载成功
+        if (lobbyManager.getLobbyWorld() == null) {
+            getLogger().severe("大厅地图加载失败！");
+        }else{
+            getLogger().info("大厅地图加载成功！");
+        }
+
+        getLogger().info("AnniTest 插件初始化完成！");
+    }
+
+    private void initManagers() {
         getLogger().info("初始化核心数据管理类...");
         // 初始化核心数据管理类
         lobbyManager = new LobbyManager(this);
@@ -121,7 +143,7 @@ public class AnniTest extends JavaPlugin {
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
         witchDataManager = new WitchDataManager(this,teamManager);
-        gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null);
+        gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null,this);
         nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager,gameManager,null);
         kitManager = new KitManager(gameManager,teamManager,this);
         diamondDataManager = new DiamondDataManager(this);
@@ -135,27 +157,53 @@ public class AnniTest extends JavaPlugin {
         mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
+    }
 
+    private void initCommandHandlers() {
         getLogger().info("注册命令处理器...");
+
         // 注册命令处理器
-        commandHandlers.add(new LobbyCommandHandler(lobbyManager));
-        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager,nexusInfoBoard, gameManager,respawnDataManager,kitManager);
+        LobbyCommandHandler lobbyCommandHandler = new LobbyCommandHandler(lobbyManager);
+        commandHandlers.add(lobbyCommandHandler);
+        getCommand("lobby").setTabCompleter(lobbyCommandHandler);
+
+        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager, nexusInfoBoard, gameManager, respawnDataManager, kitManager);
         commandHandlers.add(teamCommandHandler);
-        commandHandlers.add(new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager));
-        commandHandlers.add(new GameCommandHandler(gameManager, oreManager));
-        commandHandlers.add(new DiamondCommand(oreManager));
-        commandHandlers.add(new TeamSelectorCommand());
-        commandHandlers.add(new CompassCommand(teamManager));
+        getCommand("team").setTabCompleter(teamCommandHandler);
+
+        NexusCommandHandler nexusCommandHandler = new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager);
+        commandHandlers.add(nexusCommandHandler);
+        getCommand("nexus").setTabCompleter(nexusCommandHandler);
+
+        GameCommandHandler gameCommandHandler = new GameCommandHandler(gameManager, oreManager);
+        commandHandlers.add(gameCommandHandler);
+        getCommand("annistart").setTabCompleter(gameCommandHandler);
+        getCommand("phase").setTabCompleter(gameCommandHandler);
 
         BossCommand bossCommand = new BossCommand(bossDataManager, teamManager);
         commandHandlers.add(bossCommand);
         getCommand("boss").setTabCompleter(bossCommand);
 
-        commandHandlers.add(new StoreCommandHandler(storeManager));
-        commandHandlers.add(new PlayerCommandHandler());
-        commandHandlers.add(new WitchCommandHandler(witchDataManager));
-        commandHandlers.add(new MapCommandHandler(borderManager,lobbyManager,mapSelectManager));
+        StoreCommandHandler storeCommandHandler = new StoreCommandHandler(storeManager);
+        commandHandlers.add(storeCommandHandler);
+        getCommand("store").setTabCompleter(storeCommandHandler);
 
+
+        WitchCommandHandler witchCommandHandler = new WitchCommandHandler(witchDataManager,teamManager);
+        commandHandlers.add(witchCommandHandler);
+        getCommand("witch").setTabCompleter(witchCommandHandler);
+
+        MapCommandHandler mapCommandHandler = new MapCommandHandler(borderManager, lobbyManager, mapSelectManager);
+        commandHandlers.add(mapCommandHandler);
+        getCommand("annimap").setTabCompleter(mapCommandHandler);
+
+        commandHandlers.add(new DiamondCommand(oreManager));
+        commandHandlers.add(new TeamSelectorCommand());
+        commandHandlers.add(new CompassCommand(teamManager));
+        commandHandlers.add(new PlayerCommandHandler());
+    }
+
+    private void initListeners() {
         getLogger().info("注册事件监听器...");
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
@@ -180,7 +228,9 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LobbyListener(lobbyManager),this);
         getServer().getPluginManager().registerEvents(new BorderListener(borderManager,mapSelectManager),this);
         getServer().getPluginManager().registerEvents(new MapConfigurerListener(mapConfigurerManager, mapSelectManager),this);
+    }
 
+    private void initKits() {
         getLogger().info("注册职业...");
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
@@ -196,16 +246,6 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Dasher(teamManager,kitManager));
         kitManager.registerKit(new Handyman(teamManager, kitManager, nexusManager, gameManager,nexusInfoBoard));
         kitManager.registerKit(new Scorpio(teamManager, kitManager));
-
-
-        // 初始化完成后加载大厅世界
-        if (lobbyManager.getLobbyWorld() == null) {
-            getLogger().severe("大厅地图加载失败！");
-        }else{
-            getLogger().info("大厅地图加载成功！");
-        }
-
-        getLogger().info("AnniTest 插件初始化完成！");
     }
 
     @Override

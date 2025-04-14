@@ -7,11 +7,15 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
-public class NexusCommandHandler implements CommandHandler {
+public class NexusCommandHandler implements CommandHandler, TabCompleter {
     private final NexusManager dataManager;
     private final NexusInfoBoard nexusInfoBoard;
     private final TeamManager teamManager;
@@ -174,5 +178,35 @@ public class NexusCommandHandler implements CommandHandler {
         } catch (NumberFormatException e) {
             player.sendMessage(ChatColor.RED + "请输入有效的血量数值！");
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> subCommands = Arrays.asList("set", "sethealth", "remove", "save", "setborder");
+            for (String subCommand : subCommands) {
+                if (subCommand.startsWith(args[0].toLowerCase())) {
+                    completions.add(subCommand);
+                }
+            }
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("sethealth") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("setborder")) {
+                List<String> teamNames = new ArrayList<>(teamManager.getTeamColors().keySet());
+                for (String teamName : teamNames) {
+                    if (teamName.startsWith(args[1].toLowerCase())) {
+                        completions.add(teamName);
+                    }
+                }
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("setborder")) {
+            List<String> positions = Arrays.asList("first", "second");
+            for (String position : positions) {
+                if (position.startsWith(args[2].toLowerCase())) {
+                    completions.add(position);
+                }
+            }
+        }
+        return completions;
     }
 }

@@ -1,6 +1,5 @@
 package cn.zhuobing.testPlugin.game;
 
-import cn.zhuobing.testPlugin.AnniTest;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BossBar;
@@ -47,8 +46,8 @@ public class GameCountdownTask extends BukkitRunnable {
 
             currentPhase++;
 
-            if (currentPhase < gameManager.getPhaseManager().getPhaseCount() - 1) {
-                remainingTime = gameManager.getPhaseManager().getPhase(currentPhase).getDuration();
+            if (currentPhase < gameManager.getGamePhaseManager().getPhaseCount() - 1) {
+                remainingTime = gameManager.getGamePhaseManager().getPhase(currentPhase).getDuration();
                 gameManager.updateBossBar(currentPhase, remainingTime);
                 gameManager.setCurrentPhase(currentPhase);
                 // 显示阶段切换的title
@@ -57,7 +56,7 @@ public class GameCountdownTask extends BukkitRunnable {
                 cancel();
                 bossBar.setTitle(ChatColor.GOLD + "核心战争" + ChatColor.RESET + " | " + ChatColor.AQUA + "阶段五" + ChatColor.RESET + " | " + ChatColor.GOLD + "挖掘核心造成双倍伤害");
                 bossBar.setProgress(1.0);
-                bossBar.setColor(gameManager.getPhaseManager().getPhase(currentPhase).getColor());
+                bossBar.setColor(gameManager.getGamePhaseManager().getPhase(currentPhase).getColor());
                 gameManager.setCurrentPhase(currentPhase);
             }
         } else {

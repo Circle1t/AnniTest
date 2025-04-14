@@ -10,13 +10,17 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
-public class TeamCommandHandler implements CommandHandler {
+public class TeamCommandHandler implements CommandHandler, TabCompleter {
     private final TeamManager teamManager;
     private final NexusInfoBoard nexusInfoBoard;
     private final GameManager gameManager;
@@ -51,7 +55,7 @@ public class TeamCommandHandler implements CommandHandler {
         int currentPhase = gameManager.getCurrentPhase();
 
         if (args.length == 0) {
-            player.sendMessage(ChatColor.RED + "用法：/team <red/yellow/blue/green/leave/random/respawn/respawncancel> [队伍名]");
+            player.sendMessage(ChatColor.RED + "用法：/team <red/yellow/blue/green/leave/random/respawn/respawnremove> [队伍名]");
             return true;
         }
 
@@ -60,7 +64,7 @@ public class TeamCommandHandler implements CommandHandler {
         switch (subCommand) {
             case "respawn":
                 return handleRespawnCommand(player, args);
-            case "respawncancel":
+            case "respawnremove":
                 return handleRespawnCancelCommand(player, args);
             default:
                 return handleOriginalCommands(player, args, currentPhase);
@@ -74,12 +78,12 @@ public class TeamCommandHandler implements CommandHandler {
         }
 
         if (args.length != 2) {
-            player.sendMessage(ChatColor.RED + "用法：/team respawn <队伍英文名/lobby>");
+            player.sendMessage(ChatColor.RED + "用法：/team respawn <队伍英文名>");
             return true;
         }
 
         String teamName = args[1].toLowerCase();
-        if (!teamManager.getTeamColors().containsKey(teamName) && !teamName.equals("lobby")) {
+        if (!teamManager.getTeamColors().containsKey(teamName)) {
             player.sendMessage(ChatColor.RED + "无效的队伍名称！");
             return true;
         }
@@ -98,12 +102,12 @@ public class TeamCommandHandler implements CommandHandler {
         }
 
         if (args.length != 2) {
-            player.sendMessage(ChatColor.RED + "用法：/team respawncancel <队伍英文名/lobby>");
+            player.sendMessage(ChatColor.RED + "用法：/team respawnremove <队伍英文名>");
             return true;
         }
 
         String teamName = args[1].toLowerCase();
-        if (!teamManager.getTeamColors().containsKey(teamName) && !teamName.equals("lobby")) {
+        if (!teamManager.getTeamColors().containsKey(teamName)) {
             player.sendMessage(ChatColor.RED + "无效的队伍名称！");
             return true;
         }
@@ -234,5 +238,26 @@ public class TeamCommandHandler implements CommandHandler {
         if(gameManager.getCurrentPhase() > 0){
             player.setHealth(0.0);
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> mainCommands = Arrays.asList("red", "yellow", "blue", "green", "leave", "random", "respawn", "respawnremove");
+            for (String cmd : mainCommands) {
+                if (cmd.startsWith(args[0].toLowerCase())) {
+                    completions.add(cmd);
+                }
+            }
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("respawn") || args[0].equalsIgnoreCase("respawnremove"))) {
+            List<String> teamNames = new ArrayList<>(teamManager.getTeamColors().keySet());
+            for (String teamName : teamNames) {
+                if (teamName.startsWith(args[1].toLowerCase())) {
+                    completions.add(teamName);
+                }
+            }
+        }
+        return completions;
     }
 }

@@ -9,12 +9,15 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-public class MapCommandHandler implements CommandHandler {
+public class MapCommandHandler implements CommandHandler, TabCompleter {
     private final BorderManager borderManager;
     private final LobbyManager lobbyManager;
     private final MapSelectManager mapSelectManager;
@@ -126,5 +129,28 @@ public class MapCommandHandler implements CommandHandler {
             return true;
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            List<String> subCommands = Arrays.asList("leave", "setborder", "setmapname", "setmapicon");
+            for (String subCommand : subCommands) {
+                if (subCommand.startsWith(args[0].toLowerCase())) {
+                    completions.add(subCommand);
+                }
+            }
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("setborder")) {
+                List<String> borderNumbers = Arrays.asList("1", "2", "3", "4");
+                for (String borderNumber : borderNumbers) {
+                    if (borderNumber.startsWith(args[1].toLowerCase())) {
+                        completions.add(borderNumber);
+                    }
+                }
+            }
+        }
+        return completions;
     }
 }

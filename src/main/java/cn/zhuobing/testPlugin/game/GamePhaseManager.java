@@ -20,8 +20,11 @@ public class GamePhaseManager {
     }
 
     public GamePhase getPhase(int index) {
-        if (index < 0 || index >= phases.size()) {
-            return null;
+        if (index < 0) {
+            return phases.getFirst();
+        }
+        if (index >= phases.size()) {
+            return phases.getLast();
         }
         return phases.get(index);
     }
