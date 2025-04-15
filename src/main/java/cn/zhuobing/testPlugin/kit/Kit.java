@@ -12,6 +12,8 @@ public abstract class Kit {
     public abstract String getNameWithColor();
     public abstract String getDescription();
     public abstract ItemStack getIcon();
-    public abstract void applyKit(Player player);
+    public abstract void applyKit(Player player); // 应用职业时调用
+    public void onKitSet(Player player) {}  // 当职业被设置时调用
+    public void onKitUnset(Player player) {} // 当职业被取消时调用
     public abstract List<ItemStack> getKitItems();
 }

@@ -7,7 +7,6 @@ import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -94,7 +93,7 @@ public class General extends Kit implements Listener {
                 "",
                 ChatColor.RED + "你从丹东来，换我一城雪白！",
                 "",
-                ChatColor.AQUA + "拥有"+ChatColor.RED+"超强"+ChatColor.AQUA+"的初始装备，",
+                ChatColor.AQUA + "拥有" + ChatColor.RED + "超强" + ChatColor.AQUA + "的初始装备，",
                 ChatColor.AQUA + "吃下“忠橙”获得 10 秒力量 1 效果，",
                 ChatColor.AQUA + "使用“紫蛋”对敌人造成伤害并使其缓慢，",
                 ChatColor.AQUA + "不过肥胖将使你始终拥有缓慢一的效果，",
@@ -132,8 +131,28 @@ public class General extends Kit implements Listener {
         }
     }
 
+    @Override
+    public void onKitSet(Player player) {
+        // 延迟 1 tick 后添加缓慢一的效果
+        Plugin plugin = kitManager.getPlugin();
+        if (plugin != null) {
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 0, false, false));
+                }
+            }.runTaskLater(plugin, 1L);
+        }
+    }
+
+    @Override
+    public void onKitUnset(Player player) {
+        // 移除缓慢效果
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+    }
+
     private void setUp() {
-        sunFlower = createSoulBoundItem(Material.SUNFLOWER,ChatColor.YELLOW+"太阳",1,3,false);
+        sunFlower = createSoulBoundItem(Material.SUNFLOWER, ChatColor.YELLOW + "太阳", 1, 3, false);
         // 铁剑
         ironSword = createSoulBoundItem(Material.IRON_SWORD, null, 1, 3, false);
         kitItems.add(ironSword.clone());
@@ -182,8 +201,9 @@ public class General extends Kit implements Listener {
             Player player = event.getPlayer();
             ItemStack item = event.getItem();
             if (item != null && isPurpleEgg(item) && isThisKit(player)) {
+                event.setCancelled(true);
                 if (performPurpleEggAction(player)) {
-                    event.setCancelled(true);
+                    updatePurpleEggItem(player);
                 }
             }
         }
@@ -227,7 +247,7 @@ public class General extends Kit implements Listener {
             ItemMeta meta = heldItem.getItemMeta();
             long secondsLeft = getCooldownSecondsLeft(player);
 
-            if (secondsLeft >= 0) {
+            if (isOnCooldown(player)) {
                 meta.setDisplayName(PURPLE_EGG_COOLDOWN_PREFIX + secondsLeft + PURPLE_EGG_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(PURPLE_EGG_ITEM_NAME);
@@ -254,9 +274,11 @@ public class General extends Kit implements Listener {
                 }
 
                 if (!isOnCooldown(player)) {
-                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                    player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.DARK_PURPLE + "紫蛋 " + ChatColor.GREEN + "准备就绪！");
-                    updatePurpleEggItemsInInventory(player);
+                    if (isThisKit(player)) {
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.DARK_PURPLE + "紫蛋 " + ChatColor.GREEN + "准备就绪！");
+                        updatePurpleEggItemsInInventory(player);
+                    }
                     cooldownTasks.remove(player.getUniqueId());
                     this.cancel();
                 } else {

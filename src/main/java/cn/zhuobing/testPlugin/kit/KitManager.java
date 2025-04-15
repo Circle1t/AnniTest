@@ -83,27 +83,23 @@ public class KitManager {
     public void setPlayerKit(UUID playerId, String kitName) {
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
-
             SoulBoundUtil.clearSoulBoundLevelItems(player);
             // 获取玩家当前职业
             Kit currentKit = getPlayerKit(playerId);
 
-            // 获取玩家将要变为的职业
-            if (currentKit instanceof General) {
-                // 如果当前职业是将军，移除缓慢效果
-                player.removePotionEffect(PotionEffectType.SLOWNESS);
-            }
-            if(kitName.equalsIgnoreCase("将军")) {
-                // 如果选择的职业是将军，添加缓慢效果
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 0, false, false));
-                    }
-                }.runTaskLater(plugin, 1L);
+            // 取消当前职业
+            if(currentKit != null) {
+                currentKit.onKitUnset(player);
             }
 
+            // 设置新职业
             playerKits.put(playerId, kitName.toLowerCase());
+
+            // 触发新职业的设置逻辑
+            Kit newKit = getPlayerKit(playerId);
+            if (newKit != null) {
+                newKit.onKitSet(player);
+            }
 
             if (gameManager.getCurrentPhase() >= 1 && teamManager.isInTeam(player)) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {

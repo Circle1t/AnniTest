@@ -140,6 +140,7 @@ public class AnniTest extends JavaPlugin {
         // 初始化核心数据管理类
         lobbyManager = new LobbyManager(this);
         bossWorldManager = new BossWorldManager(lobbyManager,this);
+        borderManager = new BorderManager(this);
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
         witchDataManager = new WitchDataManager(this,teamManager);
@@ -153,7 +154,6 @@ public class AnniTest extends JavaPlugin {
         respawnDataManager = new RespawnDataManager(lobbyManager,nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager,bossWorldManager);
         storeManager = new StoreManager(this);
-        borderManager = new BorderManager(this);
         mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
@@ -209,7 +209,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager), this);
         getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager,teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager,this), this);
-        getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager), this);
+        getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager,borderManager), this);
         getServer().getPluginManager().registerEvents(new EnchantTableListener(enchantManager), this);
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);

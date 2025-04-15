@@ -431,6 +431,15 @@ public class MapSelectManager {
                 player.teleport(world.getSpawnLocation());
                 editingPlayers.add(player.getUniqueId());
 
+                // 设置玩家游戏模式为创造模式
+                player.setGameMode(GameMode.CREATIVE);
+                // 开启玩家飞行能力
+                player.setAllowFlight(true);
+                // 让玩家开始浮空悬停
+                player.setFlying(true);
+
+                player.sendMessage(ChatColor.GOLD + "[管理员模式]"+ ChatColor.AQUA + "你的游戏模式已被设置为创造模式，你现在可以开始配置地图了！");
+
                 getLogger().info("地图 " + mapName + " 加载成功");
 
                 player.sendMessage(ChatColor.GREEN + "已进入地图: " + ChatColor.YELLOW + mapFolderNameMapping.getOrDefault(mapName,world.getName()));

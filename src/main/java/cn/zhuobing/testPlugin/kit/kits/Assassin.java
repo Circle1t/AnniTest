@@ -289,11 +289,13 @@ public class Assassin extends Kit implements Listener {
                     this.cancel();
                     return;
                 }
-                if (!isOnCooldown(player) && isThisKit(player)) {
-                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                    player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "充能完毕");
-                    // 遍历背包，找到灵魂绑定的羽毛并更新名称
-                    updateSoulBoundFeatherInInventory(player);
+                if (!isOnCooldown(player)) {
+                    if(isThisKit(player)){
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "充能完毕");
+                        // 遍历背包，找到灵魂绑定的羽毛并更新名称
+                        updateSoulBoundFeatherInInventory(player);
+                    }
                     cooldownTasks.remove(player.getUniqueId());
                     this.cancel();
                 } else {

@@ -219,9 +219,11 @@ public class Swapper extends Kit implements Listener {
                 }
 
                 if (!isOnCooldown(player)) {
-                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                    player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
-                    updateSwapperItemsInInventory(player);
+                    if(isThisKit(player)){
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
+                        updateSwapperItemsInInventory(player);
+                    }
                     cooldownTasks.remove(player.getUniqueId());
                     this.cancel();
                 } else {

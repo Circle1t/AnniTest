@@ -11,6 +11,7 @@ import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -60,6 +61,16 @@ public class GamePlayerJoinListener implements Listener {
                 player.getInventory().clear();
                 // 清空玩家装备栏
                 player.getInventory().setArmorContents(null);
+                // 设置血量为满
+                player.setHealth(player.getMaxHealth());
+                // 设置饥饿值为满
+                player.setFoodLevel(20);
+                // 防止饥饿值降低
+                player.setSaturation(20);
+                player.setExhaustion(0);
+
+                // 设置玩家游戏模式为生存模式
+                player.setGameMode(GameMode.SURVIVAL);
 
                 player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.AQUA + "欢迎回到核心战争！");
                 Inventory inventory = player.getInventory();

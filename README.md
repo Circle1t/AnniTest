@@ -305,7 +305,7 @@ mapFolderNameMapping:     # 地图文件夹名与显示名称映射
 ```
 # boss-config.yml
 bossMap: "BossTemplate"    # Boss地图模板名称（需存放在 plugins/插件名/maps/ 目录下）
-bossSpawn:                 # Boss生成点坐标（建议参数都在游戏里配置）
+bossSpawn:                 # Boss生成点坐标（建议参数都在游戏里配置,你只需要配置好地图名称即可）
   world: AnniBoss          # 必须为 AnniBoss 世界
   x: 100.5
   y: 64.0
