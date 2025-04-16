@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.ore;
 
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.map.BorderManager;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -11,6 +12,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.Random;
 
 public class OreBreakListener implements Listener {
     private final OreManager oreManager;
@@ -29,40 +32,47 @@ public class OreBreakListener implements Listener {
         Block block = event.getBlock();
         OreType oreType = OreType.fromMaterial(block.getType());
 
-        if (oreType == null) {
-            return;
-        }
+        if (oreType != null) {
+            // 阶段验证
+            if (gameManager.getCurrentPhase() < oreType.availablePhase) {
+                block.setType(Material.COBBLESTONE);
+                event.setCancelled(true);
+                return;
+            }
 
-        // 阶段验证
-        if (gameManager.getCurrentPhase() < oreType.availablePhase) {
-            block.setType(Material.COBBLESTONE);
+            // 工具验证
+            ItemStack tool = player.getInventory().getItemInMainHand();
+            if (!OreUtils.isValidTool(tool, oreType)) {
+                event.setCancelled(true);
+                return;
+            }
+
+            // 冷却时间验证
+            if (oreManager.isOreInCoolDown(block)) {
+                player.sendMessage("§c该矿石正在冷却中，请稍后再试！");
+                event.setCancelled(true);
+                return;
+            }
+
+            // 如果是核心保护区域的原木不能被破坏
+            if (borderManager.isInsideBorder(block.getLocation()) && oreType == OreType.LOG) {
+                event.setCancelled(true);
+                return;
+            }
+
+            // 取消原事件，使用自定义逻辑处理挖掘
             event.setCancelled(true);
-            return;
-        }
+            oreManager.processOreBreak(player, block);
 
-        // 工具验证
-        ItemStack tool = player.getInventory().getItemInMainHand();
-        if (!OreUtils.isValidTool(tool, oreType)) {
-            event.setCancelled(true);
-            return;
+            // 处理树叶方块苹果掉落
+            if (oreType == OreType.LEAVES) {
+                Random random = new Random();
+                double chance = AnniConfigManager.APPLE_DROP_RATE / 100.0;
+                if (random.nextDouble() < chance) {
+                    block.getWorld().dropItemNaturally(block.getLocation(), new ItemStack(Material.APPLE));
+                }
+            }
         }
-
-        // 冷却时间验证
-        if (oreManager.isOreInCoolDown(block)) {
-            player.sendMessage("§c该矿石正在冷却中，请稍后再试！");
-            event.setCancelled(true);
-            return;
-        }
-
-        // 如果是核心保护区域的原木不能被破坏
-        if(borderManager.isInsideBorder(block.getLocation()) && oreType == OreType.LOG){
-            event.setCancelled(true);
-            return;
-        }
-
-        // 取消原事件，使用自定义逻辑处理挖掘
-        event.setCancelled(true);
-        oreManager.processOreBreak(player, block);
     }
 
     @EventHandler

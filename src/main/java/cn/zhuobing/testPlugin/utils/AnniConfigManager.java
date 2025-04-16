@@ -1,4 +1,3 @@
-// AnniConfigManager.java
 package cn.zhuobing.testPlugin.utils;
 
 import org.bukkit.configuration.file.FileConfiguration;
@@ -17,6 +16,7 @@ public class AnniConfigManager {
     public static int MIN_PLAYERS_TO_START = 4;
     public static int BOSS_HEALTH = 500;
     public static String MAP_CONFIG_FOLDER = "AnniMapConfig";
+    public static double APPLE_DROP_RATE = 3;
 
     public static void loadConfig(Plugin plugin) {
         configFile = new File(plugin.getDataFolder(), "anni-config.yml");
@@ -33,6 +33,7 @@ public class AnniConfigManager {
         MIN_PLAYERS_TO_START = config.getInt("settings.min-players-to-start", 4);
         BOSS_HEALTH = config.getInt("settings.boss-health", 500);
         MAP_CONFIG_FOLDER = config.getString("paths.map-config-folder", "AnniMapConfig");
+        APPLE_DROP_RATE = config.getDouble("settings.apple-drop-rate", 3);
 
         // 保存可能更新后的配置（用于添加缺失的配置项）
         saveConfig();
@@ -50,6 +51,7 @@ public class AnniConfigManager {
                     "settings:\n" +
                     "  min-players-to-start: 4  # 启动游戏需要的最小玩家数\n" +
                     "  boss-health: 500        # Boss的基础血量\n" +
+                    "  apple-drop-rate: 3      # 玩家破坏树叶时苹果的掉落率（百分比）\n" +
                     "\n" +
                     "# 路径配置\n" +
                     "paths:\n" +
@@ -73,6 +75,7 @@ public class AnniConfigManager {
             // 更新当前内存中的配置值
             config.set("settings.min-players-to-start", MIN_PLAYERS_TO_START);
             config.set("settings.boss-health", BOSS_HEALTH);
+            config.set("settings.apple-drop-rate", APPLE_DROP_RATE);
             config.set("paths.map-config-folder", MAP_CONFIG_FOLDER);
 
             config.save(configFile);

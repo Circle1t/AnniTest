@@ -3,6 +3,7 @@ package cn.zhuobing.testPlugin.kit.kits;
 import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
 import cn.zhuobing.testPlugin.enchant.SoulBoundLevel;
 import cn.zhuobing.testPlugin.kit.Kit;
+import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
@@ -35,6 +36,7 @@ import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
 public class Scout extends Kit implements Listener {
     private final TeamManager teamManager;
+    private final KitManager kitManager;
     private ItemStack grapple;
     private ItemStack goldSword;
     private ItemStack woodPickaxe;
@@ -42,8 +44,9 @@ public class Scout extends Kit implements Listener {
     private List<ItemStack> kitItems = new ArrayList<>();
     private String grappleName = ChatColor.AQUA + "抓钩";
 
-    public Scout(TeamManager teamManager) {
+    public Scout(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
+        this.kitManager = kitManager;
         setUp();
     }
 
@@ -143,26 +146,82 @@ public class Scout extends Kit implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void Grappler(PlayerFishEvent event) {
         Player player = event.getPlayer();
+        if (!isThisKit(player)) {
+            return;
+        }
         if (isGrappleItem(player.getInventory().getItemInMainHand())) {
             if (event.getState() == State.FISHING) {
                 // 设置钩子的初始速度
                 Entity hook = event.getHook();
                 setHookVelocity(hook, player);
-            } else if (event.getState() == State.IN_GROUND || event.getState() == State.CAUGHT_ENTITY) {
-                if(event.getCaught() != null) {
+            } else if (event.getState() == State.IN_GROUND) {
+                if (event.getCaught() != null) {
                     return;
                 }
-                // 钩子命中目标后的逻辑
-                Location playerLoc = player.getLocation();
                 Location hookLoc = event.getHook().getLocation();
-
+                // 检查钩子是否在液体中且下方 0.5 格没有非液体方块
+                if (isInLiquidAndNoSolidBelow(hookLoc)) {
+                    return;
+                }
+                // 钩子命中地面后的逻辑
+                Location playerLoc = player.getLocation();
                 if (playerLoc.distance(hookLoc) < 3.0D) {
                     pullPlayerSlightly(player, hookLoc);
                 } else {
                     pullEntityToLocation(player, hookLoc);
                 }
+            } else if (event.getState() == State.REEL_IN) {
+                Location hookLoc = event.getHook().getLocation();
+                // 检查钩子是否在液体中且下方 0.5 格没有非液体方块
+                if (isInLiquidAndNoSolidBelow(hookLoc)) {
+                    return;
+                }
+                // 先检查钩子是否在地上
+                if (hookLoc.getBlock().getType() != Material.AIR) {
+                    if (event.getCaught() != null) {
+                        return;
+                    }
+                    Location playerLoc = player.getLocation();
+                    if (playerLoc.distance(hookLoc) < 3.0D) {
+                        pullPlayerSlightly(player, hookLoc);
+                    } else {
+                        pullEntityToLocation(player, hookLoc);
+                    }
+                } else {
+                    // 钩子没在地上，再判断上方是否有方块
+                    Location aboveHookLoc = hookLoc.clone().add(0, 1, 0);
+                    if (!aboveHookLoc.getBlock().getType().isAir()) {
+                        Location playerLoc = player.getLocation();
+                        if (playerLoc.distance(hookLoc) < 3.0D) {
+                            pullPlayerSlightly(player, hookLoc);
+                        } else {
+                            pullEntityToLocation(player, hookLoc);
+                        }
+                    } else {
+                        // 判断下方 0.5 格方块下是否有方块
+                        Location belowHookLoc = hookLoc.clone().subtract(0, 0.5, 0);
+                        if (!belowHookLoc.getBlock().getType().isAir()) {
+                            Location playerLoc = player.getLocation();
+                            if (playerLoc.distance(hookLoc) < 3.0D) {
+                                pullPlayerSlightly(player, hookLoc);
+                            } else {
+                                pullEntityToLocation(player, hookLoc);
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+
+    private boolean isInLiquidAndNoSolidBelow(Location loc) {
+        Material blockType = loc.getBlock().getType();
+        if (blockType == Material.WATER || blockType == Material.LAVA) {
+            Location belowLoc = loc.clone().subtract(0, 0.8, 0);
+            Material belowBlockType = belowLoc.getBlock().getType();
+            return belowBlockType == Material.WATER || belowBlockType == Material.LAVA || belowBlockType.isAir();
+        }
+        return false;
     }
 
     private void setHookVelocity(Entity hook, Player player) {
@@ -219,5 +278,9 @@ public class Scout extends Kit implements Listener {
         v.setY(v_y);
         v.setZ(v_z);
         e.setVelocity(v);
+    }
+
+    private boolean isThisKit(Player player) {
+        return kitManager.getPlayerKit(player.getUniqueId()) instanceof Scout;
     }
 }

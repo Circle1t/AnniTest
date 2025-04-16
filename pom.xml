@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cn.zhuobing</groupId>
-    <artifactId>AnniTest</artifactId> <!-- 修改插件名称 -->
+    <artifactId>AnniTest</artifactId> <!-- 插件名称 jar包名称 -->
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>AnniTest</name> <!-- 修改插件名称 -->
+    <name>AnniTest</name> <!-- 插件显示名称 -->
 
     <properties>
         <java.version>21</java.version>

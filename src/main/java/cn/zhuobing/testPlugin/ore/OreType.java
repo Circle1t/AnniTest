@@ -134,6 +134,20 @@ public enum OreType {
                     Material.MYCELIUM,
                     Material.DIRT_PATH
             }
+    ),
+    // 树叶
+    LEAVES(
+            20, 0, "SWORD",
+            Arrays.asList(new ItemStack(Material.AIR)),
+            Material.AIR, 0, 0,
+            new Material[]{
+                    Material.OAK_LEAVES,
+                    Material.SPRUCE_LEAVES,
+                    Material.BIRCH_LEAVES,
+                    Material.JUNGLE_LEAVES,
+                    Material.ACACIA_LEAVES,
+                    Material.DARK_OAK_LEAVES
+            }
     );
 
     public final int coolDown;

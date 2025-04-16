@@ -234,7 +234,7 @@ public class AnniTest extends JavaPlugin {
         getLogger().info("注册职业...");
         // 注册职业
         kitManager.registerKit(new Civilian(teamManager));
-        kitManager.registerKit(new Scout(teamManager));
+        kitManager.registerKit(new Scout(teamManager,kitManager));
         kitManager.registerKit(new Acrobat(teamManager,kitManager));
         kitManager.registerKit(new Miner(teamManager));
         kitManager.registerKit(new Assassin(teamManager,kitManager));
