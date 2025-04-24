@@ -207,9 +207,9 @@ public class AnniTest extends JavaPlugin {
         getLogger().info("注册事件监听器...");
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
-        getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager), this);
+        getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager,this), this);
         getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager,teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager,this), this);
-        getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager,borderManager), this);
+        getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager,nexusManager), this);
         getServer().getPluginManager().registerEvents(new EnchantTableListener(enchantManager), this);
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);

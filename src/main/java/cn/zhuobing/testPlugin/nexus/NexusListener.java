@@ -11,12 +11,14 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.Map;
 
 public class NexusListener implements Listener {
+
     private final NexusManager nexusManager;
     private final NexusInfoBoard nexusInfoBoard;
     private final GameManager gameManager;
@@ -24,13 +26,15 @@ public class NexusListener implements Listener {
 
     private String winningTeam = null;
 
-    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager) {
+    private final Plugin plugin;
+
+    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin) {
         this.nexusManager = nexusManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.teamManager = teamManager;
-    }
-
+        this.plugin = plugin;
+}
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         if (nexusManager.isInProtectedArea(event.getBlock().getLocation())) {
@@ -159,7 +163,6 @@ public class NexusListener implements Listener {
             }
         }
     }
-
     private void playTntExplosionSound(Location location) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, 1f, 1f);
@@ -209,5 +212,4 @@ public class NexusListener implements Listener {
         double offset = 0.02;
         location.getWorld().spawnParticle(Particle.FLAME, center, 10, offset, offset, offset, 0.1);
     }
-
 }
