@@ -6,6 +6,7 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
+import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -27,15 +28,17 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
     private final RespawnDataManager respawnDataManager;
     private final NexusManager nexusManager;
     private final KitManager kitManager;
+    private final MessageRenderer messageRenderer;
 
     public TeamCommandHandler(TeamManager teamManager, NexusManager nexusManager, NexusInfoBoard nexusInfoBoard,
-                              GameManager gameManager, RespawnDataManager respawnDataManager, KitManager kitManager) {
+                              GameManager gameManager, RespawnDataManager respawnDataManager, KitManager kitManager,MessageRenderer messageRenderer) {
         this.teamManager = teamManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.respawnDataManager = respawnDataManager;
         this.nexusManager = nexusManager;
         this.kitManager = kitManager;
+        this.messageRenderer = messageRenderer;
     }
 
     @Override
@@ -233,10 +236,20 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
         Map<String, String> englishToChineseMap = teamManager.getEnglishToChineseMap();
         teamManager.applyScoreboardToPlayer(player);
         nexusInfoBoard.updateInfoBoard();
-        player.sendMessage(ChatColor.GREEN + "你已加入 " + teamColors.get(teamName) + englishToChineseMap.get(teamName) + "队" + ChatColor.GREEN + " ！");
+        //player.sendMessage(ChatColor.GREEN + "你已加入 " + teamColors.get(teamName) + englishToChineseMap.get(teamName) + "队" + ChatColor.GREEN + " ！");
 
         if(gameManager.getCurrentPhase() > 0){
             player.setHealth(0.0);
+        }
+
+        // 发送队伍加入消息
+        player.sendMessage(" ");
+        List<String> welcomeMessage = messageRenderer.formatMessage(
+                messageRenderer.getTeamMessage(teamName),
+                ChatColor.GREEN + "你已加入 " + teamColors.get(teamName) + englishToChineseMap.get(teamName) + "队" + ChatColor.GREEN + " ！"
+        );
+        for (String line : welcomeMessage) {
+            player.sendMessage(line);
         }
     }
 

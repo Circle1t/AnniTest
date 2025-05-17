@@ -7,6 +7,7 @@ import cn.zhuobing.testPlugin.map.MapSelectManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -17,6 +18,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import java.util.List;
 import java.util.Map;
 
 import static cn.zhuobing.testPlugin.utils.AnniConfigManager.MIN_PLAYERS_TO_START;
@@ -33,6 +35,7 @@ public class GameManager {
     private OreManager oreManager;
     private WitchDataManager witchDataManager;
     private NexusInfoBoard nexusInfoBoard;
+    private final MessageRenderer messageRenderer;
     private Plugin plugin;
     private int currentPhase = 0;
     private boolean gameOver = false;
@@ -41,7 +44,7 @@ public class GameManager {
 
     public GameManager(TeamManager teamManager, MapSelectManager mapSelectManager,
                        BossDataManager bossDataManager, OreManager oreManager,
-                       WitchDataManager witchDataManager, NexusInfoBoard nexusInfoBoard, Plugin plugin) {
+                       WitchDataManager witchDataManager, NexusInfoBoard nexusInfoBoard, MessageRenderer messageRenderer,Plugin plugin) {
         this.teamManager = teamManager;
         this.mapSelectManager = mapSelectManager;
         this.bossDataManager = bossDataManager;
@@ -49,6 +52,7 @@ public class GameManager {
         this.witchDataManager = witchDataManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.plugin = plugin;
+        this.messageRenderer = messageRenderer;
         gamePhaseManager = new GamePhaseManager();
         bossBar = Bukkit.createBossBar(ChatColor.YELLOW + "您正在游玩 核心战争" + ChatColor.RESET + "  |  " + ChatColor.AQUA + "请等待游戏启动...", BarColor.BLUE, BarStyle.SOLID);
         bossBar.setVisible(true);
@@ -158,7 +162,43 @@ public class GameManager {
         if (currentPhase == 4) {
             bossDataManager.spawnBoss();
         }
+        // 发送阶段消息
+        Bukkit.broadcastMessage(" ");
+        List<String> phaseMessage = messageRenderer.formatMessage(
+                messageRenderer.getPhaseMessage(currentPhase),
+                getPhaseText(currentPhase)
+        );
+        broadcastMessage(phaseMessage);
+    }
 
+    private String[] getPhaseText(int phase) {
+        String[] titles = GameCountdownTask.PHASE_TITLES.get(phase);
+        if (titles != null) {
+//            // 移除颜色代码和格式符号
+//            String main = ChatColor.stripColor(titles[0])
+//                    .replace("【", " ")
+//                    .replace("】", " ");
+//
+//            String sub = ChatColor.stripColor(titles[1])
+//                    .replaceAll("\\s+", " "); // 合并多余空格
+
+//            return new String[]{ main, sub };、
+            return titles;
+        }
+
+        // 处理未定义的特殊阶段
+        return switch (phase) {
+            case 0 -> new String[]{ "投票阶段开始" };
+            default -> new String[]{ "阶段 " + phase + " 开始" };
+        };
+    }
+
+    private void broadcastMessage(List<String> lines) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            for (String line : lines) {
+                p.sendMessage(line);
+            }
+        }
     }
 
     public boolean isTeamSelectionOpen() {

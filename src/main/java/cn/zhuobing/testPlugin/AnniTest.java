@@ -71,17 +71,20 @@ import cn.zhuobing.testPlugin.team.TeamChatListener;
 import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
+import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.messaging.Messenger;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AnniTest extends JavaPlugin {
     private static AnniTest instance;
+    private final MessageRenderer messageRenderer = new MessageRenderer(this);
 
     private final List<CommandHandler> commandHandlers = new ArrayList<>();
     private LobbyManager lobbyManager;
@@ -144,7 +147,7 @@ public class AnniTest extends JavaPlugin {
         teamManager = new TeamManager();
         nexusManager = new NexusManager(this);
         witchDataManager = new WitchDataManager(this,teamManager);
-        gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null,this);
+        gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null,messageRenderer,this);
         nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager,gameManager,null);
         kitManager = new KitManager(gameManager,teamManager,this);
         diamondDataManager = new DiamondDataManager(this);
@@ -167,7 +170,7 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(lobbyCommandHandler);
         getCommand("lobby").setTabCompleter(lobbyCommandHandler);
 
-        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager, nexusInfoBoard, gameManager, respawnDataManager, kitManager);
+        teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager, nexusInfoBoard, gameManager, respawnDataManager, kitManager,messageRenderer);
         commandHandlers.add(teamCommandHandler);
         getCommand("team").setTabCompleter(teamCommandHandler);
 
