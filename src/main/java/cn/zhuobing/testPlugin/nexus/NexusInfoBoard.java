@@ -61,7 +61,15 @@ public class NexusInfoBoard {
             // 获取或创建目标
             Objective objective = playerScoreboard.getObjective("nexusInfo");
             if (objective == null) {
-                objective = playerScoreboard.registerNewObjective("nexusInfo", "dummy", ChatColor.GOLD + ChatColor.BOLD.toString() + "核 心 战 争");
+                objective = playerScoreboard.registerNewObjective(
+                        "nexusInfo",
+                        "dummy",
+                        ChatColor.RED + ChatColor.BOLD.toString() + "核" +
+                                ChatColor.YELLOW + ChatColor.BOLD.toString() + "心" +
+                                ChatColor.BLUE + ChatColor.BOLD.toString() + "战" +
+                                ChatColor.GREEN + ChatColor.BOLD.toString() + "争" +
+                                ChatColor.GOLD + ChatColor.BOLD.toString() + " 重制版"
+                );
                 objective.setDisplaySlot(DisplaySlot.SIDEBAR);
             }
 
@@ -99,7 +107,7 @@ public class NexusInfoBoard {
                 List<String> candidateMaps = mapSelectManager.getCandidateMaps();
                 for (String mapName : candidateMaps) {
                     int voteCount = mapSelectManager.getVoteCount(mapName);
-                    String info = ChatColor.GREEN + mapSelectManager.getMapMappingName(mapName) + ChatColor.GRAY + " : " + ChatColor.YELLOW + "[ " + ChatColor.YELLOW + voteCount + " ]";
+                    String info = ChatColor.WHITE + mapSelectManager.getMapMappingName(mapName) + ChatColor.GRAY + " : " + ChatColor.GRAY + "( " + ChatColor.WHITE + voteCount + ChatColor.GRAY + " )";
                     Score mapScore = objective.getScore(info);
                     mapScore.setScore(score);
                     score--;

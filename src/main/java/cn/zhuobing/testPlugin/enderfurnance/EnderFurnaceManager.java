@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class EnderFurnaceManager {
-    private static final Location VIRTUAL_FURNACE_AREA = new Location(Bukkit.getWorlds().get(0), 100000, 100, 100000);
+    private Location virtualFurnaceArea;
     private final Map<String, Location> teamFurnaces = new HashMap<>();
     private final Map<UUID, Location> playerFurnaces = new HashMap<>();
     private final Map<Location, FurnaceInventory> furnaceInventories = new HashMap<>();
@@ -38,6 +38,7 @@ public class EnderFurnaceManager {
     public void loadConfig(String mapFolderName, World world) {
         this.currentMapName = mapFolderName;
         this.currentWorld = world;
+        virtualFurnaceArea = new Location(world, 100000, 100, 100000);
 
         File mapsDir = new File(plugin.getDataFolder(), "maps");
         File mapDir = new File(mapsDir, mapFolderName);
@@ -130,7 +131,7 @@ public class EnderFurnaceManager {
     }
 
     public void setChunkAlwaysLoad(World world) {
-        Chunk chunk = VIRTUAL_FURNACE_AREA.getChunk();
+        Chunk chunk = virtualFurnaceArea.getChunk();
         chunk.setForceLoaded(true); // 强制保持加载
         if (!chunk.isLoaded()) {
             chunk.load(true);
@@ -162,7 +163,7 @@ public class EnderFurnaceManager {
 
     public void createVirtualFurnace(Player player) {
         // 为每个玩家分配唯一坐标
-        Location baseLoc = VIRTUAL_FURNACE_AREA.clone();
+        Location baseLoc = virtualFurnaceArea.clone();
         int offset = playerFurnaces.size() * 3;
         Location furnaceLoc = baseLoc.add(offset, 0, 0);
 
@@ -177,6 +178,8 @@ public class EnderFurnaceManager {
         Block block = furnaceLoc.getBlock();
         block.setType(Material.FURNACE);
         Furnace furnace = (Furnace) block.getState();
+        String title = ChatColor.DARK_PURPLE + "末影高炉";
+        furnace.setCustomName(title);
 
         // 保存库存
         furnaceInventories.put(furnaceLoc, furnace.getInventory());

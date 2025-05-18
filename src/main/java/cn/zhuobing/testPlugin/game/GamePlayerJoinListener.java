@@ -61,6 +61,8 @@ public class GamePlayerJoinListener implements Listener {
                 player.getInventory().clear();
                 // 清空玩家装备栏
                 player.getInventory().setArmorContents(null);
+                // 设置玩家经验为0
+                player.setExp(0);
                 // 设置血量为满
                 player.setHealth(player.getMaxHealth());
                 // 设置饥饿值为满

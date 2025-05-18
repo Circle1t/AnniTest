@@ -134,6 +134,7 @@ public class BossWorldManager {
 
     public void leaveBossMap(Player player) {
         lobbyManager.teleportToLobby(player);
+        player.setGameMode(GameMode.SURVIVAL);
         player.sendMessage(ChatColor.LIGHT_PURPLE + "你已离开boss世界！");
     }
 
