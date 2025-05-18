@@ -165,6 +165,14 @@
   - `/diamond cancel`：取消已设置的钻石重生点。
 - **注意事项**：钻石只会在阶段三开始出现，在之前会以圆石形态存在。
 
+### `/enderfurnace`
+
+- **描述**：末影高炉管理命令。
+- **用法**：`/enderfurnace set <队伍> 或 /enderfurnace remove`
+- 使用示例
+  - `/enderfurnace set red`：将准星对准的高炉设置为红队末影高炉。
+  - `/enderfurnace remove`：取消已设置的末影高炉。
+
 ### `/getteamstar`
 
 - **描述**：玩家获得队伍选择之星。

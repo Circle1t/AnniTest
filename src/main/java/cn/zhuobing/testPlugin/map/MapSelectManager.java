@@ -3,6 +3,7 @@ package cn.zhuobing.testPlugin.map;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.boss.WitchDataManager;
+import cn.zhuobing.testPlugin.enderfurnance.EnderFurnaceManager;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
@@ -48,10 +49,11 @@ public class MapSelectManager {
     private final StoreManager storeManager;
     private final WitchDataManager witchDataManager;
     private final NexusInfoBoard nexusInfoBoard;
+    private final EnderFurnaceManager enderFurnaceManager;
 
     public MapSelectManager(BossDataManager bossDataManager, BorderManager borderManager,
                             NexusManager nexusManager, DiamondDataManager diamondDataManager, OreManager oreManager, RespawnDataManager respawnDataManager,
-                            StoreManager storeManager, WitchDataManager witchDataManager, GameManager gameManager, NexusInfoBoard nexusInfoBoard, Plugin plugin) {
+                            StoreManager storeManager, WitchDataManager witchDataManager, GameManager gameManager, NexusInfoBoard nexusInfoBoard, EnderFurnaceManager enderFurnaceManager,Plugin plugin) {
         this.bossDataManager = bossDataManager;
         this.borderManager = borderManager;
         this.diamondDataManager = diamondDataManager;
@@ -61,6 +63,7 @@ public class MapSelectManager {
         this.storeManager = storeManager;
         this.witchDataManager = witchDataManager;
         this.nexusInfoBoard = nexusInfoBoard;
+        this.enderFurnaceManager = enderFurnaceManager;
         gameManager.setMapSelectManager(this);
         nexusInfoBoard.setMapSelectManager(this);
         this.plugin = plugin;
@@ -347,6 +350,9 @@ public class MapSelectManager {
                 // 加载witch配置，从原地图文件夹读取配置文件
                 witchDataManager.loadConfig(gameMap,world);
                 getLogger().info("正在加载witchDataManager");
+                // 加载enderfunace配置，从原地图文件夹读取配置文件
+                enderFurnaceManager.loadConfig(gameMap, world);
+                getLogger().info("正在加载enderFurnaceManager");
 
                 getLogger().info("配置文件加载完成！地图：" + gameMap);
             } else {
@@ -463,6 +469,9 @@ public class MapSelectManager {
                 // 加载witch配置，从原地图文件夹读取配置文件
                 witchDataManager.loadConfig(mapName,world);
                 getLogger().info("正在加载witchDataManager");
+                // 加载enderfunace配置，从原地图文件夹读取配置文件
+                enderFurnaceManager.loadConfig(gameMap, world);
+                getLogger().info("正在加载enderFurnaceManager");
 
                 getLogger().info("配置文件加载完成！地图：" + mapName);
             } else {

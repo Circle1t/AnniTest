@@ -44,6 +44,9 @@ import cn.zhuobing.testPlugin.enchant.BrewingStandListener;
 import cn.zhuobing.testPlugin.enchant.EnchantManager;
 import cn.zhuobing.testPlugin.enchant.EnchantTableListener;
 import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
+import cn.zhuobing.testPlugin.enderfurnance.EnderFurnaceCommandHandler;
+import cn.zhuobing.testPlugin.enderfurnance.EnderFurnaceListener;
+import cn.zhuobing.testPlugin.enderfurnance.EnderFurnaceManager;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
@@ -107,6 +110,7 @@ public class AnniTest extends JavaPlugin {
     private MapSelectManager mapSelectManager;
     private BorderManager borderManager;
     private MapConfigurerManager mapConfigurerManager;
+    private EnderFurnaceManager enderFurnaceManager;
 
     @Override
     public void onEnable() {
@@ -145,6 +149,7 @@ public class AnniTest extends JavaPlugin {
         bossWorldManager = new BossWorldManager(lobbyManager,this);
         borderManager = new BorderManager(this);
         teamManager = new TeamManager();
+        enderFurnaceManager = new EnderFurnaceManager(this);
         nexusManager = new NexusManager(this);
         witchDataManager = new WitchDataManager(this,teamManager);
         gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null,messageRenderer,this);
@@ -157,7 +162,7 @@ public class AnniTest extends JavaPlugin {
         respawnDataManager = new RespawnDataManager(lobbyManager,nexusManager,this);
         bossDataManager = new BossDataManager(this,gameManager,teamManager,bossWorldManager);
         storeManager = new StoreManager(this);
-        mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,this);
+        mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,enderFurnaceManager,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
     }
@@ -173,6 +178,10 @@ public class AnniTest extends JavaPlugin {
         teamCommandHandler = new TeamCommandHandler(teamManager, nexusManager, nexusInfoBoard, gameManager, respawnDataManager, kitManager,messageRenderer);
         commandHandlers.add(teamCommandHandler);
         getCommand("team").setTabCompleter(teamCommandHandler);
+
+        EnderFurnaceCommandHandler enderFurnaceCommandHandler = new EnderFurnaceCommandHandler(enderFurnaceManager, teamManager);
+        commandHandlers.add(enderFurnaceCommandHandler);
+        getCommand("enderfurnace").setTabCompleter(enderFurnaceCommandHandler);
 
         NexusCommandHandler nexusCommandHandler = new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager);
         commandHandlers.add(nexusCommandHandler);
@@ -210,6 +219,7 @@ public class AnniTest extends JavaPlugin {
         getLogger().info("注册事件监听器...");
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
+        getServer().getPluginManager().registerEvents(new EnderFurnaceListener(enderFurnaceManager, teamManager), this);
         getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager,this), this);
         getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager,teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager,this), this);
         getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager,nexusManager), this);

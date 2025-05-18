@@ -56,3 +56,6 @@ commands:
   annimap:
     description: 用于游戏地图的各种设置，包括边界设置、地图底部设置、地图映射名设置、地图图标设置以及离开当前地图配置。
     usage: /annimap <setborder 1/2/3/4>/<setundersurface>/<setmapname>/<setmapicon>/<leave>
+  enderfurnace:
+    description: 末影高炉管理命令
+    usage: /enderfurnace set <队伍> 或 /enderfurnace remove
