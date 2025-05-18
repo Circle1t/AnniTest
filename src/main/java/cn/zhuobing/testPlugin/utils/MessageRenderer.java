@@ -17,26 +17,6 @@ public class MessageRenderer {
     private final Map<String, List<String>> phaseMessages = new HashMap<>();
     private final Map<String, List<String>> teamMessages = new HashMap<>();
 
-    // Minecraft颜色与RGB近似值映射
-    private static final Map<ChatColor, int[]> COLOR_MAP = new HashMap<>() {{
-        put(ChatColor.BLACK, new int[]{0, 0, 0});
-        put(ChatColor.DARK_BLUE, new int[]{0, 0, 170});
-        put(ChatColor.DARK_GREEN, new int[]{0, 170, 0});
-        put(ChatColor.DARK_AQUA, new int[]{0, 170, 170});
-        put(ChatColor.DARK_RED, new int[]{170, 0, 0});
-        put(ChatColor.DARK_PURPLE, new int[]{170, 0, 170});
-        put(ChatColor.GOLD, new int[]{255, 170, 0});
-        put(ChatColor.GRAY, new int[]{170, 170, 170});
-        put(ChatColor.DARK_GRAY, new int[]{85, 85, 85});
-        put(ChatColor.BLUE, new int[]{85, 85, 255});
-        put(ChatColor.GREEN, new int[]{85, 255, 85});
-        put(ChatColor.AQUA, new int[]{85, 255, 255});
-        put(ChatColor.RED, new int[]{255, 85, 85});
-        put(ChatColor.LIGHT_PURPLE, new int[]{255, 85, 255});
-        put(ChatColor.YELLOW, new int[]{255, 255, 85});
-        put(ChatColor.WHITE, new int[]{255, 255, 255});
-    }};
-
     public MessageRenderer(Plugin plugin) {
         this.plugin = plugin;
         loadAllImages();
@@ -58,7 +38,6 @@ public class MessageRenderer {
         try (InputStream is = plugin.getResource(path)) {
             if (is == null) {
                 plugin.getLogger().warning("无法加载资源图片: " + path);
-                // 添加默认空数据防止NPE
                 target.put(key, new ArrayList<>());
                 return;
             }
@@ -70,38 +49,38 @@ public class MessageRenderer {
                 StringBuilder line = new StringBuilder();
                 for (int x = 0; x < 10; x++) {
                     int rgb = image.getRGB(x, y);
-                    ChatColor color = getNearestColor(new int[]{
-                            (rgb >> 16) & 0xFF,
-                            (rgb >> 8) & 0xFF,
-                            rgb & 0xFF
+                    String color = getHexColor(new int[]{
+                            (rgb >> 16) & 0xFF,  // Red
+                            (rgb >> 8) & 0xFF,   // Green
+                            rgb & 0xFF           // Blue
                     });
-                    line.append(color).append("█");
+                    line.append(color).append("▒");
                 }
                 lines.add(line.toString());
             }
             target.put(key, lines);
         } catch (IOException e) {
             plugin.getLogger().warning("加载图片失败: " + e.getMessage());
-            target.put(key, new ArrayList<>()); // 确保有默认值
+            target.put(key, new ArrayList<>());
         }
     }
 
-    private ChatColor getNearestColor(int[] rgb) {
-        ChatColor closest = ChatColor.WHITE;
-        double minDistance = Double.MAX_VALUE;
+    private String getHexColor(int[] rgb) {
+        // 将RGB值转换为两位十六进制并格式化为Minecraft颜色代码
+        String hexR = String.format("%02X", rgb[0]);
+        String hexG = String.format("%02X", rgb[1]);
+        String hexB = String.format("%02X", rgb[2]);
 
-        for (Map.Entry<ChatColor, int[]> entry : COLOR_MAP.entrySet()) {
-            double distance = Math.pow(rgb[0]-entry.getValue()[0], 2)
-                    + Math.pow(rgb[1]-entry.getValue()[1], 2)
-                    + Math.pow(rgb[2]-entry.getValue()[2], 2);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closest = entry.getKey();
-            }
-        }
-        return closest;
+        return ChatColor.COLOR_CHAR + "x" +
+                ChatColor.COLOR_CHAR + hexR.charAt(0) +
+                ChatColor.COLOR_CHAR + hexR.charAt(1) +
+                ChatColor.COLOR_CHAR + hexG.charAt(0) +
+                ChatColor.COLOR_CHAR + hexG.charAt(1) +
+                ChatColor.COLOR_CHAR + hexB.charAt(0) +
+                ChatColor.COLOR_CHAR + hexB.charAt(1);
     }
 
+    // 以下方法保持不变...
     public List<String> formatMessage(List<String> imageLines, String... texts) {
         List<String> message = new ArrayList<>();
         int textStartLine = (10 - texts.length) / 2;
@@ -121,7 +100,6 @@ public class MessageRenderer {
     }
 
     public List<String> getTeamMessage(String teamName) {
-        // 转换格式：red -> RedTeam
         String formattedName = teamName.substring(0, 1).toUpperCase()
                 + teamName.substring(1).toLowerCase()
                 + "Team";
