@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.FurnaceInventory;
 
@@ -55,5 +56,17 @@ public class EnderFurnaceListener implements Listener {
             player.sendMessage(ChatColor.RED + "末影高炉加载失败，请联系管理员！");
         }
         event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+
+        // 检查是否为末影高炉
+        if (block.getType() == Material.FURNACE && furnaceManager.isTeamFurnace(block.getLocation())) {
+            player.sendMessage(ChatColor.RED + "你不能破坏末影高炉！");
+            event.setCancelled(true);
+        }
     }
 }

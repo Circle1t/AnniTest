@@ -59,6 +59,11 @@ public class MapCommandHandler implements CommandHandler, TabCompleter {
             return true;
         }
 
+        if(args.length == 0) {
+            player.sendMessage(ChatColor.RED + "请参考文档使用正确的配置指令!");
+            return true;
+        }
+
         if (args.length == 1 && args[0].equalsIgnoreCase("leave")) {
             World world = player.getWorld();
             List<Player> players = world.getPlayers();

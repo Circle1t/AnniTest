@@ -44,6 +44,12 @@ public class OreBreakListener implements Listener {
                 return;
             }
 
+            // 核心保护区域验证
+            if(nexusManager.isInProtectedArea(block.getLocation())) {
+                event.setCancelled(true);
+                return;
+            }
+
             // 工具验证
             ItemStack tool = player.getInventory().getItemInMainHand();
             if (!OreUtils.isValidTool(tool, oreType)) {

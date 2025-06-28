@@ -1,5 +1,7 @@
 package cn.zhuobing.testPlugin.map;
 
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
+import cn.zhuobing.testPlugin.utils.BungeeUtil;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -199,10 +201,13 @@ public class LobbyManager {
         if (lobbyWorld != null) {
             // 1. 传送所有玩家
             for (Player p : lobbyWorld.getPlayers()) {
-                String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "服务器已关闭";
-                p.kickPlayer(kickMessage);
+                if (AnniConfigManager.BUNGEE_ENABLED) {
+                    BungeeUtil.sendToLobby(p);
+                } else {
+                    String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "服务器已关闭";
+                    p.kickPlayer(kickMessage);
+                }
             }
-
             // 2. 卸载世界
             plugin.getServer().unloadWorld(lobbyWorld, false);
 

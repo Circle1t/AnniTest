@@ -2,6 +2,12 @@ name: AnniTest
 version: '1.0-SNAPSHOT'
 main: cn.zhuobing.testPlugin.AnniTest
 api-version: '1.20'
+
+# BungeeCord 支持
+bungee: true
+channels:
+  - BungeeCord
+
 resources:
   - phase/Phase0.png
   - phase/Phase1.png
@@ -13,6 +19,7 @@ resources:
   - team/BlueTeam.png
   - team/GreenTeam.png
   - team/YellowTeam.png
+  - boss/Wither.png
 commands:
   team:
     description: 用于队伍选择和团队重生点的设置与移除。使用示例：/team respawn red 可添加多个重生点。

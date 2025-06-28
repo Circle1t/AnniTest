@@ -1,5 +1,6 @@
 package cn.zhuobing.testPlugin.team;
 
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -157,9 +158,9 @@ public class TeamManager {
 
     private void setupTabList() {
         // 构建新的 header，在原有的 header 下方添加一行提示
-        String header = ChatColor.GOLD + "核心战争\n" + ChatColor.YELLOW + "欢迎体验一个全新的核心战争！";
+        String header = AnniConfigManager.HEADER;
         // 构建新的 footer，在原有的 footer 下方添加一行提示
-        String footer = ChatColor.AQUA + "📺 Bilibili 烧烤蒸馏水\n" + ChatColor.GREEN + "🐱  GitHub Circle1t/AnniTest  插件已开源";
+        String footer = AnniConfigManager.FOOTER;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             // 设置玩家的 tab 列表的头部和底部信息
@@ -171,9 +172,9 @@ public class TeamManager {
 
     public void applyScoreboardToPlayer(Player player) {
         // 构建新的 header，在原有的 header 下方添加一行提示
-        String header = ChatColor.GOLD + "核心战争\n" + ChatColor.YELLOW + "欢迎体验一个全新的核心战争！";
+        String header = AnniConfigManager.HEADER;
         // 构建新的 footer，在原有的 footer 下方添加一行提示
-        String footer = ChatColor.AQUA + "📺 Bilibili 烧烤蒸馏水\n" + ChatColor.GREEN + "🐱  GitHub Circle1t/AnniTest  插件已开源";
+        String footer = AnniConfigManager.FOOTER;
         // 设置玩家的 tab 列表的头部和底部信息
         player.setPlayerListHeaderFooter(header, footer);
         // 为玩家设置计分板

@@ -39,7 +39,7 @@ public class NexusListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         if (nexusManager.isInProtectedArea(event.getBlock().getLocation())) {
             event.setCancelled(true);
-            //event.getPlayer().sendMessage(ChatColor.RED + "此区域禁止放置方块！");
+            event.getPlayer().sendMessage(ChatColor.RED + "此区域禁止放置方块！");
         }
     }
 
@@ -93,7 +93,13 @@ public class NexusListener implements Listener {
                     block.setType(Material.BEDROCK);
                     Bukkit.broadcastMessage(teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁 | 破坏者 " + teamManager.getTeamColor(playerTeam) + player.getName());
                     // 检查是否只有一个队伍的核心未被摧毁
-                    winningTeam = checkForWinner();
+                    // 延迟检查获胜者，确保所有核心状态更新完成
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        String winner = checkForWinner();
+                        if (winner != null) {
+                            gameManager.endGameWithWinner(winner);
+                        }
+                    }, 2L); // 延迟2 tick执行
 
                     // 播放 TNT 爆炸声音给全局玩家
                     playTntExplosionSound(nexusLocation);
@@ -125,7 +131,7 @@ public class NexusListener implements Listener {
         }
         if (nexusManager.isInProtectedArea(event.getBlock().getLocation()) && !isNexus) {
             event.setCancelled(true);
-            //event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
+            event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
         }
     }
 

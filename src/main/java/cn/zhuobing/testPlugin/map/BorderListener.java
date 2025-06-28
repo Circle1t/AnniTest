@@ -26,13 +26,18 @@ public class BorderListener implements Listener {
         Block block = event.getBlock();
         Location loc = block.getLocation();
 
-        // 获取当前游戏地图名称
+        // 添加边界管理器空值检查
+        if (borderManager == null) return;
+
         String gameMap = mapSelectManager.getGameMap();
         if (gameMap != null && loc.getWorld().getName().equals(gameMap)) {
+            // 添加调试信息
             if (!borderManager.isInsideBorder(loc)) {
                 event.setCancelled(true);
-                // player.sendMessage("你不能在边界外放置方块！");
+                player.sendMessage("你不能在边界外放置方块！");
             }
         }
     }
+
+
 }

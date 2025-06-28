@@ -16,6 +16,7 @@ public class MessageRenderer {
     private final Plugin plugin;
     private final Map<String, List<String>> phaseMessages = new HashMap<>();
     private final Map<String, List<String>> teamMessages = new HashMap<>();
+    private final Map<String, List<String>> bossMessages = new HashMap<>();
 
     public MessageRenderer(Plugin plugin) {
         this.plugin = plugin;
@@ -32,6 +33,9 @@ public class MessageRenderer {
         for (String team : new String[]{"Red", "Blue", "Green", "Yellow"}) {
             loadImage("team/" + team + "Team.png", teamMessages, team + "Team");
         }
+
+        // 加载boss - wither图片
+        loadImage("boss/Wither.png", bossMessages, "Wither");
     }
 
     private void loadImage(String path, Map<String, List<String>> target, String key) {
@@ -80,7 +84,6 @@ public class MessageRenderer {
                 ChatColor.COLOR_CHAR + hexB.charAt(1);
     }
 
-    // 以下方法保持不变...
     public List<String> formatMessage(List<String> imageLines, String... texts) {
         List<String> message = new ArrayList<>();
         int textStartLine = (10 - texts.length) / 2;
@@ -104,5 +107,9 @@ public class MessageRenderer {
                 + teamName.substring(1).toLowerCase()
                 + "Team";
         return teamMessages.getOrDefault(formattedName, new ArrayList<>());
+    }
+
+    public List<String> getBossMessage(String bossName) {
+        return bossMessages.get(bossName);
     }
 }

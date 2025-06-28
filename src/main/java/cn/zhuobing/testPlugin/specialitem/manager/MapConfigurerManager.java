@@ -47,11 +47,19 @@ public class MapConfigurerManager {
         meta.setDisplayName(ChatColor.RESET + mapName);
 
         UUID playerUUID = player.getUniqueId();
+        String description = mapSelectManager.getMapDescription(mapName);
         String clickPrompt = ChatColor.YELLOW + "点击进入该地图";
 
-        meta.setLore(Arrays.asList(
-                clickPrompt
-        ));
+        if(description != null) {
+            meta.setLore(Arrays.asList(
+                    ChatColor.GOLD + description,
+                    clickPrompt
+            ));
+        }else {
+            meta.setLore(Arrays.asList(
+                    clickPrompt
+            ));
+        }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
 

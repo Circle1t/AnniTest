@@ -4,6 +4,7 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.map.BossWorldManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
+import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -33,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+
 public class BossDataManager implements Listener {
     private Location bossSpawnLocation; // Boss生成点字段
     private final Map<String, Location> teamTpLocations = new HashMap<>();
@@ -42,21 +44,21 @@ public class BossDataManager implements Listener {
     private Wither boss;
     private boolean bossAlive = false;
     private UUID lastAttackerUUID; // 使用 UUID 存储最后攻击者
-    private BossBar bossBar;
     private BukkitRunnable bossRespawnTask; // 用于控制 Boss 重生的任务
     private final Map<UUID, String> killerTeamMap = new HashMap<>(); // 使用 UUID 作为键
     private final Set<UUID> bossPlayers = new HashSet<>(); // 储存进入 boss 点的玩家
     private final GameManager gameManager;
     private final TeamManager teamManager;
-    private final BossWorldManager bossWorldManager; // 新增字段
+    private final BossWorldManager bossWorldManager;
+    private final MessageRenderer messageRenderer;
+    private final String BOSS_MESSAGE = ChatColor.DARK_PURPLE + " BOSS " + ChatColor.GRAY +"已经生成";
 
-    public BossDataManager(Plugin plugin, GameManager gameManager, TeamManager teamManager, BossWorldManager bossWorldManager) {
+    public BossDataManager(Plugin plugin, GameManager gameManager, TeamManager teamManager, BossWorldManager bossWorldManager, MessageRenderer messageRenderer) {
         this.plugin = plugin;
         this.gameManager = gameManager; // 初始化 GameManager
         this.teamManager = teamManager;
         this.bossWorldManager = bossWorldManager;
-        this.bossBar = Bukkit.createBossBar(ChatColor.RED + "凋零 Boss", BarColor.RED, BarStyle.SOLID);
-        bossBar.setVisible(false);
+        this.messageRenderer = messageRenderer;
         // 设置 gameManager 中的 BossDataManager
         setBossDataManager();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -139,10 +141,14 @@ public class BossDataManager implements Listener {
         return teamTpLocations.containsKey(teamName);
     }
 
-    public void setTeamTpLocation(String teamName, Location location) {
-        teamTpLocations.put(teamName, location);
-        saveConfig();
+    // 清除 Boss 的方法
+    public void clearBoss() {
+        if (boss != null && bossAlive) {
+            boss.remove();
+            bossAlive = false;
+        }
     }
+
 
     public Location getTeamTpLocation(String teamName) {
         return teamTpLocations.get(teamName);
@@ -165,10 +171,10 @@ public class BossDataManager implements Listener {
         boss = (Wither) bossLocation.getWorld().spawnEntity(bossLocation, EntityType.WITHER);
         boss.setMetadata("customBoss", new FixedMetadataValue(plugin, true));
 
-        // 清除原版自带 bossbar
-        clearOriginalBossBar();
+        // 设置原生凋零 BossBar
+        updateBossBar(); // 初始化时设置一次标题
 
-        // 设置血量和 BossBar
+        // 设置血量和属性
         AttributeInstance maxHealth = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         if (maxHealth != null) {
             maxHealth.setBaseValue(AnniConfigManager.BOSS_HEALTH);
@@ -178,12 +184,8 @@ public class BossDataManager implements Listener {
         // 确保凋零不会破坏方块
         boss.setCollidable(false);
         boss.setCustomName(ChatColor.RED + "凋零 Boss");
-        boss.getBossBar().setColor(BarColor.YELLOW);
-        boss.getBossBar().setTitle(ChatColor.YELLOW + "注意：Boss已生成！它的伤害不容小觑！");
         boss.setCustomNameVisible(true);
 
-        updateBossBar();
-        bossBar.setVisible(false);
         bossAlive = true;
 
         // 广播 Boss 生成消息给全服玩家
@@ -193,6 +195,7 @@ public class BossDataManager implements Listener {
             // 播放音效
             player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0f, 1.0f);
         }
+
         // 固定 Boss 位置和攻击逻辑
         boss.setAI(false);
         boss.setRotation(0, 0);
@@ -203,7 +206,6 @@ public class BossDataManager implements Listener {
             public void run() {
                 if (bossAlive) {
                     attackNearbyPlayers();
-                    clearOriginalBossBar();
                 } else {
                     this.cancel();
                 }
@@ -216,12 +218,60 @@ public class BossDataManager implements Listener {
             public void run() {
                 if (bossAlive) {
                     shootWitherSkull();
-                    clearOriginalBossBar();
                 } else {
                     this.cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 8 * 20L); // 8 秒一次
+
+        // 发送boss消息
+        Bukkit.broadcastMessage(" ");
+        List<String> bossMessage = messageRenderer.formatMessage(
+                messageRenderer.getBossMessage("Wither"),
+                BOSS_MESSAGE
+        );
+        broadcastMessage(bossMessage);
+    }
+
+    // 更新 BossBar 的标题
+    private void updateBossBar() {
+        if (boss == null || !bossAlive) {
+            return;
+        }
+
+        AttributeInstance maxHealthAttribute = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        if (maxHealthAttribute == null) return;
+
+        double maxHealth = maxHealthAttribute.getBaseValue();
+        double currentHealth = boss.getHealth();
+        BossBar bossBar = boss.getBossBar();
+
+        // 设置标题显示具体血量
+        bossBar.setTitle(ChatColor.RED + "凋零 Boss: " +
+                ChatColor.WHITE + String.format("%.0f", currentHealth) +
+                " / " + String.format("%.0f", maxHealth));
+        bossBar.setProgress(maxHealth == 0? 0.0 : currentHealth/maxHealth);
+    }
+
+    public void onBossDamage(EntityDamageByEntityEvent event) {
+        if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
+            Wither wither = (Wither) event.getEntity();
+            if (event.getDamager() instanceof Player) {
+                Player damager = (Player) event.getDamager();
+                lastAttackerUUID = damager.getUniqueId(); // 存储攻击者的 UUID
+            }
+
+            // 更新 BossBar 标题
+            updateBossBar();
+        }
+    }
+
+    private void broadcastMessage(List<String> lines) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            for (String line : lines) {
+                p.sendMessage(line);
+            }
+        }
     }
 
     private void attackNearbyPlayers() {
@@ -280,64 +330,12 @@ public class BossDataManager implements Listener {
         }
     }
 
-    public void onBossDamage(EntityDamageByEntityEvent event) {
-        if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
-            Wither wither = (Wither) event.getEntity();
-            if (event.getDamager() instanceof Player) {
-                Player damager = (Player) event.getDamager();
-                lastAttackerUUID = damager.getUniqueId(); // 存储攻击者的 UUID
-            }
-            // 更新 BossBar
-            updateBossBar();
-            clearOriginalBossBar(); // 受到攻击时清除原版 BossBar
-        }
-    }
-
-    private void updateBossBar() {
-        if (boss == null || !bossAlive) {
-            bossBar.setVisible(false); // 如果 Boss 不存在或已死亡，隐藏 BossBar
-            return;
-        }
-
-        AttributeInstance maxHealthAttribute = boss.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-        if (maxHealthAttribute == null) return;
-
-        double maxHealth = maxHealthAttribute.getBaseValue();
-        double currentHealth = boss.getHealth();
-
-        // 计算进度，处理最大生命值为0的情况
-        double progress = (maxHealth > 0) ? currentHealth / maxHealth : 0.0;
-        bossBar.setProgress(Math.max(0.0, Math.min(1.0, progress))); // 确保进度在0-1之间
-
-        // 设置标题
-        bossBar.setTitle(ChatColor.RED + "凋零 Boss: " + ChatColor.WHITE + String.format("%.0f", currentHealth) + " / " + String.format("%.0f", maxHealth));
-
-        // 仅对进入 Boss 点的玩家显示 BossBar
-        for (UUID uuid : bossPlayers) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player != null) {
-                if (!bossBar.getPlayers().contains(player)) {
-                    bossBar.addPlayer(player);
-                }
-            }
-        }
-        // 移除不在 Boss 点的玩家
-        for (Player player : new ArrayList<>(bossBar.getPlayers())) {
-            if (!bossPlayers.contains(player.getUniqueId())) {
-                bossBar.removePlayer(player);
-            }
-        }
-
-        bossBar.setVisible(!bossBar.getPlayers().isEmpty()); // 如果有玩家在 Boss 点，显示 BossBar
-    }
-
     public void onBossDeath(EntityDeathEvent event) {
         if (event.getEntity() instanceof Wither && event.getEntity().hasMetadata("customBoss")) {
             // 清空掉落物列表
             event.getDrops().clear();
 
             bossAlive = false;
-            bossBar.setVisible(false);
 
             // 清除当前 Boss 实例
             this.boss = null;
@@ -398,40 +396,20 @@ public class BossDataManager implements Listener {
     public Player getLastAttacker() {
         return lastAttackerUUID != null ? Bukkit.getPlayer(lastAttackerUUID) : null;
     }
-
-    // 清除 Boss 的方法
-    public void clearBoss() {
-        if (boss != null && bossAlive) {
-            boss.remove();
-            bossAlive = false;
-            bossBar.setVisible(false);
-        }
-    }
-
     public void setBossDataManager() {
         gameManager.setBossDataManager(this);
     }
 
     public void addBossPlayer(Player player) {
         bossPlayers.add(player.getUniqueId());
-        updateBossBar();
-        clearOriginalBossBar(); // 玩家进入时清除原版 BossBar
     }
 
     public void removeBossPlayer(Player player) {
         bossPlayers.remove(player.getUniqueId());
-        updateBossBar();
-        clearOriginalBossBar(); // 玩家离开时清除原版 BossBar
     }
 
     public boolean isPlayerInBoss(Player player) {
         return bossPlayers.contains(player.getUniqueId());
-    }
-
-    public void clearOriginalBossBar() {
-        if (boss != null) {
-            boss.getBossBar().removeAll();
-        }
     }
 
     // 监听爆炸事件，防止凋零爆炸破坏方块

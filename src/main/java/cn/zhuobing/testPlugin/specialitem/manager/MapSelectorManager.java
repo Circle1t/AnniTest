@@ -50,10 +50,19 @@ public class MapSelectorManager {
             votePrompt = ChatColor.YELLOW + "点击为该地图投票";
         }
 
-        meta.setLore(Arrays.asList(
-                votePrompt,
-                ChatColor.GOLD + "当前票数: " + voteCount
-        ));
+        String description =mapSelectManager.getMapDescription(mapName);
+        if (description != null) {
+            meta.setLore(Arrays.asList(
+                    ChatColor.GOLD + description,
+                    votePrompt,
+                    ChatColor.GOLD + "当前票数: " + voteCount
+            ));
+        } else {
+            meta.setLore(Arrays.asList(
+                    votePrompt,
+                    ChatColor.GOLD + "当前票数: " + voteCount
+            ));
+        }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
 

@@ -53,9 +53,6 @@ public class EndPortalListener implements Listener {
             //将玩家添加到boss点玩家集合中
             bossDataManager.addBossPlayer(player);
 
-            // 清除原版 BossBar
-            bossDataManager.clearOriginalBossBar();
-
             event.setCancelled(false); // 允许传送
         }
     }

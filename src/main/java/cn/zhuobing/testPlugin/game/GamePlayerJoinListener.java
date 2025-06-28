@@ -9,6 +9,8 @@ import cn.zhuobing.testPlugin.specialitem.items.MapConfigurerItem;
 import cn.zhuobing.testPlugin.specialitem.items.MapSelectorItem;
 import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
+import cn.zhuobing.testPlugin.utils.BungeeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -54,8 +56,12 @@ public class GamePlayerJoinListener implements Listener {
             // 玩家没有选择队伍，尝试传送到大厅重生点
             if (!lobbyManager.teleportToLobby(player)) {
                 // 大厅传送失败，将玩家踢出服务器并解释原因
-                String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "大厅传送失败，请联系管理员！";
-                player.kickPlayer(kickMessage);
+                if (AnniConfigManager.BUNGEE_ENABLED) {
+                    BungeeUtil.sendToLobby(player);
+                } else {
+                    String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "大厅传送失败，请联系管理员！";
+                    player.kickPlayer(kickMessage);
+                }
             } else {
                 // 清空玩家背包
                 player.getInventory().clear();
@@ -75,6 +81,7 @@ public class GamePlayerJoinListener implements Listener {
                 player.setGameMode(GameMode.SURVIVAL);
 
                 player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.AQUA + "欢迎回到核心战争！");
+                player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.LIGHT_PURPLE + "当前插件正处于测试阶段，游戏内会有少量日志提示");
                 Inventory inventory = player.getInventory();
 
                 // 未加入队伍的玩家获得特殊选择物品
@@ -101,7 +108,6 @@ public class GamePlayerJoinListener implements Listener {
 
         // 设置计分板 BossBar 事项
         gameManager.getBossBar().addPlayer(player);
-        bossDataManager.clearOriginalBossBar();
         teamManager.applyScoreboardToPlayer(player);
         nexusInfoBoard.updateInfoBoard();
         int currentPhase = gameManager.getCurrentPhase();

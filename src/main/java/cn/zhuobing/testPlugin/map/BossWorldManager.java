@@ -1,5 +1,7 @@
 package cn.zhuobing.testPlugin.map;
 
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
+import cn.zhuobing.testPlugin.utils.BungeeUtil;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -146,8 +148,12 @@ public class BossWorldManager {
         if (bossWorld != null) {
             // 1. 传送所有玩家
             for (Player p : bossWorld.getPlayers()) {
-                String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "Boss 世界地图已被卸载！";
-                p.kickPlayer(kickMessage);
+                if(AnniConfigManager.BUNGEE_ENABLED){
+                    BungeeUtil.sendToLobby(p);
+                }else{
+                    String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "Boss 世界地图已被卸载！";
+                    p.kickPlayer(kickMessage);
+                }
             }
 
             // 2. 卸载世界

@@ -1,5 +1,6 @@
 package cn.zhuobing.testPlugin.map;
 
+import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.boss.WitchDataManager;
@@ -10,6 +11,8 @@ import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.ore.DiamondDataManager;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.store.StoreManager;
+import cn.zhuobing.testPlugin.utils.AnniConfigManager;
+import cn.zhuobing.testPlugin.utils.BungeeUtil;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -33,6 +36,7 @@ public class MapSelectManager {
     private List<String> candidateMaps = new ArrayList<>();
     private List<String> originalMaps = new ArrayList<>();
     private final Map<String, String> mapFolderNameMapping = new HashMap<>(); // 存储地图文件夹名与地图名的映射
+    private final Map<String, String> mapDescriptions = new HashMap<>(); // 存储地图文件夹名与描述的映射
     private final Map<String, Material> mapIcons = new HashMap<>();
     private final Map<String, Integer> voteCounts = new HashMap<>(); // 存储地图的投票数
     private final Map<UUID, String> playerVotedMap = new HashMap<>(); // 存储玩家UUID和他们投票的地图名称
@@ -104,7 +108,10 @@ public class MapSelectManager {
                                 "\n" +
                                 "mapFolderNameMapping:     # 地图文件夹名与显示名称映射\n" +
                                 "  map1: \"草原地图\"        # 显示在投票界面的地图名称\n" +
-                                "  map2: \"地狱岩地图\"";
+                                "  map2: \"地狱岩地图\" " +
+                                "mapDescriptions:          # 地图描述信息\n" +
+                                "  map1: \"草原主题地图，适合新手玩家\"\n" +
+                                "  map2: \"地狱岩主题地图，具有特殊地形\"";
                         try (FileWriter writer = new FileWriter(configFile)) {
                             writer.write(defaultConfigContent);
                         }
@@ -141,8 +148,8 @@ public class MapSelectManager {
             }
         }
 
-        if (config.contains("originalMap")) {
-            originalMaps = config.getStringList("originalMap");
+        if (config.contains("originalMaps")) {
+            originalMaps = config.getStringList("originalMaps");
         }
 
         // 加载地图文件夹名与地图名的映射
@@ -150,6 +157,14 @@ public class MapSelectManager {
             Map<?, ?> mapping = config.getConfigurationSection("mapFolderNameMapping").getValues(false);
             for (Map.Entry<?, ?> entry : mapping.entrySet()) {
                 mapFolderNameMapping.put((String) entry.getKey(), (String) entry.getValue());
+            }
+        }
+
+        // 加载地图描述信息
+        if (config.contains("mapDescriptions")) {
+            Map<?, ?> descriptions = config.getConfigurationSection("mapDescriptions").getValues(false);
+            for (Map.Entry<?, ?> entry : descriptions.entrySet()) {
+                mapDescriptions.put((String) entry.getKey(), (String) entry.getValue());
             }
         }
 
@@ -196,6 +211,17 @@ public class MapSelectManager {
 
     public void setMapIcon(String mapName, Material icon) {
         mapIcons.put(mapName, icon);
+        saveConfig();
+    }
+
+    // 获取地图描述信息
+    public String getMapDescription(String mapName) {
+        return mapDescriptions.get(mapName);
+    }
+
+    // 设置地图描述信息
+    public void setMapDescription(String mapName, String description) {
+        mapDescriptions.put(mapName, description);
         saveConfig();
     }
 
@@ -501,8 +527,12 @@ public class MapSelectManager {
             if (world != null) {
                 // 1. 传送所有玩家
                 for (Player p : world.getPlayers()) {
-                    String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "游戏地图已被卸载！";
-                    p.kickPlayer(kickMessage);
+                    if (AnniConfigManager.BUNGEE_ENABLED) {
+                        BungeeUtil.sendToLobby(p);
+                    } else {
+                        String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "游戏地图已被卸载！";
+                        p.kickPlayer(kickMessage);
+                    }
                 }
 
                 // 2. 卸载世界

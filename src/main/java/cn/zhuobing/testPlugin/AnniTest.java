@@ -75,12 +75,9 @@ import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
-import org.bukkit.Bukkit;
-import org.bukkit.GameRule;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.plugin.messaging.Messenger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -118,7 +115,14 @@ public class AnniTest extends JavaPlugin {
         getLogger().info("AnniTest 插件启动");
 
         getLogger().info("初始化核心基础配置信息...");
+
+        // 加载配置
         AnniConfigManager.loadConfig(this);
+
+        // 注册 BungeeCord 通道（如果启用）
+        if (AnniConfigManager.BUNGEE_ENABLED) {
+            registerBungeeChannels();
+        }
 
         // 初始化核心数据管理类
         initManagers();
@@ -160,8 +164,8 @@ public class AnniTest extends JavaPlugin {
         enchantManager = new EnchantManager();
         teamSelectorManager = new TeamSelectorManager(teamManager);
         respawnDataManager = new RespawnDataManager(lobbyManager,nexusManager,this);
-        bossDataManager = new BossDataManager(this,gameManager,teamManager,bossWorldManager);
         storeManager = new StoreManager(this);
+        bossDataManager = new BossDataManager(this,gameManager,teamManager,bossWorldManager,messageRenderer);
         mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,enderFurnaceManager,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
@@ -261,6 +265,12 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Scorpio(teamManager, kitManager));
     }
 
+    private void registerBungeeChannels() {
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+        getLogger().info("已注册 BungeeCord 通道");
+    }
+
+
     @Override
     public void onDisable() {
         getLogger().info("AnniTest 插件正在关闭，开始卸载游戏地图副本和大厅副本...");
@@ -276,6 +286,12 @@ public class AnniTest extends JavaPlugin {
         // 卸载大厅副本
         if (lobbyManager != null) {
             lobbyManager.unloadLobbyWorld();
+        }
+
+        // 取消注册 BungeeCord 通道（如果已注册）
+        if (AnniConfigManager.BUNGEE_ENABLED) {
+            getServer().getMessenger().unregisterOutgoingPluginChannel(this);
+            getLogger().info("已取消注册 BungeeCord 通道");
         }
 
 

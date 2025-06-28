@@ -17,6 +17,7 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,9 @@ public class GameManager {
     private boolean gameOver = false;
     private boolean teamSelectionOpen = false;
     private int halfTime;
+
+    private BossBar restartBossBar;
+    private RestartCountdownTask restartTask;
 
     public GameManager(TeamManager teamManager, MapSelectManager mapSelectManager,
                        BossDataManager bossDataManager, OreManager oreManager,
@@ -162,6 +166,7 @@ public class GameManager {
         if (currentPhase == 4) {
             bossDataManager.spawnBoss();
         }
+
         // 发送阶段消息
         Bukkit.broadcastMessage(" ");
         List<String> phaseMessage = messageRenderer.formatMessage(
@@ -232,6 +237,25 @@ public class GameManager {
             }
         }
         bossBar.setColor(BarColor.WHITE);
+
+        // 创建重启倒计时BossBar
+        restartBossBar = Bukkit.createBossBar(
+                ChatColor.RED + "服务器即将重启...",
+                BarColor.RED,
+                BarStyle.SOLID
+        );
+        restartBossBar.setVisible(true);
+        Bukkit.getOnlinePlayers().forEach(restartBossBar::addPlayer);
+
+        // 延迟5秒后显示重启倒计时并启动重启任务
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            restartBossBar.setVisible(true);
+            Bukkit.getOnlinePlayers().forEach(restartBossBar::addPlayer);
+
+            // 启动重启倒计时
+            restartTask = new RestartCountdownTask(this, 60);
+            restartTask.runTaskTimer(plugin, 0L, 20L);
+        }, 100L); // 100 ticks = 5 seconds (20 ticks per second)
     }
 
     // 判断玩家是否在指定队伍
@@ -250,10 +274,6 @@ public class GameManager {
 
     public void setBossDataManager(BossDataManager bossDataManager) {
         this.bossDataManager = bossDataManager;
-    }
-
-    public boolean isGameOver(){
-        return gameOver;
     }
 
     public void setOreManager(OreManager oreManager){
@@ -287,5 +307,43 @@ public class GameManager {
 
     public boolean isGameStarted() {
         return gameStarted;
+    }
+
+    // 新增重启倒计时任务类
+    private static class RestartCountdownTask extends BukkitRunnable {
+        private final GameManager gameManager;
+        private int remainingTime;
+
+        public RestartCountdownTask(GameManager gameManager, int seconds) {
+            this.gameManager = gameManager;
+            this.remainingTime = seconds;
+        }
+
+        @Override
+        public void run() {
+            if (remainingTime <= 0) {
+                // 倒计时结束，重启服务器
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart");
+                cancel();
+                return;
+            }
+
+            // 更新BossBar
+            BossBar bar = gameManager.restartBossBar;
+            bar.setTitle(ChatColor.LIGHT_PURPLE + "服务器将在 " + remainingTime + " 秒后重启...");
+            bar.setProgress((double) remainingTime / 60);
+
+            // 每10秒提示一次
+            if (remainingTime % 10 == 0 || remainingTime <= 5) {
+                Bukkit.broadcastMessage(ChatColor.RED + "服务器将在 " + remainingTime + " 秒后重启!");
+            }
+
+            remainingTime--;
+        }
+    }
+
+    // 游戏结束状态判断修改
+    public boolean isGameOver() {
+        return gameOver || restartTask != null;
     }
 }

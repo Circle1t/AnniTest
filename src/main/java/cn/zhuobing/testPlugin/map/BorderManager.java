@@ -60,34 +60,6 @@ public class BorderManager {
                     mapBorders.add(border);
                 }
             }
-            // 如果有边界配置，只加载边界内的区块
-            if (!mapBorders.isEmpty()) {
-                loadChunksInBorder(world);
-            }
-        }
-    }
-
-    /**
-     * 只加载边界内的区块
-     * @param world 地图所在的世界
-     */
-    private void loadChunksInBorder(World world) {
-        int minX = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE;
-        int maxZ = Integer.MIN_VALUE;
-
-        for (Location border : mapBorders) {
-            minX = Math.min(minX, border.getBlockX());
-            maxX = Math.max(maxX, border.getBlockX());
-            minZ = Math.min(minZ, border.getBlockZ());
-            maxZ = Math.max(maxZ, border.getBlockZ());
-        }
-
-        for (int x = minX >> 4; x <= maxX >> 4; x++) {
-            for (int z = minZ >> 4; z <= maxZ >> 4; z++) {
-                world.loadChunk(x, z);
-            }
         }
     }
 
