@@ -1,12 +1,11 @@
 package cn.zhuobing.testPlugin.boss;
 
 import cn.zhuobing.testPlugin.AnniTest;
-import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
+import cn.zhuobing.testPlugin.anni.RespawnDataManager;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -51,10 +50,10 @@ public class HellPortalListener implements Listener {
                 String nearestNexusTeam = getNearestNexusTeam(player.getLocation());
                 if (nearestNexusTeam != null && nearestNexusTeam.equals(playerTeam)) {
                     respawnDataManager.teleportPlayerToRandomRespawnLocation(player, playerTeam);
-                    // 延迟 1 tick 后打开职业选择界面
+                    // 延迟 4 tick 后打开职业选择界面
                     Bukkit.getScheduler().runTaskLater(AnniTest.getInstance(), () -> {
                         kitManager.openKitSelection(player);
-                    }, 1L);
+                    }, 4L);
                 }
             }
             event.setCancelled(true); // 取消默认的地狱门传送事件

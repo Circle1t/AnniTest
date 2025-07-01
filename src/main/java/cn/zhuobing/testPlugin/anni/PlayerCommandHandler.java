@@ -1,4 +1,4 @@
-package cn.zhuobing.testPlugin.anniPlayer;
+package cn.zhuobing.testPlugin.anni;
 
 import cn.zhuobing.testPlugin.command.CommandHandler;
 import org.bukkit.ChatColor;

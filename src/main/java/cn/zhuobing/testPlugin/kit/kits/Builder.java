@@ -3,7 +3,7 @@ package cn.zhuobing.testPlugin.kit.kits;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
-import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
+import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
@@ -12,7 +12,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.Inventory;
@@ -109,15 +108,43 @@ public class Builder extends Kit implements Listener {
     }
 
     @Override
+    public List<ItemStack> getKitArmors(Player player) {
+        String teamColor = teamManager.getPlayerTeamName(player);
+
+        return Arrays.asList(
+                SpecialArmor.createArmor(Material.LEATHER_HELMET, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_BOOTS, teamColor)
+        );
+    }
+
+    @Override
     public void applyKit(Player player) {
         PlayerInventory inv = player.getInventory();
 
         // 皮革护甲
-        String teamColor = teamManager.getPlayerTeamName(player);
-        inv.setHelmet(SpecialLeatherArmor.createArmor(Material.LEATHER_HELMET, teamColor));
-        inv.setChestplate(SpecialLeatherArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor));
-        inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
-        inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
+        List<ItemStack> armors = getKitArmors(player);
+        for (ItemStack armor : armors) {
+            if (armor != null) {
+                switch (armor.getType()) {
+                    case LEATHER_HELMET:
+                        inv.setHelmet(armor);
+                        break;
+                    case LEATHER_CHESTPLATE:
+                        inv.setChestplate(armor);
+                        break;
+                    case LEATHER_LEGGINGS:
+                        inv.setLeggings(armor);
+                        break;
+                    case LEATHER_BOOTS:
+                        inv.setBoots(armor);
+                        break;
+                    default:
+                        inv.addItem(armor);
+                }
+            }
+        }
 
         for (ItemStack item : kitItems) {
             inv.addItem(item);
@@ -283,7 +310,7 @@ public class Builder extends Kit implements Listener {
         return true;
     }
 
-    // 新增：打开材料仓库界面
+    // 打开材料仓库界面
     private void openMaterialWarehouse(Player player) {
         Inventory inv = Bukkit.createInventory(player, 27, WAREHOUSE_GUI_TITLE);
 

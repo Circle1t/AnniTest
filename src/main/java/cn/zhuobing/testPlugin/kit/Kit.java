@@ -16,4 +16,5 @@ public abstract class Kit {
     public void onKitSet(Player player) {}  // 当职业被设置时调用
     public void onKitUnset(Player player) {} // 当职业被取消时调用
     public abstract List<ItemStack> getKitItems();
+    public abstract List<ItemStack> getKitArmors(Player player);
 }

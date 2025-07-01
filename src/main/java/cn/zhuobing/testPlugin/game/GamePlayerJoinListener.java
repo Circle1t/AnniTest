@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.game;
 
-import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
+import cn.zhuobing.testPlugin.anni.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.map.LobbyManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
@@ -11,7 +11,6 @@ import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import cn.zhuobing.testPlugin.utils.BungeeUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -70,7 +69,8 @@ public class GamePlayerJoinListener implements Listener {
                 // 设置玩家经验为0
                 player.setExp(0);
                 // 设置血量为满
-                player.setHealth(player.getMaxHealth());
+                player.setMaxHealth(20.0);
+                player.setHealth(20.0);
                 // 设置饥饿值为满
                 player.setFoodLevel(20);
                 // 防止饥饿值降低
@@ -126,6 +126,7 @@ public class GamePlayerJoinListener implements Listener {
         event.setQuitMessage(null);
         if(!gameManager.isGameStarted()){
             gameManager.updatePlayerCountOnBossBar(); // 更新 BossBar 上的玩家人数
+            gameManager.updateBossBar(gameManager.getCurrentPhase(), gameManager.getRemainingTime());
         }
     }
 }

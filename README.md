@@ -31,7 +31,7 @@
 - **名称**：AnniTest
 - **版本**：`1.0-SNAPSHOT`
 - **主类**：`cn.zhuobing.testPlugin.AnniTest`
-- **API 版本**：`1.20`
+- **API 版本**：`1.21`
 - **项目管理工具**：`Maven`
 
 

@@ -139,16 +139,17 @@ public class BossStarItem implements Listener {
             ItemStack chestplate = player.getInventory().getChestplate();
             ItemStack leggings = player.getInventory().getLeggings();
 
-            if (chestplate != null && SoulBoundUtil.isSoulBoundItem(chestplate, Material.CHAINMAIL_CHESTPLATE)) {
+            if (chestplate != null && SoulBoundUtil.isSoulBoundItemWithDisplayName(chestplate, Material.CHAINMAIL_CHESTPLATE,CHAINED_CHESTPLATE_NAME)) {
+                //player.sendMessage(ChatColor.GREEN + "触发生命恢复效果！");
                 player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 0));
             }
 
-            if (leggings != null && SoulBoundUtil.isSoulBoundItem(leggings, Material.CHAINMAIL_LEGGINGS)) {
+            if (leggings != null && SoulBoundUtil.isSoulBoundItemWithDisplayName(leggings, Material.CHAINMAIL_LEGGINGS,CHAINED_LEGGINGS_NAME)) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0));
             }
 
             ItemStack weapon = player.getInventory().getItemInMainHand();
-            if (weapon != null && SoulBoundUtil.isSoulBoundItem(weapon, Material.DIAMOND_SWORD)
+            if (weapon != null && SoulBoundUtil.isSoulBoundItemWithDisplayName(weapon, Material.DIAMOND_SWORD,POISONOUS_SWORD_NAME)
                     && weapon.getItemMeta().getDisplayName().equals(POISONOUS_SWORD_NAME)
                     && random.nextDouble() < 0.3) {
                 if (event.getEntity() instanceof Player) {
@@ -184,7 +185,7 @@ public class BossStarItem implements Listener {
             Player player = (Player) event.getEntity();
             ItemStack boots = player.getInventory().getBoots();
 
-            if (boots != null && SoulBoundUtil.isSoulBoundItem(boots, Material.CHAINMAIL_BOOTS)
+            if (boots != null && SoulBoundUtil.isSoulBoundItemWithDisplayName(boots, Material.CHAINMAIL_BOOTS,CHAINED_BOOTS_NAME)
                     && event.getCause() == EntityDamageEvent.DamageCause.FALL) {
                 event.setCancelled(true);
             }

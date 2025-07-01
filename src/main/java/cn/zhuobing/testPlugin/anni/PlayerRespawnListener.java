@@ -1,4 +1,4 @@
-package cn.zhuobing.testPlugin.anniPlayer;
+package cn.zhuobing.testPlugin.anni;
 
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.Kit;
@@ -116,6 +116,8 @@ public class PlayerRespawnListener implements Listener {
             respawnDataManager.handlePlayerRespawn(player, null, event);
             // 关闭该玩家的 PvP
             pvpDisabledPlayers.add(player.getUniqueId());
+            // 把玩家从队伍中移除
+            teamManager.removePlayerFromTeam(player);
             return;
         }
 

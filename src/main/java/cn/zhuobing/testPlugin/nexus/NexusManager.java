@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
@@ -187,5 +188,38 @@ public class NexusManager {
             }
         }
         return false;
+    }
+
+    // 检测玩家是否在某个队伍的核心保护区域
+    public boolean isPlayerInTeamProtectionArea(Player player, String teamName) {
+        // 验证队伍名称有效性
+        if (teamName == null || !borderFirst.containsKey(teamName) || !borderSecond.containsKey(teamName)) {
+            return false;
+        }
+
+        Location first = borderFirst.get(teamName);
+        Location second = borderSecond.get(teamName);
+        if (first == null || second == null) {
+            return false;
+        }
+
+        Location loc = player.getLocation();
+
+        // 计算保护区域边界
+        int minX = Math.min(first.getBlockX(), second.getBlockX());
+        int maxX = Math.max(first.getBlockX(), second.getBlockX());
+        int minZ = Math.min(first.getBlockZ(), second.getBlockZ());
+        int maxZ = Math.max(first.getBlockZ(), second.getBlockZ());
+
+        // 可选：添加高度检测（如果需要）
+        // int minY = Math.min(first.getBlockY(), second.getBlockY());
+        // int maxY = Math.max(first.getBlockY(), second.getBlockY());
+
+        // 检查玩家位置是否在矩形区域内
+        boolean inX = loc.getBlockX() >= minX && loc.getBlockX() <= maxX;
+        boolean inZ = loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ;
+        // boolean inY = loc.getBlockY() >= minY && loc.getBlockY() <= maxY;
+
+        return inX && inZ; // && inY; // 如果启用高度检测
     }
 }

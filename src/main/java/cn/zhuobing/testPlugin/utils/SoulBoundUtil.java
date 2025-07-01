@@ -73,6 +73,33 @@ public class SoulBoundUtil {
     }
 
     /**
+     * 判断物品是否为灵魂绑定物品
+     *
+     * @param stack    物品堆栈
+     * @param material 物品材质
+     * @return 是否为灵魂绑定物品
+     */
+    public static boolean isSoulBoundItemWithDisplayName(ItemStack stack, Material material,String displayName) {
+        if (stack == null || !stack.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (!meta.hasLore()) {
+            return false;
+        }
+        if(!stack.getItemMeta().getDisplayName().equals(displayName)){
+            return false;
+        }
+        List<String> lore = meta.getLore();
+        for (String line : lore) {
+            if (ChatColor.stripColor(line).contains("灵魂绑定")) {
+                return stack.getType() == material;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 判断物品是否为指定等级的灵魂绑定物品
      *
      * @param stack    物品堆栈

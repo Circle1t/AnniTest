@@ -322,20 +322,20 @@ public class GameManager {
         @Override
         public void run() {
             if (remainingTime <= 0) {
-                // 倒计时结束，重启服务器
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "restart");
+                // 倒计时结束，关闭服务器
+                Bukkit.shutdown();
                 cancel();
                 return;
             }
 
             // 更新BossBar
             BossBar bar = gameManager.restartBossBar;
-            bar.setTitle(ChatColor.LIGHT_PURPLE + "服务器将在 " + remainingTime + " 秒后重启...");
+            bar.setTitle(ChatColor.LIGHT_PURPLE + "游戏将在 " + remainingTime + " 秒后重启...");
             bar.setProgress((double) remainingTime / 60);
 
             // 每10秒提示一次
             if (remainingTime % 10 == 0 || remainingTime <= 5) {
-                Bukkit.broadcastMessage(ChatColor.RED + "服务器将在 " + remainingTime + " 秒后重启!");
+                Bukkit.broadcastMessage(ChatColor.RED + "游戏将在 " + remainingTime + " 秒后重启!");
             }
 
             remainingTime--;

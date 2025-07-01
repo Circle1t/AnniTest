@@ -1,9 +1,8 @@
-package cn.zhuobing.testPlugin.anniPlayer;
+package cn.zhuobing.testPlugin.anni;
 
 import cn.zhuobing.testPlugin.map.LobbyManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;

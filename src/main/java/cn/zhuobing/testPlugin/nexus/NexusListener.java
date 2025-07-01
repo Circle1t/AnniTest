@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.nexus;
 
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import cn.zhuobing.testPlugin.utils.MessageUtil;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -11,10 +12,14 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.List;
 import java.util.Map;
 
 public class NexusListener implements Listener {
@@ -23,16 +28,18 @@ public class NexusListener implements Listener {
     private final NexusInfoBoard nexusInfoBoard;
     private final GameManager gameManager;
     private final TeamManager teamManager;
+    private final MessageRenderer messageRenderer;
 
     private String winningTeam = null;
 
     private final Plugin plugin;
 
-    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin) {
+    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin,MessageRenderer messageRenderer) {
         this.nexusManager = nexusManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.teamManager = teamManager;
+        this.messageRenderer = messageRenderer;
         this.plugin = plugin;
 }
     @EventHandler
@@ -91,7 +98,17 @@ public class NexusListener implements Listener {
                 if (currentHealth <= 0) {
                     // 核心血量为 0，变为基岩
                     block.setType(Material.BEDROCK);
-                    Bukkit.broadcastMessage(teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁 | 破坏者 " + teamManager.getTeamColor(playerTeam) + player.getName());
+                    // 发送队伍消息
+                    player.sendMessage(" ");
+                    List<String> welcomeMessage = messageRenderer.formatMessage(
+                            messageRenderer.getTeamMessage(teamName),
+                            teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁！" ,
+                            ChatColor.GOLD + "摧毁者 " + teamManager.getTeamColor(playerTeam) + player.getName()
+                    );
+                    for (String line : welcomeMessage) {
+                        player.sendMessage(line);
+                    }
+                    //Bukkit.broadcastMessage(teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁 | 破坏者 " + teamManager.getTeamColor(playerTeam) + player.getName());
                     // 检查是否只有一个队伍的核心未被摧毁
                     // 延迟检查获胜者，确保所有核心状态更新完成
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -117,6 +134,24 @@ public class NexusListener implements Listener {
                     }
                     // 重置核心方块
                     block.setType(block.getType());
+                    // 减少耐久
+                    ItemStack item = player.getInventory().getItemInMainHand();
+                    if (item != null && item.getType().getMaxDurability() > 0) {
+                        ItemMeta meta = item.getItemMeta();
+                        if (meta instanceof Damageable) {
+                            Damageable damageable = (Damageable) meta;
+                            int newDamage = damageable.getDamage() + 1;
+                            damageable.setDamage(newDamage);
+
+                            // 检查武器是否损坏
+                            if (newDamage >= item.getType().getMaxDurability()) {
+                                player.getInventory().setItemInMainHand(null);
+                                player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f);
+                            } else {
+                                item.setItemMeta(meta);
+                            }
+                        }
+                    }
                 }
 
                 // 播放声音逻辑
@@ -137,7 +172,7 @@ public class NexusListener implements Listener {
 
     private void playSounds(Location nexusLocation, String teamName) {
         final double MAX_DISTANCE = 15;
-        final float ALERT_VOLUME = 0.6f; // 警报音效的音量
+        final float ALERT_VOLUME = 0.65f; // 警报音效的音量
         final float ALERT_PITCH = 2.0f;  // 警报音效的音调
         final Sound ALERT_SOUND = Sound.BLOCK_NOTE_BLOCK_PLING; // 警报音效
 
@@ -171,7 +206,7 @@ public class NexusListener implements Listener {
     }
     private void playTntExplosionSound(Location location) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, 1f, 1f);
+            player.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, 1.5f, 1f);
         }
     }
 

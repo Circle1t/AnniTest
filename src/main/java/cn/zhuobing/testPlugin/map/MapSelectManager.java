@@ -1,7 +1,6 @@
 package cn.zhuobing.testPlugin.map;
 
-import cn.zhuobing.testPlugin.AnniTest;
-import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
+import cn.zhuobing.testPlugin.anni.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
 import cn.zhuobing.testPlugin.boss.WitchDataManager;
 import cn.zhuobing.testPlugin.enderfurnance.EnderFurnaceManager;
@@ -21,8 +20,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.World.Environment;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 
 import static cn.zhuobing.testPlugin.utils.DirectoryUtil.copyDirectory;

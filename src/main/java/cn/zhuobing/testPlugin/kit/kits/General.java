@@ -3,33 +3,24 @@ package cn.zhuobing.testPlugin.kit.kits;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
-import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
+import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.ShapelessRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
@@ -43,6 +34,7 @@ public class General extends Kit implements Listener {
     private final TeamManager teamManager;
     private final KitManager kitManager;
     private List<ItemStack> kitItems = new ArrayList<>();
+    private List<ItemStack> kitArmors = new ArrayList<>();
 
     private ItemStack ironSword;
     private ItemStack goldPickaxe;
@@ -105,15 +97,45 @@ public class General extends Kit implements Listener {
     }
 
     @Override
+    public List<ItemStack> getKitArmors(Player player) {
+        String teamColor = teamManager.getPlayerTeamName(player);
+
+        return Arrays.asList(
+                SpecialArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_BOOTS, teamColor)
+        );
+    }
+
+    @Override
     public void applyKit(Player player) {
         PlayerInventory inv = player.getInventory();
 
         // 护甲
-        String teamColor = teamManager.getPlayerTeamName(player);
+        List<ItemStack> armors = getKitArmors(player);
+
         inv.setHelmet(sunFlower);
-        inv.setChestplate(SpecialLeatherArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor));
-        inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
-        inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
+
+        for (ItemStack armor : armors) {
+            if (armor != null) {
+                switch (armor.getType()) {
+                    case LEATHER_HELMET:
+                        inv.setHelmet(armor);
+                        break;
+                    case LEATHER_CHESTPLATE:
+                        inv.setChestplate(armor);
+                        break;
+                    case LEATHER_LEGGINGS:
+                        inv.setLeggings(armor);
+                        break;
+                    case LEATHER_BOOTS:
+                        inv.setBoots(armor);
+                        break;
+                    default:
+                        inv.addItem(armor);
+                }
+            }
+        }
 
         for (ItemStack item : kitItems) {
             inv.addItem(item);

@@ -1,13 +1,10 @@
 package cn.zhuobing.testPlugin.kit;
 
 import cn.zhuobing.testPlugin.game.GameManager;
-import cn.zhuobing.testPlugin.kit.kits.General;
-import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -15,9 +12,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
@@ -117,13 +111,10 @@ public class KitManager {
         }
 
         String teamColor = teamManager.getPlayerTeamName(player);
-        List<ItemStack> items = new ArrayList<>();
 
         // 添加皮革护甲
-        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_HELMET, teamColor));
-        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor));
-        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
-        items.add(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
+        List<ItemStack> kitArmors = kit.getKitArmors(player);
+        List<ItemStack> items = new ArrayList<>(kitArmors);
 
         Kit playerKit = getPlayerKit(player.getUniqueId());
         if (playerKit != null) {

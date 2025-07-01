@@ -3,7 +3,7 @@ package cn.zhuobing.testPlugin.kit.kits;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
-import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
+import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.*;
 import org.bukkit.block.BlockFace;
@@ -14,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -82,15 +83,43 @@ public class Acrobat extends Kit implements Listener {
     }
 
     @Override
+    public List<ItemStack> getKitArmors(Player player) {
+        String teamColor = teamManager.getPlayerTeamName(player);
+
+        return Arrays.asList(
+                SpecialArmor.createArmor(Material.LEATHER_HELMET, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_BOOTS, teamColor)
+        );
+    }
+
+    @Override
     public void applyKit(Player player) {
         PlayerInventory inv = player.getInventory();
 
         // 皮革护甲
-        String teamColor = teamManager.getPlayerTeamName(player);
-        inv.setHelmet(SpecialLeatherArmor.createArmor(Material.LEATHER_HELMET, teamColor));
-        inv.setChestplate(SpecialLeatherArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor));
-        inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
-        inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
+        List<ItemStack> armors = getKitArmors(player);
+        for (ItemStack armor : armors) {
+            if (armor != null) {
+                switch (armor.getType()) {
+                    case LEATHER_HELMET:
+                        inv.setHelmet(armor);
+                        break;
+                    case LEATHER_CHESTPLATE:
+                        inv.setChestplate(armor);
+                        break;
+                    case LEATHER_LEGGINGS:
+                        inv.setLeggings(armor);
+                        break;
+                    case LEATHER_BOOTS:
+                        inv.setBoots(armor);
+                        break;
+                    default:
+                        inv.addItem(armor);
+                }
+            }
+        }
 
         for (ItemStack item : kitItems) {
             inv.addItem(item);
@@ -168,23 +197,25 @@ public class Acrobat extends Kit implements Listener {
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
         if (isThisKit(player)
-                &&!player.getAllowFlight()
-                && player.getGameMode() != GameMode.CREATIVE
-                && isOnGround(player)) {
+                && !player.getAllowFlight()
+                && player.getGameMode() != GameMode.CREATIVE) {
 
-            // 落地后重置冷却
-            if (cooldowns.containsKey(player.getUniqueId())) {
-                long remaining = cooldowns.get(player.getUniqueId()) - System.currentTimeMillis();
-                if (remaining <= 0) {
+            if (event.getFrom().getY() != event.getTo().getY() && isOnGround(player)) {
+                boolean cooldownExpired = !cooldowns.containsKey(player.getUniqueId()) ||
+                        cooldowns.get(player.getUniqueId()) <= System.currentTimeMillis();
+
+                if (cooldownExpired) {
                     player.setAllowFlight(true);
                     cooldowns.remove(player.getUniqueId());
-                    // 播放凋零攻击“哈”的音效
                     player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.8f, 1.0f);
                 }
-            } else {
-                player.setAllowFlight(true);
             }
         }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        cooldowns.remove(event.getPlayer().getUniqueId());
     }
 
     private boolean isOnGround(Player player) {

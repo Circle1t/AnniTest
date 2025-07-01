@@ -1,16 +1,11 @@
 package cn.zhuobing.testPlugin.kit.kits;
 
-import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
-import cn.zhuobing.testPlugin.enchant.SoulBoundLevel;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
-import cn.zhuobing.testPlugin.specialitem.items.SpecialLeatherArmor;
+import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
-import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -20,8 +15,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerFishEvent;
-import org.bukkit.event.player.PlayerFishEvent.State;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,7 +23,6 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
@@ -85,15 +77,43 @@ public class Scout extends Kit implements Listener {
     }
 
     @Override
+    public List<ItemStack> getKitArmors(Player player) {
+        String teamColor = teamManager.getPlayerTeamName(player);
+
+        return Arrays.asList(
+                SpecialArmor.createArmor(Material.LEATHER_HELMET, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor),
+                SpecialArmor.createArmor(Material.LEATHER_BOOTS, teamColor)
+        );
+    }
+
+    @Override
     public void applyKit(Player player) {
         PlayerInventory inv = player.getInventory();
 
         // 皮革护甲
-        String teamColor = teamManager.getPlayerTeamName(player);
-        inv.setHelmet(SpecialLeatherArmor.createArmor(Material.LEATHER_HELMET, teamColor));
-        inv.setChestplate(SpecialLeatherArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor));
-        inv.setLeggings(SpecialLeatherArmor.createArmor(Material.LEATHER_LEGGINGS, teamColor));
-        inv.setBoots(SpecialLeatherArmor.createArmor(Material.LEATHER_BOOTS, teamColor));
+        List<ItemStack> armors = getKitArmors(player);
+        for (ItemStack armor : armors) {
+            if (armor != null) {
+                switch (armor.getType()) {
+                    case LEATHER_HELMET:
+                        inv.setHelmet(armor);
+                        break;
+                    case LEATHER_CHESTPLATE:
+                        inv.setChestplate(armor);
+                        break;
+                    case LEATHER_LEGGINGS:
+                        inv.setLeggings(armor);
+                        break;
+                    case LEATHER_BOOTS:
+                        inv.setBoots(armor);
+                        break;
+                    default:
+                        inv.addItem(armor);
+                }
+            }
+        }
 
         for(ItemStack item : kitItems) {
             inv.addItem(item);
@@ -146,73 +166,58 @@ public class Scout extends Kit implements Listener {
     @EventHandler(priority = EventPriority.NORMAL)
     public void Grappler(PlayerFishEvent event) {
         Player player = event.getPlayer();
-        if (!isThisKit(player)) {
+        if (!isThisKit(player) || !isGrappleItem(player.getInventory().getItemInMainHand())) {
             return;
         }
-        if (isGrappleItem(player.getInventory().getItemInMainHand())) {
-            if (event.getState() == State.FISHING) {
-                // 设置钩子的初始速度
-                Entity hook = event.getHook();
-                setHookVelocity(hook, player);
-            } else if (event.getState() == State.IN_GROUND) {
-                if (event.getCaught() != null) {
+
+        switch (event.getState()) {
+            case FISHING:
+                setHookVelocity(event.getHook(), player);
+                break;
+
+            case IN_GROUND:
+            case REEL_IN:
+                // 修复1：添加钩子位置验证
+                if (!isHookValid(event.getHook())) {
                     return;
                 }
-                Location hookLoc = event.getHook().getLocation();
-                // 检查钩子是否在液体中且下方 0.5 格没有非液体方块
-                if (isInLiquidAndNoSolidBelow(hookLoc)) {
+
+                if (event.getCaught() != null || isInLiquidAndNoSolidBelow(event.getHook().getLocation())) {
                     return;
                 }
-                // 钩子命中地面后的逻辑
-                Location playerLoc = player.getLocation();
-                if (playerLoc.distance(hookLoc) < 3.0D) {
-                    pullPlayerSlightly(player, hookLoc);
-                } else {
-                    pullEntityToLocation(player, hookLoc);
-                }
-            } else if (event.getState() == State.REEL_IN) {
-                Location hookLoc = event.getHook().getLocation();
-                // 检查钩子是否在液体中且下方 0.5 格没有非液体方块
-                if (isInLiquidAndNoSolidBelow(hookLoc)) {
-                    return;
-                }
-                // 先检查钩子是否在地上
-                if (hookLoc.getBlock().getType() != Material.AIR) {
-                    if (event.getCaught() != null) {
-                        return;
-                    }
-                    Location playerLoc = player.getLocation();
-                    if (playerLoc.distance(hookLoc) < 3.0D) {
-                        pullPlayerSlightly(player, hookLoc);
-                    } else {
-                        pullEntityToLocation(player, hookLoc);
-                    }
-                } else {
-                    // 钩子没在地上，再判断上方是否有方块
-                    Location aboveHookLoc = hookLoc.clone().add(0, 1, 0);
-                    if (!aboveHookLoc.getBlock().getType().isAir()) {
-                        Location playerLoc = player.getLocation();
-                        if (playerLoc.distance(hookLoc) < 3.0D) {
-                            pullPlayerSlightly(player, hookLoc);
-                        } else {
-                            pullEntityToLocation(player, hookLoc);
-                        }
-                    } else {
-                        // 判断下方 0.5 格方块下是否有方块
-                        Location belowHookLoc = hookLoc.clone().subtract(0, 0.5, 0);
-                        if (!belowHookLoc.getBlock().getType().isAir()) {
-                            Location playerLoc = player.getLocation();
-                            if (playerLoc.distance(hookLoc) < 3.0D) {
-                                pullPlayerSlightly(player, hookLoc);
-                            } else {
-                                pullEntityToLocation(player, hookLoc);
-                            }
-                        }
-                    }
-                }
-            }
+                pullEntityToLocation(player, event.getHook().getLocation());
+                break;
+
+            default:
+                // 其他状态不处理
+                break;
         }
     }
+
+    private boolean isHookValid(Entity hook) {
+        Location hookLoc = hook.getLocation();
+        Location hookEyeLoc = hookLoc.clone().add(0, 0.5, 0); // 钩子的"眼睛"位置
+
+        // 1. 检查钩子下方是否有固体方块（底部）
+        Location belowLoc = hookLoc.clone().subtract(0, 0.2, 0);
+        if (belowLoc.getBlock().getType().isSolid()) {
+            return true;
+        }
+
+        // 2. 检查钩子上方是否有固体方块（顶部）
+        Location aboveLoc = hookLoc.clone().add(0, 0.2, 0);
+        if (aboveLoc.getBlock().getType().isSolid()) {
+            return true;
+        }
+
+        // 3. 检查钩子"眼睛"位置是否有固体方块（更精确的顶部检测）
+        if (hookEyeLoc.getBlock().getType().isSolid()) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     private boolean isInLiquidAndNoSolidBelow(Location loc) {
         Material blockType = loc.getBlock().getType();
@@ -231,53 +236,98 @@ public class Scout extends Kit implements Listener {
     }
 
     private void pullPlayerSlightly(Player p, Location loc) {
-        Location playerLoc = p.getLocation();
-
-        // 调整玩家位置，避免卡墙
-        playerLoc.setY(playerLoc.getY() + 0.5D);
-        p.teleport(playerLoc);
-
-        // 抛物线参数
-        double g = -0.08D; // 重力加速度
-        double d = loc.distance(playerLoc); // 钩子与玩家的距离
-        double t = d; // 时间因子
-
-        // 计算速度分量
-        double v_x = (1.0D + 0.07D * t) * (loc.getX() - playerLoc.getX()) / t;
-        double v_y = (1.0D + 0.03D * t) * (loc.getY() - playerLoc.getY()) / t - 0.5D * g * t;
-        double v_z = (1.0D + 0.07D * t) * (loc.getZ() - playerLoc.getZ()) / t;
-
-        // 设置速度
-        Vector v = p.getVelocity();
-        v.setX(v_x);
-        v.setY(v_y);
-        v.setZ(v_z);
-        p.setVelocity(v);
+        pullEntityToLocation(p, loc);
     }
 
     private void pullEntityToLocation(Entity e, Location loc) {
         Location entityLoc = e.getLocation();
 
-        // 调整玩家位置，避免卡墙
-        entityLoc.setY(entityLoc.getY() + 0.5D);
-        e.teleport(entityLoc);
+        // 添加防卡墙检测
+        Location safeLoc = findSafeLocation(loc.clone());
 
-        // 抛物线参数
-        double g = -0.08D; // 重力加速度
-        double d = loc.distance(entityLoc); // 钩子与玩家的距离
-        double t = d; // 时间因子
+        // 计算高度差（目标位置与玩家位置的高度差）
+        double heightDifference = safeLoc.getY() - entityLoc.getY();
 
-        // 计算速度分量
-        double v_x = (1.0D + 0.07D * t) * (loc.getX() - entityLoc.getX()) / t;
-        double v_y = (1.0D + 0.03D * t) * (loc.getY() - entityLoc.getY()) / t - 0.5D * g * t;
-        double v_z = (1.0D + 0.07D * t) * (loc.getZ() - entityLoc.getZ()) / t;
+        // 计算水平距离（忽略Y轴）
+        Location horizontalLoc = loc.clone();
+        horizontalLoc.setY(entityLoc.getY());
+        double horizontalDistance = entityLoc.distance(horizontalLoc);
 
-        // 设置速度
-        Vector v = e.getVelocity();
-        v.setX(v_x);
-        v.setY(v_y);
-        v.setZ(v_z);
-        e.setVelocity(v);
+        // 使用简化的向量计算
+        Vector direction = safeLoc.toVector().subtract(entityLoc.toVector());
+        double totalDistance = direction.length();
+
+        // 基础速度系数
+        double baseSpeed = 0.8;
+        double maxSpeed = 1.6; // 最大速度
+
+        // 根据水平距离动态调整速度系数
+        double distanceFactor = 1.0;
+        if (horizontalDistance > 5.0) {
+            // 当水平距离较大时，增加推力
+            distanceFactor = Math.min(1.5, 1.0 + (horizontalDistance * 0.04));
+        }
+
+        // 根据高度差动态调整速度系数
+        double heightFactor = 1.0;
+        if (heightDifference > 1.0) {
+            heightFactor = Math.min(1.2, 1.0 + (heightDifference * 0.03));
+        }
+
+        // 设置速度 - 考虑距离因子和高度因子
+        double speed = Math.min(maxSpeed, baseSpeed * totalDistance * distanceFactor * heightFactor);
+        Vector velocity = direction.normalize().multiply(speed);
+
+        // 根据高度差调整垂直分量
+        if (heightDifference > 0) {
+            // 向上拉取时，保持或增强垂直分量
+            velocity.setY(velocity.getY() * (1.0 + (heightDifference * 0.02)));
+        } else {
+            // 向下或水平拉取时，减少垂直分量
+            velocity.setY(velocity.getY() * 0.6);
+        }
+
+        // 确保最低垂直速度
+        if (velocity.getY() < 0.15) {
+            velocity.setY(0.15);
+        }
+
+        // 添加水平距离补偿 - 确保水平距离远时有足够推力
+        if (horizontalDistance > 8.0) {
+            double boost = Math.min(0.8, (horizontalDistance - 8.0) * 0.1);
+            velocity.multiply(1.0 + boost);
+        }
+
+        e.setVelocity(velocity);
+    }
+
+    private Location findSafeLocation(Location loc) {
+        // 尝试在当前位置上方寻找空气位置
+        for (int i = 0; i < 3; i++) {
+            Location testLoc = loc.clone().add(0, i, 0);
+            if (isSafeLocation(testLoc)) {
+                return testLoc;
+            }
+        }
+
+        // 如果上方没有安全位置，尝试在当前位置寻找
+        if (isSafeLocation(loc)) {
+            return loc;
+        }
+
+        // 最后尝试在玩家当前位置上方
+        return loc.clone().add(0, 2, 0);
+    }
+
+    private boolean isSafeLocation(Location loc) {
+        Material blockType = loc.getBlock().getType();
+        Material belowType = loc.clone().subtract(0, 1, 0).getBlock().getType();
+
+        // 安全位置标准：非固体方块且下方有支撑
+        return !blockType.isSolid() &&
+                !blockType.toString().contains("WATER") &&
+                !blockType.toString().contains("LAVA") &&
+                (belowType.isSolid() || belowType.toString().contains("WATER"));
     }
 
     private boolean isThisKit(Player player) {

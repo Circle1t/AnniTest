@@ -6,6 +6,7 @@ import org.bukkit.entity.Wither;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
@@ -48,6 +49,15 @@ public class BossListener implements Listener {
         if(bossDataManager.isPlayerInBoss(player)){
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "你不能在boss区域内破坏方块！");
+        }
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        if(bossDataManager.isPlayerInBoss(player)){
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "你不能在boss区域内放置方块！");
         }
     }
 

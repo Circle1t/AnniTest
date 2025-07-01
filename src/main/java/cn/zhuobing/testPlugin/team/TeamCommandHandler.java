@@ -1,6 +1,6 @@
 package cn.zhuobing.testPlugin.team;
 
-import cn.zhuobing.testPlugin.anniPlayer.RespawnDataManager;
+import cn.zhuobing.testPlugin.anni.RespawnDataManager;
 import cn.zhuobing.testPlugin.command.CommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.KitManager;

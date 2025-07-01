@@ -1,16 +1,16 @@
-package cn.zhuobing.testPlugin.anniPlayer;
+package cn.zhuobing.testPlugin.anni;
 
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.Acrobat;
 import cn.zhuobing.testPlugin.kit.kits.Assassin;
+import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.ore.OreType;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,25 +20,25 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 public class PlayerListener implements Listener {
     private final TeamManager teamManager;
     private final GameManager gameManager;
     private final KitManager kitManager;
+    private final NexusManager nexusManager;
     private final Set<Material> prohibitedMaterials;
 
-    public PlayerListener(TeamManager teamManager, GameManager gameManager, KitManager kitManager) {
+    public PlayerListener(TeamManager teamManager, GameManager gameManager, KitManager kitManager, NexusManager nexusManager) {
         this.teamManager = teamManager;
         this.gameManager = gameManager;
         this.kitManager = kitManager;
+        this.nexusManager = nexusManager;
         // 初始化禁止放置的方块集合
         this.prohibitedMaterials = new HashSet<>();
         // 遍历 OreType 枚举
@@ -125,10 +125,24 @@ public class PlayerListener implements Listener {
             // 使用 String.format 方法格式化健康值为保留两位小数的字符串
             String formattedHealth = String.format("%.2f", killerHealth);
 
-            String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 被击杀因为 " +
-                    killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
-                    + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
-            event.getEntity().getServer().broadcastMessage(deathMessage);
+            if(nexusManager.isPlayerInTeamProtectionArea(victim,victimTeamName)){
+                String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 在防守核心时被击杀因为 " +
+                        killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
+                        + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
+                event.getEntity().getServer().broadcastMessage(deathMessage);
+            }
+            else if(nexusManager.isPlayerInTeamProtectionArea(victim,killerTeamName)){
+                String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 在攻击敌方核心时被击杀因为 " +
+                        killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
+                        + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
+                event.getEntity().getServer().broadcastMessage(deathMessage);
+            }
+            else {
+                String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 被击杀因为 " +
+                        killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
+                        + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
+                event.getEntity().getServer().broadcastMessage(deathMessage);
+            }
         }
         // 取消默认的死亡信息显示
         event.setDeathMessage(null);
