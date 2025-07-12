@@ -7,22 +7,26 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class LaunchPadListener implements Listener {
 
-    // 存储玩家最后使用弹射板的时间
-    private final Map<UUID, Long> cooldownMap = new HashMap<>();
-    // 存储玩家当前是否处于弹射状态
-    private final Map<UUID, Boolean> launchStatusMap = new HashMap<>();
+    // 使用ConcurrentHashMap确保线程安全
+    private final Map<UUID, Long> cooldownMap = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> launchTimeMap = new ConcurrentHashMap<>(); // 记录弹射时间
+    private final Map<UUID, Double> launchPowerMap = new ConcurrentHashMap<>(); // 记录弹射力度
 
     // 冷却时间（5秒）
     private static final long COOLDOWN = 5000; // 毫秒
+    // 摔落伤害免疫时间（3秒）
+    private static final long FALL_DAMAGE_IMMUNITY = 3000; // 毫秒
 
     // 弹射倍数
     private static final double IRON_POWER = 2.0;
@@ -45,8 +49,8 @@ public class LaunchPadListener implements Listener {
         Location loc = player.getLocation();
         Block standingBlock = loc.subtract(0, 0.1, 0).getBlock();
 
-        // 检查是否是石质压力板
-        if (standingBlock.getType() != Material.STONE_PRESSURE_PLATE) {
+        // 检查是否是任意类型的压力板
+        if (!isAnyPressurePlate(standingBlock.getType())) {
             return;
         }
 
@@ -62,13 +66,34 @@ public class LaunchPadListener implements Listener {
         }
     }
 
-    private boolean isOnCooldown(UUID playerId) {
-        // 检查是否处于弹射保护状态
-        if (launchStatusMap.containsKey(playerId)) {
-            return true;
-        }
+    // 监听实体伤害事件，防止摔落伤害
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player && event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            Player player = (Player) event.getEntity();
+            UUID playerId = player.getUniqueId();
 
-        // 检查冷却时间
+            // 检查是否在弹射后的摔落伤害免疫时间内
+            if (launchTimeMap.containsKey(playerId)) {
+                long currentTime = System.currentTimeMillis();
+                long launchTime = launchTimeMap.get(playerId);
+
+                if (currentTime - launchTime < FALL_DAMAGE_IMMUNITY) {
+                    event.setCancelled(true); // 取消摔落伤害
+                }
+            }
+        }
+    }
+
+    private boolean isAnyPressurePlate(Material material) {
+        // 支持所有类型的压力板
+        return material == Material.STONE_PRESSURE_PLATE ||
+                material == Material.OAK_PRESSURE_PLATE ||
+                material == Material.HEAVY_WEIGHTED_PRESSURE_PLATE ||
+                material == Material.LIGHT_WEIGHTED_PRESSURE_PLATE;
+    }
+
+    private boolean isOnCooldown(UUID playerId) {
         if (cooldownMap.containsKey(playerId)) {
             long lastUse = cooldownMap.get(playerId);
             long currentTime = System.currentTimeMillis();
@@ -133,7 +158,7 @@ public class LaunchPadListener implements Listener {
         Vector direction = new Vector(0, power, 0);
 
         // 应用弹射效果
-        applyLaunchEffect(player, direction, 1.0);
+        applyLaunchEffect(player, direction, power);
     }
 
     private void applyLaunchEffect(Player player, Vector direction, double power) {
@@ -144,27 +169,27 @@ public class LaunchPadListener implements Listener {
         // 播放音效
         player.playSound(player.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 1.0f, 0.5f);
 
-        // 设置冷却时间
         UUID playerId = player.getUniqueId();
-        cooldownMap.put(playerId, System.currentTimeMillis());
+        long currentTime = System.currentTimeMillis();
 
-        // 设置弹射状态（5秒内免疫摔落伤害）
-        launchStatusMap.put(playerId, true);
+        // 设置冷却时间
+        cooldownMap.put(playerId, currentTime);
 
-        // 5秒后移除弹射状态
+        // 记录弹射时间和力度，用于摔落伤害免疫
+        launchTimeMap.put(playerId, currentTime);
+        launchPowerMap.put(playerId, power);
+
+        // 定时清理数据，避免内存泄漏
         new java.util.Timer().schedule(
                 new java.util.TimerTask() {
                     @Override
                     public void run() {
-                        launchStatusMap.remove(playerId);
+                        cooldownMap.remove(playerId);
+                        launchTimeMap.remove(playerId);
+                        launchPowerMap.remove(playerId);
                     }
                 },
-                COOLDOWN
+                Math.max(COOLDOWN, FALL_DAMAGE_IMMUNITY)
         );
-    }
-
-    // 检查玩家是否处于弹射状态（用于防摔落伤害）
-    public boolean isPlayerLaunched(UUID playerId) {
-        return launchStatusMap.containsKey(playerId);
     }
 }

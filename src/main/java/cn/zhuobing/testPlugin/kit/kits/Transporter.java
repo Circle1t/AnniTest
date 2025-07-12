@@ -353,6 +353,8 @@ public class Transporter extends Kit implements Listener {
             teleporters.remove(ownerId);
             BukkitTask task = particleTasks.remove(teleporter);
             if (task != null) task.cancel();
+            // 播放放置声音（草被破坏的声音）
+            block.getWorld().playSound(block.getLocation(), Sound.BLOCK_GRASS_BREAK, 1.0f, 1.0f);
             player.sendMessage(ChatColor.RED + "传送门已损坏，无法传送！");
             return;
         }

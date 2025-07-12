@@ -98,7 +98,7 @@ public class Alchemist extends Kit implements Listener {
 
     @Override
     public String getDescription() {
-        return "炼药师是精通药水调配的大师，手持私人炼药台与神秘材料库。私人炼药台仅限本人使用且无法破坏，炼药速度是普通的两倍。材料库每90秒提供一次随机炼药材料，概率分布：32%常见材料，28%普通材料，15%不常见材料，7%稀有材料，3%极其罕见材料（第4阶段后解锁），15%垃圾材料。";
+        return "炼药师是精通药水调配的大师，手持魔法炼药台与神秘材料库。魔法炼药台仅限本人使用且无法破坏，炼药速度是普通的两倍。材料库每90秒提供一次随机炼药材料，概率分布：32%常见材料，28%普通材料，15%不常见材料，7%稀有材料，3%极其罕见材料（第4阶段后解锁），15%垃圾材料。";
     }
 
     @Override
@@ -109,9 +109,9 @@ public class Alchemist extends Kit implements Listener {
         meta.setLore(Arrays.asList(
                 ChatColor.GRAY + "Alchemist",
                 "",
-                ChatColor.LIGHT_PURPLE + "你是精通药水调配的大师，手持私人炼药台与神秘材料库。",
+                ChatColor.LIGHT_PURPLE + "你是精通药水调配的大师，手持魔法炼药台与神秘材料库。",
                 "",
-                ChatColor.AQUA + "私人炼药台仅限本人使用且别人无法破坏",
+                ChatColor.AQUA + "魔法炼药台仅限本人使用且别人无法破坏",
                 ChatColor.AQUA + "炼药速度是普通炼药台的两倍",
                 ChatColor.AQUA + "材料库90秒冷却，提供随机炼药材料",
                 " "
@@ -175,10 +175,10 @@ public class Alchemist extends Kit implements Listener {
         woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1, 1, false);
         kitItems.add(woodAxe.clone());
 
-        // 私人炼药台
-        brewingStand = createSoulBoundItem(Material.BREWING_STAND, null, 1, 1, true);
+        // 魔法炼药台
+        brewingStand = createSoulBoundItem(Material.BREWING_STAND, null, 1, 4, true);
         ItemMeta meta = brewingStand.getItemMeta();
-        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "私人炼药台");
+        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "魔法炼药台");
         brewingStand.setItemMeta(meta);
         kitItems.add(brewingStand);
 
@@ -221,11 +221,11 @@ public class Alchemist extends Kit implements Listener {
 
     @Override
     public void onKitUnset(Player player) {
-        // 玩家切换职业时移除私人炼药台
+        // 玩家切换职业时移除魔法炼药台
         removePersonalBrewingStand(player);
     }
 
-    // 放置私人炼药台
+    // 放置魔法炼药台
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
@@ -235,13 +235,17 @@ public class Alchemist extends Kit implements Listener {
                 isThisKit(player) &&
                 SoulBoundUtil.isSoulBoundItem(event.getItemInHand(), Material.BREWING_STAND)) {
 
-            // 记录私人炼药台位置
+            if(!personalBrewingStands.isEmpty()){
+                removePersonalBrewingStand(player);
+            }
+
+            // 记录魔法炼药台位置
             personalBrewingStands.put(player.getUniqueId(), block.getLocation());
-            player.sendMessage(ChatColor.LIGHT_PURPLE + "已放置私人炼药台！仅你能使用且队友无法破坏。");
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "已放置魔法炼药台！仅你能使用且队友无法破坏。");
 
             // 设置炼药台标题
             BrewingStand brewingStand = (BrewingStand) block.getState();
-            brewingStand.setCustomName(ChatColor.LIGHT_PURPLE + player.getName() + "的私人炼药台");
+            brewingStand.setCustomName(ChatColor.LIGHT_PURPLE + player.getName() + "的魔法炼药台");
             brewingStand.update();
 
             // 显示紫色粒子效果
@@ -278,7 +282,7 @@ public class Alchemist extends Kit implements Listener {
         }.runTaskTimer(kitManager.getPlugin(), 0, 10); // 每0.5秒执行一次
     }
 
-    // 保护私人炼药台不被破坏
+    // 保护魔法炼药台不被破坏
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
@@ -292,15 +296,23 @@ public class Alchemist extends Kit implements Listener {
                     if (ownerId != null) {
                         Player owner = Bukkit.getPlayer(ownerId);
 
+                        event.setCancelled(true);
                         // 队友不能破坏
                         if (!player.getUniqueId().equals(ownerId) && teamManager.isSameTeam(player, owner)) {
-                            event.setCancelled(true);
-                            player.sendMessage(ChatColor.RED + "这是你队友的私人炼药台，无法破坏！");
+                            player.sendMessage(ChatColor.RED + "这是你队友的魔法炼药台，无法破坏！");
                             return;
                         }
 
                         // 所有者或不同队伍可以破坏
-                        personalBrewingStands.remove(ownerId);
+                        // 如果是敌人破坏
+                        if(!teamManager.isSameTeam(player, owner)){
+                            personalBrewingStands.remove(ownerId);
+                            player.sendMessage(ChatColor.RED + "你的魔法炼药台已被敌人摧毁！");
+                            return;
+                        }
+
+                        // 如果是所有者
+                        removePersonalBrewingStand(owner);
 
                         if(player.getUniqueId().equals(ownerId)) {
                             player.getInventory().addItem(brewingStand);
@@ -312,7 +324,7 @@ public class Alchemist extends Kit implements Listener {
         }
     }
 
-    // 私人炼药台使用权限
+    // 魔法炼药台使用权限
     @EventHandler(priority = EventPriority.HIGH)
     public void onBrewingStandInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -345,7 +357,7 @@ public class Alchemist extends Kit implements Listener {
                     // 队友不能使用
                     if (teamManager.isSameTeam(player, owner)) {
                         event.setCancelled(true);
-                        player.sendMessage(ChatColor.RED + "这是 " + owner.getName() + " 的私人炼药台，无法使用！");
+                        player.sendMessage(ChatColor.RED + "这是 " + owner.getName() + " 的魔法炼药台，无法使用！");
                         return;
                     }
 
@@ -544,7 +556,7 @@ public class Alchemist extends Kit implements Listener {
         inv.setItem(13, item);
 
         player.openInventory(inv);
-        player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1.0f, 1.0f);
+        player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, 1.0f, 1.0f);
     }
 
     private int getRandomQuantity() {
@@ -609,8 +621,9 @@ public class Alchemist extends Kit implements Listener {
             Location location = personalBrewingStands.get(playerId);
             if (isSameBlock(location, location.getBlock().getLocation())) {
                 location.getBlock().setType(Material.AIR);
-                player.sendMessage(ChatColor.LIGHT_PURPLE + "你的私人炼药台已被移除");
+                player.sendMessage(ChatColor.LIGHT_PURPLE + "你的魔法炼药台已被收回");
             }
+
             personalBrewingStands.remove(playerId);
 
             // 停止加速任务（如果没有炼药台了）

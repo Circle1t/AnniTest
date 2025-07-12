@@ -39,6 +39,7 @@ public class MapSelectManager {
     private final Map<UUID, String> playerVotedMap = new HashMap<>(); // 存储玩家UUID和他们投票的地图名称
     private final List<UUID> editingPlayers = new ArrayList<>(); // 储存处于编辑地图状态的玩家
     private String gameMap;
+    private World gameWorld;
     private boolean votingLocked = false;
 
     private final BossDataManager bossDataManager;
@@ -335,46 +336,46 @@ public class MapSelectManager {
             // 4. 正确加载世界
             WorldCreator creator = new WorldCreator(gameMap);
             creator.environment(Environment.NORMAL);
-            World world = plugin.getServer().createWorld(creator);
+            gameWorld = plugin.getServer().createWorld(creator);
 
-            if (world != null) {
+            if (gameWorld != null) {
                 // ===== 世界规则配置 =====
-                world.setGameRule(GameRule.DO_MOB_SPAWNING, false);       // 禁止自然生物生成（如怪物、动物）
-                world.setGameRule(GameRule.MOB_GRIEFING, false);          // 禁止怪物破坏地形（如苦力怕炸方块）
-                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);      // 启用昼夜循环（时间正常流逝）
-                world.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false); // 禁用成就提示
-                world.setDifficulty(Difficulty.NORMAL);
+                gameWorld.setGameRule(GameRule.DO_MOB_SPAWNING, false);       // 禁止自然生物生成（如怪物、动物）
+                gameWorld.setGameRule(GameRule.MOB_GRIEFING, false);          // 禁止怪物破坏地形（如苦力怕炸方块）
+                gameWorld.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, true);      // 启用昼夜循环（时间正常流逝）
+                gameWorld.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false); // 禁用成就提示
+                gameWorld.setDifficulty(Difficulty.NORMAL);
 
                 // ===== 天气控制 =====
-                world.setStorm(false);                // 关闭下雨/下雪
-                world.setWeatherDuration(Integer.MAX_VALUE); // 设置天气持续时间最大值（几乎永久晴朗）
+                gameWorld.setStorm(false);                // 关闭下雨/下雪
+                gameWorld.setWeatherDuration(Integer.MAX_VALUE); // 设置天气持续时间最大值（几乎永久晴朗）
 
                 // ===== PVP 设置 =====
-                world.setPVP(true); // 启用玩家间战斗
+                gameWorld.setPVP(true); // 启用玩家间战斗
             }
-            if (world != null) {
+            if (gameWorld != null) {
                 getLogger().info("地图 " + gameMap + " 加载成功");
 
                 // 加载border配置，从原地图文件夹读取配置文件
-                borderManager.loadConfig(gameMap,world);
+                borderManager.loadConfig(gameMap,gameWorld);
                 getLogger().info("正在加载borderManager");
                 // 加载diamond配置，从原地图文件夹读取配置文件
-                diamondDataManager.loadConfig(gameMap,world);
+                diamondDataManager.loadConfig(gameMap,gameWorld);
                 getLogger().info("正在加载diamondDataManager");
                 // 加载nexus配置，从原地图文件夹读取配置文件
-                nexusManager.loadConfig(gameMap,world);
+                nexusManager.loadConfig(gameMap,gameWorld);
                 getLogger().info("正在加载nexusManager");
                 // 加载respawn配置，从原地图文件夹读取配置文件
-                respawnDataManager.loadConfig(gameMap,world);
+                respawnDataManager.loadConfig(gameMap,gameWorld);
                 getLogger().info("正在加载respawnDataManager");
                 // 加载store配置，从原地图文件夹读取配置文件
-                storeManager.loadConfig(gameMap,world);
+                storeManager.loadConfig(gameMap,gameWorld);
                 getLogger().info("正在加载storeManager");
                 // 加载witch配置，从原地图文件夹读取配置文件
-                witchDataManager.loadConfig(gameMap,world);
+                witchDataManager.loadConfig(gameMap,gameWorld);
                 getLogger().info("正在加载witchDataManager");
                 // 加载enderfunace配置，从原地图文件夹读取配置文件
-                enderFurnaceManager.loadConfig(gameMap, world);
+                enderFurnaceManager.loadConfig(gameMap, gameWorld);
                 getLogger().info("正在加载enderFurnaceManager");
 
                 getLogger().info("配置文件加载完成！地图：" + gameMap);
@@ -541,5 +542,9 @@ public class MapSelectManager {
             }
             gameMap = null;
         }
+    }
+
+    public boolean isGameWorld(World world) {
+        return gameWorld != null && gameWorld.equals(world);
     }
 }

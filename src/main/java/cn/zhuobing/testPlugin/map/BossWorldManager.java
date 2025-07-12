@@ -144,6 +144,10 @@ public class BossWorldManager {
         return bossWorld;
     }
 
+    public boolean isBossWorld(World world){
+        return bossWorld.equals(world);
+    }
+
     public void unloadBossWorld() {
         if (bossWorld != null) {
             // 1. 传送所有玩家

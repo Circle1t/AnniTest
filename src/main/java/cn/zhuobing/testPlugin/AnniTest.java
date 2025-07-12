@@ -37,7 +37,6 @@ package cn.zhuobing.testPlugin;
 import cn.zhuobing.testPlugin.anni.*;
 import cn.zhuobing.testPlugin.boss.*;
 import cn.zhuobing.testPlugin.command.CommandHandler;
-import cn.zhuobing.testPlugin.enchant.BrewingStandListener;
 import cn.zhuobing.testPlugin.enchant.EnchantManager;
 import cn.zhuobing.testPlugin.enchant.EnchantTableListener;
 import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
@@ -72,16 +71,23 @@ import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AnniTest extends JavaPlugin {
     private static AnniTest instance;
     private final MessageRenderer messageRenderer = new MessageRenderer(this);
+
+    private final Map<UUID, Long> itemSpawnTimes = new ConcurrentHashMap<>(); // 存储掉落物UUID和生成时间
+    private int itemCleanupTaskId = -1; // 定时任务ID
 
     private final List<CommandHandler> commandHandlers = new ArrayList<>();
     private LobbyManager lobbyManager;
@@ -139,6 +145,9 @@ public class AnniTest extends JavaPlugin {
         }else{
             getLogger().info("大厅地图加载成功！");
         }
+
+        // 开始掉落物清除任务
+        startItemCleanupTask();
 
         getLogger().info("AnniTest 插件初始化完成！");
     }
@@ -239,11 +248,11 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HellPortalListener(teamManager, nexusManager,respawnDataManager,bossDataManager,kitManager),this);
         getServer().getPluginManager().registerEvents(new BossStarItem(this),this);
         getServer().getPluginManager().registerEvents(new StoreListener(storeManager,gameManager),this);
-        getServer().getPluginManager().registerEvents(new BrewingStandListener(this),this);
         getServer().getPluginManager().registerEvents(new MapSelectorListener(mapSelectorManager,mapSelectManager),this);
         getServer().getPluginManager().registerEvents(new LobbyListener(lobbyManager),this);
         getServer().getPluginManager().registerEvents(new BorderListener(borderManager,mapSelectManager),this);
         getServer().getPluginManager().registerEvents(new MapConfigurerListener(mapConfigurerManager, mapSelectManager),this);
+        getServer().getPluginManager().registerEvents(new ItemCleanListener(this,mapSelectManager,bossWorldManager),this);
     }
 
     private void initKits() {
@@ -267,6 +276,8 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Berserker(teamManager,kitManager));
         kitManager.registerKit(new Alchemist(teamManager,kitManager,gameManager));
         kitManager.registerKit(new Transporter(teamManager,kitManager,nexusManager));
+        kitManager.registerKit(new ISO(teamManager,kitManager));
+        kitManager.registerKit(new Sova(teamManager,kitManager));
     }
 
     private void registerBungeeChannels() {
@@ -298,6 +309,8 @@ public class AnniTest extends JavaPlugin {
             getLogger().info("已取消注册 BungeeCord 通道");
         }
 
+        // 关闭掉落物清除任务
+        stopItemCleanupTask();
 
         getLogger().info("大厅副本和游戏地图副本卸载完成，AnniTest 插件已关闭。");
     }
@@ -320,5 +333,42 @@ public class AnniTest extends JavaPlugin {
     // 获取大厅管理器
     public LobbyManager getLobbyManager() {
         return lobbyManager;
+    }
+
+    // 开启掉落物清除任务
+    private void startItemCleanupTask() {
+        // 每分钟检查一次（1200 ticks = 60秒）
+        Bukkit.getLogger().info("清除掉落物定时任务已开启，物品保留时长：5分钟");
+        itemCleanupTaskId = Bukkit.getScheduler().runTaskTimer(this, () -> {
+            long currentTime = System.currentTimeMillis();
+            long clearMinutes = 5 * 60 * 1000; // 掉落物清除间隔 5分钟的毫秒数
+
+            Iterator<Map.Entry<UUID, Long>> iterator = itemSpawnTimes.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<UUID, Long> entry = iterator.next();
+                // 如果大于设定的 clearMinutes 物品就被清除
+                if (currentTime - entry.getValue() >= clearMinutes) {
+                    Entity entity = Bukkit.getEntity(entry.getKey());
+                    if (entity != null && entity instanceof Item) {
+                        //Bukkit.broadcastMessage(entity.getName() + ChatColor.GREEN + "物品已被清除");
+                        entity.remove(); // 移除超时掉落物
+                    }
+                    iterator.remove(); // 从Map中移除记录
+                }
+            }
+        }, 1200L, 1200L).getTaskId(); // 延迟1分钟执行，每分钟重复一次
+    }
+
+    // 关闭掉落物清除任务
+    private void stopItemCleanupTask() {
+        if (itemCleanupTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(itemCleanupTaskId);
+            itemCleanupTaskId = -1;
+        }
+        itemSpawnTimes.clear();
+    }
+
+    public Map<UUID, Long> getItemSpawnTimes() {
+        return itemSpawnTimes;
     }
 }
