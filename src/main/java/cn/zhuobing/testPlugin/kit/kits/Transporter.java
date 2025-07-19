@@ -19,6 +19,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -509,6 +510,13 @@ public class Transporter extends Kit implements Listener {
 
             player.sendMessage(ChatColor.AQUA + "你的传送门已被移除！");
         }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        // 将退出消息设置为 null，这样就不会有退出信息提示
+        event.setQuitMessage(null);
+        removePlayerPortals(event.getPlayer());
     }
 
     private boolean isThisKit(Player player) {

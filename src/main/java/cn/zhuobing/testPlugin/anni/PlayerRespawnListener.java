@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.specialitem.items.KitSelectorItem;
+import cn.zhuobing.testPlugin.specialitem.items.MapConfigurerItem;
 import cn.zhuobing.testPlugin.specialitem.items.MapSelectorItem;
 import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
@@ -107,6 +108,11 @@ public class PlayerRespawnListener implements Listener {
             if(gameManager.getCurrentPhase() == 0){
                 ItemStack mapSelector = MapSelectorItem.createMapSelector();
                 inventory.setItem(3, mapSelector);
+            }
+            if(player.isOp()){
+                // 地图配置物品
+                ItemStack mapConfigurer = MapConfigurerItem.createMapConfigurer();
+                inventory.setItem(7, mapConfigurer);
             }
             return;
         }
