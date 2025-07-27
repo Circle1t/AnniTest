@@ -11,6 +11,7 @@ import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import cn.zhuobing.testPlugin.utils.BungeeUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -21,6 +22,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 
 public class GamePlayerJoinListener implements Listener {
     private final GameManager gameManager;
@@ -31,7 +34,12 @@ public class GamePlayerJoinListener implements Listener {
     private final BossDataManager bossDataManager;
     private final Plugin plugin;
 
-    public GamePlayerJoinListener(LobbyManager lobbyManager,TeamManager teamManager, GameManager gameManager, NexusInfoBoard nexusInfoBoard, RespawnDataManager respawnDataManager, BossDataManager bossDataManager,Plugin plugin) {
+    // 关闭任务变量
+    private BukkitTask shutdownTask;
+
+    public GamePlayerJoinListener(LobbyManager lobbyManager,TeamManager teamManager, GameManager gameManager,
+                                  NexusInfoBoard nexusInfoBoard, RespawnDataManager respawnDataManager,
+                                  BossDataManager bossDataManager,Plugin plugin) {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.nexusInfoBoard = nexusInfoBoard;
@@ -76,6 +84,15 @@ public class GamePlayerJoinListener implements Listener {
                 // 防止饥饿值降低
                 player.setSaturation(20);
                 player.setExhaustion(0);
+                // 清楚玩家效果
+                // 遍历所有可能的状态效果类型
+                for (PotionEffectType effectType : PotionEffectType.values()) {
+                    // 检查玩家是否拥有该效果
+                    if (effectType != null && player.hasPotionEffect(effectType)) {
+                        // 移除该效果
+                        player.removePotionEffect(effectType);
+                    }
+                }
 
                 // 设置玩家游戏模式为生存模式
                 player.setGameMode(GameMode.SURVIVAL);
@@ -102,7 +119,6 @@ public class GamePlayerJoinListener implements Listener {
                     ItemStack mapConfigurer = MapConfigurerItem.createMapConfigurer();
                     inventory.setItem(7, mapConfigurer);
                 }
-
             }
         }
 
@@ -115,6 +131,9 @@ public class GamePlayerJoinListener implements Listener {
             gameManager.updateBossBar(currentPhase, gameManager.getRemainingTime());
         }
 
+        if (this.teamManager.isInTeam(player))
+            cancelShutdownTask();
+
         if(currentPhase == 0){
             gameManager.checkAndStartGame(); // 检查是否满足启动条件
         }
@@ -124,9 +143,77 @@ public class GamePlayerJoinListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         // 将退出消息设置为 null，这样就不会有退出信息提示
         event.setQuitMessage(null);
+
+        Player player = event.getPlayer();
+        plugin.getLogger().info("[玩家退出] " + player.getName() + " 离开了游戏");
+        plugin.getLogger().info("[玩家退出] 队伍状态: " + (teamManager.isInTeam(player) ? "已加入队伍" : "未加入队伍"));
+
+        int currentPhase = gameManager.getCurrentPhase();
+        plugin.getLogger().info("[关闭检测] 当前游戏阶段: " + currentPhase);
+
+        // 如果不是游戏结束阶段，延迟检测是否需要关闭服务器
+        if (currentPhase != 3) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                cancelShutdownTask();
+
+                boolean anyTeamPlayerOnline = false;
+                int onlineCount = 0;
+                int teamPlayerCount = 0;
+
+                // 统计在线玩家信息
+                for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                    onlineCount++;
+                    if (teamManager.isInTeam(onlinePlayer)) {
+                        anyTeamPlayerOnline = true;
+                        teamPlayerCount++;
+                    }
+                }
+
+                plugin.getLogger().info("[延迟关闭检测] 在线玩家: " + onlineCount +
+                        " | 队伍玩家: " + teamPlayerCount +
+                        " | 是否有队伍玩家: " + anyTeamPlayerOnline);
+
+                // 如果没有队伍玩家在线，启动关闭倒计时
+                if (!anyTeamPlayerOnline) {
+                    plugin.getLogger().warning("[延迟关闭检测] 没有队伍玩家在线，启动关闭倒计时");
+                    startShutdownCountdown();
+                } else {
+                    plugin.getLogger().info("[延迟关闭检测] 仍有队伍玩家在线，不启动关闭");
+                }
+            }, 10L); // 延迟10 ticks (0.5秒) 执行检测
+        }
+
         if(!gameManager.isGameStarted()){
             gameManager.updatePlayerCountOnBossBar(); // 更新 BossBar 上的玩家人数
             gameManager.updateBossBar(gameManager.getCurrentPhase(), gameManager.getRemainingTime());
+        }
+    }
+
+    /**
+     * 启动关闭倒计时
+     */
+    private void startShutdownCountdown() {
+        // 先取消可能存在的关闭任务
+        cancelShutdownTask();
+
+        // 创建关闭任务（2分钟倒计时）
+        shutdownTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // 广播关闭消息
+            Bukkit.broadcastMessage(ChatColor.RED + "所有队伍玩家已离开，服务器即将关闭! ");
+
+            // 延迟5秒后关闭服务器
+            Bukkit.getScheduler().runTaskLater(plugin, Bukkit::shutdown, 100L); // 5秒延迟
+        }, 2400L); // 2分钟倒计时 (2400 ticks = 120秒)
+    }
+
+    /**
+     * 取消关闭任务
+     */
+    private void cancelShutdownTask() {
+        if (shutdownTask != null) {
+            shutdownTask.cancel();
+            shutdownTask = null;
+            plugin.getLogger().info("[关闭检测] 已取消关闭任务");
         }
     }
 }

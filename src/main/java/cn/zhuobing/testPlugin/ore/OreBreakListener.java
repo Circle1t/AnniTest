@@ -45,7 +45,7 @@ public class OreBreakListener implements Listener {
             }
 
             // 核心保护区域验证
-            if(nexusManager.isInProtectedArea(block.getLocation())) {
+            if(nexusManager.isInProtectedArea(block.getLocation()) && !OreType.isOreInProtectedArea(OreType.fromMaterial(event.getBlock().getType()))) {
                 event.setCancelled(true);
                 return;
             }

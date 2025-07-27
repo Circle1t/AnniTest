@@ -1,17 +1,22 @@
 package cn.zhuobing.testPlugin.nexus;
 
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.ore.OreType;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import cn.zhuobing.testPlugin.utils.MessageUtil;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -29,26 +34,72 @@ public class NexusListener implements Listener {
     private final GameManager gameManager;
     private final TeamManager teamManager;
     private final MessageRenderer messageRenderer;
+    private final NexusAntiCheat nexusAntiCheat;
 
     private String winningTeam = null;
 
     private final Plugin plugin;
 
-    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin,MessageRenderer messageRenderer) {
+    public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin,MessageRenderer messageRenderer,NexusAntiCheat antiCheat) {
         this.nexusManager = nexusManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.gameManager = gameManager;
         this.teamManager = teamManager;
         this.messageRenderer = messageRenderer;
+        this.nexusAntiCheat = antiCheat;
         this.plugin = plugin;
 }
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (nexusManager.isInProtectedArea(event.getBlock().getLocation())) {
+        Location loc = event.getBlock().getLocation();
+        Material type = event.getBlock().getType();
+
+        // 检测是否在保护区域
+        if (nexusManager.isInProtectedArea(loc)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(ChatColor.RED + "此区域禁止放置方块！");
         }
     }
+
+    // 检测船的放置
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (event.getHand() != EquipmentSlot.HAND) return;
+
+        Player player = event.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        Block clickedBlock = event.getClickedBlock();
+        BlockFace face = event.getBlockFace();
+
+        if (item == null || clickedBlock == null || face == null) return;
+
+        // 检测是否为放置船
+        if (item.getType().name().endsWith("_BOAT")) {
+            Location placementLoc = clickedBlock.getRelative(face).getLocation();
+            if (nexusManager.isInProtectedArea(placementLoc)) {
+                event.setCancelled(true);
+                player.sendMessage(ChatColor.RED + "核心保护区域内禁止放置船！");
+            }
+            return;
+        }
+
+        // 禁止放置水桶、岩浆桶、鱼桶等液体容器
+        Material mat = item.getType();
+        if ((mat == Material.WATER_BUCKET ||
+                mat == Material.LAVA_BUCKET ||
+                mat == Material.AXOLOTL_BUCKET ||
+                mat == Material.COD_BUCKET ||
+                mat == Material.SALMON_BUCKET ||
+                mat == Material.TROPICAL_FISH_BUCKET ||
+                mat == Material.PUFFERFISH_BUCKET) &&
+                nexusManager.isInProtectedArea(clickedBlock.getRelative(face).getLocation())) {
+
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "核心保护区域内禁止放置液体！");
+        }
+    }
+
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBlockBreak(BlockBreakEvent event) {
@@ -91,6 +142,10 @@ public class NexusListener implements Listener {
                 } else {
                     currentHealth--;
                 }
+
+                // 这里的反作弊没有开源，删除相关反作弊代码即可
+                nexusAntiCheat.recordPlayerDig(player,teamName);
+
                 nexusManager.setNexusHealth(teamName, currentHealth);
                 // 更新计分板
                 nexusInfoBoard.updateInfoBoard();
@@ -126,6 +181,7 @@ public class NexusListener implements Listener {
                         player.sendMessage(ChatColor.RED + "游戏已结束！");
                         return;
                     }
+
                     String message = teamManager.getTeamColor(playerTeam) + player.getName() + ChatColor.GOLD + " 正在破坏 " +
                             teamManager.getTeamColor(teamName) + translate(teamName) + "队" + ChatColor.GOLD + " 核心 " + ChatColor.RED + currentHealth;
                     // 向所有在线玩家发送行动栏消息
@@ -165,8 +221,11 @@ public class NexusListener implements Listener {
             }
         }
         if (nexusManager.isInProtectedArea(event.getBlock().getLocation()) && !isNexus) {
+            if(OreType.isOreInProtectedArea(OreType.fromMaterial(event.getBlock().getType()))){
+                return;
+            }
             event.setCancelled(true);
-            event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
+            //event.getPlayer().sendMessage(ChatColor.RED + "此区域受到核心保护！");
         }
     }
 

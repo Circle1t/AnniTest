@@ -134,6 +134,14 @@ public class NexusManager {
 
     public void setNexusHealth(String teamName, int health) {
         teamNexusHealth.put(teamName, health);
+        Location location = teamNexusLocations.get(teamName);
+        if(health > 0){
+            if(location != null){
+                location.getBlock().setType(Material.END_STONE);
+            }
+        }else{
+            location.getBlock().setType(Material.BEDROCK);
+        }
     }
 
     public Location getTeamNexusLocation(String teamName) {

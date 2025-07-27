@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.nexus;
 
 import cn.zhuobing.testPlugin.command.CommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -19,11 +20,13 @@ public class NexusCommandHandler implements CommandHandler, TabCompleter {
     private final NexusManager dataManager;
     private final NexusInfoBoard nexusInfoBoard;
     private final TeamManager teamManager;
+    private final NexusAntiCheat antiCheat;
 
-    public NexusCommandHandler(NexusManager dataManager, NexusInfoBoard nexusInfoBoard, TeamManager teamManager) {
+    public NexusCommandHandler(NexusManager dataManager, NexusInfoBoard nexusInfoBoard, TeamManager teamManager,NexusAntiCheat antiCheat) {
         this.dataManager = dataManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.teamManager = teamManager;
+        this.antiCheat = antiCheat;
     }
 
     @Override
@@ -59,11 +62,11 @@ public class NexusCommandHandler implements CommandHandler, TabCompleter {
             case "setborder":
                 handleSetBorderCommand(player, args);
                 return true;
+            case "detect":
+                handleDetectCommand(player, args);
+                return true;
             default:
-                player.sendMessage(ChatColor.RED + "未知子命令！用法: /nexus set <队伍> " +
-                        "或 /nexus sethealth <队伍> <血量> " +
-                        "或 /nexus setborder <队伍> <first/second>" +
-                        "或 /nexus remove <队伍> 或 /nexus save");
+                sendUsageMessage(player);
                 return true;
         }
     }
@@ -110,7 +113,13 @@ public class NexusCommandHandler implements CommandHandler, TabCompleter {
     }
 
     private void sendUsageMessage(Player player) {
-        player.sendMessage(ChatColor.RED + "用法: /nexus set <队伍> 或 /nexus sethealth <队伍> <血量>");
+        player.sendMessage(ChatColor.GOLD + "--- Nexus Command Usage ---");
+        player.sendMessage(ChatColor.AQUA + "/nexus set <队伍>" + ChatColor.WHITE + " - 设置核心位置");
+        player.sendMessage(ChatColor.AQUA + "/nexus sethealth <队伍> <数值>" + ChatColor.WHITE + " - 设置核心血量");
+        player.sendMessage(ChatColor.AQUA + "/nexus setborder <队伍> <first|second>" + ChatColor.WHITE + " - 设置边界点");
+        player.sendMessage(ChatColor.AQUA + "/nexus remove <队伍>" + ChatColor.WHITE + " - 移除核心");
+        player.sendMessage(ChatColor.AQUA + "/nexus save" + ChatColor.WHITE + " - 保存配置");
+        player.sendMessage(ChatColor.AQUA + "/nexus detect <on|off|state>" + ChatColor.WHITE + " - 核心检测开关");
     }
 
     private void handleSetCommand(Player player, String[] args) {
@@ -180,31 +189,62 @@ public class NexusCommandHandler implements CommandHandler, TabCompleter {
         }
     }
 
+    /* ======= 核心检测开关 ======= */
+    private void handleDetectCommand(Player player, String[] args) {
+        if (args.length != 2) {
+            player.sendMessage(ChatColor.RED + "用法: /nexus detect <on|off|state>");
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+        switch (action) {
+            case "on":
+                antiCheat.setEnabled(true);
+                Bukkit.getLogger().info("[核心破坏检测] 已由 " + player.getName() + " 开启检测");
+                player.sendMessage(ChatColor.GOLD + "[核心破坏检测] " + ChatColor.GREEN +" 已开启");
+                break;
+
+            case "off":
+                antiCheat.setEnabled(false);
+                Bukkit.getLogger().info("[核心破坏检测] 已由 " + player.getName() + " 关闭检测");
+                player.sendMessage(ChatColor.GOLD + "[核心破坏检测] " + ChatColor.RED + " 已关闭");
+                break;
+
+            case "state":
+                boolean status = antiCheat.isEnabled();
+                String msg = status ? ChatColor.GOLD + "[核心破坏检测]当前状态：" + ChatColor.GREEN +" 已开启"
+                        : ChatColor.GOLD + "[核心破坏检测] 当前状态：" + ChatColor.RED + "w已关闭";
+                player.sendMessage(msg);
+                break;
+
+            default:
+                player.sendMessage(ChatColor.RED + "用法: /nexus detect <on|off|state>");
+        }
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subCommands = Arrays.asList("set", "sethealth", "remove", "save", "setborder");
-            for (String subCommand : subCommands) {
-                if (subCommand.startsWith(args[0].toLowerCase())) {
-                    completions.add(subCommand);
-                }
+            // 加入 detect
+            List<String> subs = Arrays.asList("set", "sethealth", "remove", "save", "setborder", "detect");
+            for (String s : subs) {
+                if (s.startsWith(args[0].toLowerCase())) completions.add(s);
             }
         } else if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("set") || args[0].equalsIgnoreCase("sethealth") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("setborder")) {
-                List<String> teamNames = new ArrayList<>(teamManager.getTeamColors().keySet());
-                for (String teamName : teamNames) {
-                    if (teamName.startsWith(args[1].toLowerCase())) {
-                        completions.add(teamName);
-                    }
+            if (args[0].equalsIgnoreCase("detect")) {
+                completions.addAll(Arrays.asList("on", "off", "state"));
+            } else if (args[0].equalsIgnoreCase("set") ||
+                    args[0].equalsIgnoreCase("sethealth") ||
+                    args[0].equalsIgnoreCase("remove") ||
+                    args[0].equalsIgnoreCase("setborder")) {
+                for (String t : teamManager.getTeamColors().keySet()) {
+                    if (t.startsWith(args[1].toLowerCase())) completions.add(t);
                 }
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("setborder")) {
-            List<String> positions = Arrays.asList("first", "second");
-            for (String position : positions) {
-                if (position.startsWith(args[2].toLowerCase())) {
-                    completions.add(position);
-                }
+            for (String p : Arrays.asList("first", "second")) {
+                if (p.startsWith(args[2].toLowerCase())) completions.add(p);
             }
         }
         return completions;

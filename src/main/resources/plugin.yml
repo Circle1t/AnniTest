@@ -28,7 +28,7 @@ commands:
     usage: /lobby <respawn>
   nexus:
     description: 管理队伍核心相关设置，包括核心位置、血量、保护区域边界的设置，以及核心的移除。为防止误修改，此模块未实现自动保存功能，设置好地图后需手动执行 /nexus save 保存设置。
-    usage: /nexus <set/sethealth/setborder <first/second> /remove/save>
+    usage: /nexus <set/sethealth/detect/setborder <first/second> /remove/save>
   annistart:
     description: 启动游戏。
     usage: /annistart

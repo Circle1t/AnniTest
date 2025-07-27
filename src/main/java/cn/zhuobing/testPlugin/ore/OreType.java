@@ -221,4 +221,15 @@ public enum OreType {
         }
         return selectedDrops;
     }
+
+    public static boolean isOreInProtectedArea(OreType oreType) {
+        return oreType == OreType.GRAVEL ||
+                oreType == OreType.COAL ||
+                oreType == OreType.IRON ||
+                oreType == OreType.LAPIS ||
+                oreType == OreType.REDSTONE ||
+                oreType == OreType.GOLD ||
+                oreType == OreType.DIAMOND ||
+                oreType == OreType.EMERALD;
+    }
 }

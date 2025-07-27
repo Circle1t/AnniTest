@@ -47,14 +47,11 @@ import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
 import cn.zhuobing.testPlugin.map.*;
+import cn.zhuobing.testPlugin.nexus.*;
 import cn.zhuobing.testPlugin.ore.DiamondDataManager;
 import cn.zhuobing.testPlugin.specialitem.listener.*;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.*;
-import cn.zhuobing.testPlugin.nexus.NexusListener;
-import cn.zhuobing.testPlugin.nexus.NexusCommandHandler;
-import cn.zhuobing.testPlugin.nexus.NexusManager;
-import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.ore.DiamondCommand;
 import cn.zhuobing.testPlugin.ore.OreBreakListener;
 import cn.zhuobing.testPlugin.ore.OreManager;
@@ -111,6 +108,8 @@ public class AnniTest extends JavaPlugin {
     private BorderManager borderManager;
     private MapConfigurerManager mapConfigurerManager;
     private EnderFurnaceManager enderFurnaceManager;
+
+    private NexusAntiCheat nexusAntiCheat;
 
     @Override
     public void onEnable() {
@@ -175,6 +174,8 @@ public class AnniTest extends JavaPlugin {
         mapSelectManager = new MapSelectManager(bossDataManager,borderManager,nexusManager, diamondDataManager, oreManager, respawnDataManager, storeManager,witchDataManager,gameManager,nexusInfoBoard,enderFurnaceManager,this);
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
+
+        nexusAntiCheat = new NexusAntiCheat(nexusManager,teamManager,this);
     }
 
     private void initCommandHandlers() {
@@ -193,7 +194,7 @@ public class AnniTest extends JavaPlugin {
         commandHandlers.add(enderFurnaceCommandHandler);
         getCommand("enderfurnace").setTabCompleter(enderFurnaceCommandHandler);
 
-        NexusCommandHandler nexusCommandHandler = new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager);
+        NexusCommandHandler nexusCommandHandler = new NexusCommandHandler(nexusManager, nexusInfoBoard, teamManager, nexusAntiCheat);
         commandHandlers.add(nexusCommandHandler);
         getCommand("nexus").setTabCompleter(nexusCommandHandler);
 
@@ -233,7 +234,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LaunchPadListener(),this);
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new EnderFurnaceListener(enderFurnaceManager, teamManager), this);
-        getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager,this,messageRenderer), this);
+        getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager,this,messageRenderer,nexusAntiCheat), this);
         getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager,teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager,this), this);
         getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager,nexusManager), this);
         getServer().getPluginManager().registerEvents(new EnchantTableListener(enchantManager), this);
