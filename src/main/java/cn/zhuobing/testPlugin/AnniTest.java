@@ -230,6 +230,7 @@ public class AnniTest extends JavaPlugin {
         getLogger().info("注册事件监听器...");
         // 注册事件监听器
         getServer().getPluginManager().registerEvents(new AFKManager(this),this);
+        getServer().getPluginManager().registerEvents(new NPCManager(teamManager,gameManager,this),this);
         getServer().getPluginManager().registerEvents(new EnchantedAppleListener(),this);
         getServer().getPluginManager().registerEvents(new LaunchPadListener(),this);
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);

@@ -43,7 +43,7 @@ public class ISO extends Kit implements Listener {
 
     // 冷却相关字段
     private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int FLOW_COOLDOWN = 120 * 1000; // 120秒冷却
+    private final int FLOW_COOLDOWN = 60 * 1000; // 60秒冷却
     private final String FLOW_ITEM_NAME = ChatColor.LIGHT_PURPLE + "战斗心流 " + ChatColor.GREEN + "准备就绪";
     private final String FLOW_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
     private final String FLOW_COOLDOWN_SUFFIX = " 秒";
@@ -87,7 +87,7 @@ public class ISO extends Kit implements Listener {
                 "",
                 ChatColor.YELLOW + "你是战斗节奏的掌控者。",
                 "",
-                ChatColor.AQUA + "每 120 秒可进入10秒心流状态，",
+                ChatColor.AQUA + "每 60 秒可进入10秒心流状态，",
                 ChatColor.AQUA + "击败敌人后在其位置生成" + ChatColor.LIGHT_PURPLE + "紫水晶簇。",
                 ChatColor.AQUA + "点击水晶簇可获得持续5秒的" + ChatColor.GOLD + "心流护盾2❤",
                 ChatColor.AQUA + "水晶簇5秒后自动消失。",

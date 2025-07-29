@@ -180,7 +180,7 @@ public class GamePlayerJoinListener implements Listener {
                 } else {
                     plugin.getLogger().info("[延迟关闭检测] 仍有队伍玩家在线，不启动关闭");
                 }
-            }, 10L); // 延迟10 ticks (0.5秒) 执行检测
+            }, 100L); // 延迟100 ticks (5秒) 执行检测
         }
 
         if(!gameManager.isGameStarted()){

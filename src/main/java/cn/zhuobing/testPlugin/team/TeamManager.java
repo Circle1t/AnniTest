@@ -184,4 +184,25 @@ public class TeamManager {
     public boolean isSameTeam(Player p1, Player p2) {
         return getPlayerTeamName(p1).equals(getPlayerTeamName(p2));
     }
+
+    // 通过 UUID 获取玩家所在队伍英文名
+    public String getPlayerTeamName(UUID uuid) {
+        return playerTeamMap.get(uuid);
+    }
+
+    // 通过 UUID 获取玩家所在的队伍对象（可选）
+    public Team getPlayerTeam(UUID uuid) {
+        String teamName = playerTeamMap.get(uuid);
+        return teamName != null ? scoreboard.getTeam(teamName) : null;
+    }
+
+    // 判断 UUID 是否在队伍中（可选）
+    public boolean isInTeam(UUID uuid) {
+        return playerTeamMap.containsKey(uuid);
+    }
+
+    public boolean isSameTeam(UUID uuid1, UUID uuid2) {
+        return getPlayerTeamName(uuid1).equals(getPlayerTeamName(uuid2));
+    }
+
 }
