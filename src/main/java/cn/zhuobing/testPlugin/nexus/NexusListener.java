@@ -24,6 +24,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,10 +36,13 @@ public class NexusListener implements Listener {
     private final TeamManager teamManager;
     private final MessageRenderer messageRenderer;
     private final NexusAntiCheat nexusAntiCheat;
+    private final Plugin plugin;
 
     private String winningTeam = null;
+    private final Map<String, Long> lastDigTime = new HashMap<>(); // 记录核心最后被挖掘的时间
+    private final Map<String, String> lastDigPlayer = new HashMap<>(); // 记录核心最后被挖掘的玩家
+    private static final int EXCLUSIVE_PERIOD = 500; // 500毫秒专属期，在这期间其他人不能挖核心
 
-    private final Plugin plugin;
 
     public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin,MessageRenderer messageRenderer,NexusAntiCheat antiCheat) {
         this.nexusManager = nexusManager;
@@ -130,6 +134,27 @@ public class NexusListener implements Listener {
                     event.setCancelled(true);
                     return;
                 }
+
+                // ===== 专属期验证 =====
+                long currentTime = System.currentTimeMillis();
+                String lastPlayer = lastDigPlayer.get(teamName);
+                Long lastTime = lastDigTime.get(teamName);
+
+                // 检查是否在专属期内且非本人操作
+                if (lastTime != null &&
+                        currentTime - lastTime < EXCLUSIVE_PERIOD &&
+                        !player.getName().equals(lastPlayer)) {
+
+                    event.setCancelled(true);
+                    player.sendMessage(ChatColor.RED + "该核心正在被攻击，请稍后再试！");
+                    return;
+                }
+
+                // 更新专属期记录
+                lastDigTime.put(teamName, currentTime);
+                lastDigPlayer.put(teamName, player.getName());
+                // ===== 专属期验证结束 =====
+
                 event.setCancelled(true); // 阻止方块掉落
 
                 isNexus = true;
@@ -151,6 +176,9 @@ public class NexusListener implements Listener {
                 nexusInfoBoard.updateInfoBoard();
 
                 if (currentHealth <= 0) {
+                    // 核心被摧毁时清除专属期记录
+                    lastDigTime.remove(teamName);
+                    lastDigPlayer.remove(teamName);
                     // 核心血量为 0，变为基岩
                     block.setType(Material.BEDROCK);
                     // 发送队伍消息

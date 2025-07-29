@@ -11,6 +11,9 @@ import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Boat;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,6 +24,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.Arrays;
@@ -208,10 +212,15 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerFish(PlayerFishEvent event) {
-        if (event.getState() == PlayerFishEvent.State.CAUGHT_ENTITY) {
-            // 清除捕获的实体以取消拽动效果，但允许鱼竿正常收回
-            event.getHook().remove();
+    public void onPlayerMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        Entity vehicle = player.getVehicle();
+        if (vehicle instanceof Boat) {
+            // 进入任何队伍的核心保护区时破坏船只
+            if (nexusManager.isInProtectedArea(player.getLocation())) {
+                vehicle.remove();
+                player.sendMessage(ChatColor.RED + "你不能乘船进入核心保护区域！");
+            }
         }
     }
 }
