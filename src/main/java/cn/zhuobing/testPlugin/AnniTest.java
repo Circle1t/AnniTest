@@ -46,6 +46,7 @@ import cn.zhuobing.testPlugin.enderfurnance.EnderFurnaceManager;
 import cn.zhuobing.testPlugin.game.GameCommandHandler;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.game.GamePlayerJoinListener;
+import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.map.*;
 import cn.zhuobing.testPlugin.nexus.*;
 import cn.zhuobing.testPlugin.ore.DiamondDataManager;
@@ -137,6 +138,10 @@ public class AnniTest extends JavaPlugin {
 
         // 注册职业
         initKits();
+        Map<String, Kit> registeredKits = kitManager.getRegisteredKits();
+//        for(Kit kit : registeredKits.values()) {
+//            Bukkit.getLogger().info(kit.getName());
+//        }
 
         // 初始化完成后检查大厅世界是否加载成功
         if (lobbyManager.getLobbyWorld() == null) {
@@ -175,7 +180,7 @@ public class AnniTest extends JavaPlugin {
         mapSelectorManager = new MapSelectorManager(mapSelectManager);
         mapConfigurerManager = new MapConfigurerManager(mapSelectManager);
 
-        nexusAntiCheat = new NexusAntiCheat(nexusManager,teamManager,this);
+        nexusAntiCheat = new NexusAntiCheat(nexusManager,teamManager,kitManager,this);
     }
 
     private void initCommandHandlers() {

@@ -149,6 +149,10 @@ public class KitManager {
         return registeredKits;
     }
 
+    public Kit getRegisteredKit(String kitName) {
+        return registeredKits.get(kitName.toLowerCase());
+    }
+
     public Plugin getPlugin(){
         return plugin;
     }

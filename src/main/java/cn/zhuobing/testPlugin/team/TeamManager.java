@@ -191,9 +191,8 @@ public class TeamManager {
     }
 
     // 通过 UUID 获取玩家所在的队伍对象（可选）
-    public Team getPlayerTeam(UUID uuid) {
-        String teamName = playerTeamMap.get(uuid);
-        return teamName != null ? scoreboard.getTeam(teamName) : null;
+    public String getPlayerTeam(UUID uuid) {
+        return playerTeamMap.get(uuid);
     }
 
     // 判断 UUID 是否在队伍中（可选）

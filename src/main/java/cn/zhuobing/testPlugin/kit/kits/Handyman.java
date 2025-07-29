@@ -17,10 +17,9 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
@@ -30,6 +29,9 @@ public class Handyman extends Kit implements Listener {
     private final NexusManager nexusManager;
     private final GameManager gameManager;
     private final NexusInfoBoard nexusInfoBoard;
+
+    // 记录每个玩家累计修复的血量
+    private final Map<UUID, Integer> playerRepairMap = new ConcurrentHashMap<>();
     private List<ItemStack> kitItems = new ArrayList<>();
 
     private ItemStack woodSword;
@@ -47,14 +49,10 @@ public class Handyman extends Kit implements Listener {
     }
 
     @Override
-    public String getName() {
-        return "修复者";
-    }
+    public String getName() { return "修复者"; }
 
     @Override
-    public String getNameWithColor() {
-        return ChatColor.GREEN + "修复者";
-    }
+    public String getNameWithColor() { return ChatColor.GREEN + "修复者"; }
 
     @Override
     public String getDescription() {
@@ -85,7 +83,6 @@ public class Handyman extends Kit implements Listener {
     @Override
     public List<ItemStack> getKitArmors(Player player) {
         String teamColor = teamManager.getPlayerTeamName(player);
-
         return Arrays.asList(
                 SpecialArmor.createArmor(Material.LEATHER_HELMET, teamColor),
                 SpecialArmor.createArmor(Material.LEATHER_CHESTPLATE, teamColor),
@@ -97,52 +94,32 @@ public class Handyman extends Kit implements Listener {
     @Override
     public void applyKit(Player player) {
         PlayerInventory inv = player.getInventory();
-
-        // 皮革护甲
-        List<ItemStack> armors = getKitArmors(player);
-        for (ItemStack armor : armors) {
-            if (armor != null) {
-                switch (armor.getType()) {
-                    case LEATHER_HELMET:
-                        inv.setHelmet(armor);
-                        break;
-                    case LEATHER_CHESTPLATE:
-                        inv.setChestplate(armor);
-                        break;
-                    case LEATHER_LEGGINGS:
-                        inv.setLeggings(armor);
-                        break;
-                    case CHAINMAIL_BOOTS:
-                        inv.setBoots(armor);
-                        break;
-                    default:
-                        inv.addItem(armor);
-                }
+        for (ItemStack armor : getKitArmors(player)) {
+            if (armor == null) continue;
+            switch (armor.getType()) {
+                case LEATHER_HELMET: inv.setHelmet(armor); break;
+                case LEATHER_CHESTPLATE: inv.setChestplate(armor); break;
+                case LEATHER_LEGGINGS: inv.setLeggings(armor); break;
+                case CHAINMAIL_BOOTS: inv.setBoots(armor); break;
+                default: inv.addItem(armor);
             }
         }
-
-        for (ItemStack item : kitItems) {
-            inv.addItem(item);
-        }
+        kitItems.forEach(inv::addItem);
     }
 
     private void setUp() {
-        // 木剑
         woodSword = createSoulBoundItem(Material.WOODEN_SWORD, null, 1, 1, false);
         kitItems.add(woodSword.clone());
 
-        // 效率1石镐
         stonePickaxe = createSoulBoundItem(Material.STONE_PICKAXE, null, 1, 1, false);
         ItemMeta pickaxeMeta = stonePickaxe.getItemMeta();
         pickaxeMeta.addEnchant(Enchantment.EFFICIENCY, 1, true);
         stonePickaxe.setItemMeta(pickaxeMeta);
         kitItems.add(stonePickaxe.clone());
 
-        // 木斧
         woodAxe = createSoulBoundItem(Material.WOODEN_AXE, null, 1, 1, false);
         kitItems.add(woodAxe.clone());
 
-        // 指南针
         compass = CompassItem.createCompass();
         kitItems.add(compass.clone());
     }
@@ -155,59 +132,81 @@ public class Handyman extends Kit implements Listener {
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            String playerTeam = teamManager.getPlayerTeamName(player);
-            Location blockLocation = event.getBlock().getLocation();
+        if (!isThisKit(player)) return;
 
-            // 检查破坏的是否是敌人核心
-            for (String team : nexusManager.getNexusLocations().keySet()) {
-                if (!team.equals(playerTeam)) {
-                    Location nexusLocation = nexusManager.getTeamNexusLocation(team);
-                    if (nexusLocation != null && nexusLocation.equals(blockLocation)) {
-                        tryIncreaseOwnNexusHealth(player, playerTeam);
-                        break;
-                    }
-                }
+        String playerTeam = teamManager.getPlayerTeamName(player);
+        Location loc = event.getBlock().getLocation();
+        for (String team : nexusManager.getNexusLocations().keySet()) {
+            if (team.equals(playerTeam)) continue;
+            Location nexusLoc = nexusManager.getTeamNexusLocation(team);
+            if (nexusLoc != null && nexusLoc.equals(loc)) {
+                if (tryIncreaseOwnNexusHealth(player, playerTeam)) break;
             }
         }
     }
 
-    private void tryIncreaseOwnNexusHealth(Player player, String playerTeam) {
-        Random random = new Random();
-        double chance = random.nextDouble();
+    /**
+     * 增加核心血量，并记录玩家修复量
+     * @return 是否成功增加
+     */
+    private boolean tryIncreaseOwnNexusHealth(Player player, String playerTeam) {
+        Random rand = new Random();
+        double chance = rand.nextDouble();
+        int stage = gameManager.getCurrentPhase();
+        double threshold = switch (stage) {
+            case 2 -> 0.25;
+            case 3 -> 0.20;
+            case 4 -> 0.15;
+            case 5 -> 0.10;
+            default -> 0;
+        };
+        if (chance >= threshold) return false;
 
-        int currentStage = gameManager.getCurrentPhase();
+        int currentHp = nexusManager.getNexusHealth(playerTeam);
+        int newHp = currentHp + 1;
+        nexusManager.setNexusHealth(playerTeam, newHp);
+        nexusInfoBoard.updateInfoBoard();
 
-        boolean shouldIncrease = false;
-        switch (currentStage) {
-            case 2:
-                shouldIncrease = chance < 0.25;
-                break;
-            case 3:
-                shouldIncrease = chance < 0.2;
-                break;
-            case 4:
-                shouldIncrease = chance < 0.15;
-                break;
-            case 5:
-                shouldIncrease = chance < 0.1;
-                break;
-        }
+        // 记录玩家累计修复量
+        UUID id = player.getUniqueId();
+        playerRepairMap.merge(id, 1, Integer::sum);
 
-        if (shouldIncrease) {
-            int currentHealth = nexusManager.getNexusHealth(playerTeam);
-            int newHealth = currentHealth + 1; // 每次增加1点血量，可根据需求调整
-            nexusManager.setNexusHealth(playerTeam, newHealth);
-            nexusInfoBoard.updateInfoBoard();
-
-            String teamChineseName = teamManager.getTeamChineseName(playerTeam);
-            ChatColor teamColor = teamManager.getTeamColor(playerTeam);
-            String message = teamColor + teamChineseName + "队 " + ChatColor.GREEN + "的核心血量被修复者提升！当前血量: " + ChatColor.YELLOW + newHealth;
-            Bukkit.broadcastMessage(message);
-        }
+        String teamNameCn = teamManager.getTeamChineseName(playerTeam);
+        ChatColor color = teamManager.getTeamColor(playerTeam);
+        Bukkit.broadcastMessage(color + teamNameCn + "队 " + ChatColor.GREEN + "的核心血量被修复者提升！当前血量: " + ChatColor.YELLOW + newHp);
+        return true;
     }
 
     private boolean isThisKit(Player player) {
         return kitManager.getPlayerKit(player.getUniqueId()) instanceof Handyman;
+    }
+
+    /**
+     * 当检测到玩家作弊并恢复血量时，扣除该玩家曾修复的血量，保证队伍最低剩余5点
+     */
+    public void adjustAfterCheat(UUID playerId) {
+        String team = teamManager.getPlayerTeam(playerId);
+        int repaired = playerRepairMap.getOrDefault(playerId, 0);
+        if (repaired <= 0) return;
+
+        int currentHp = nexusManager.getNexusHealth(team);
+
+        // 计算最多可扣除的血量（确保不低于5点）
+        int maxDeduction = currentHp - 5;
+        int deduction = Math.min(repaired, maxDeduction > 0 ? maxDeduction : 0);
+
+        if (deduction > 0) {
+            nexusManager.setNexusHealth(team, currentHp - deduction);
+            nexusInfoBoard.updateInfoBoard();
+
+            // 广播扣除信息
+            String teamName = teamManager.getTeamChineseName(team);
+            ChatColor color = teamManager.getTeamColor(team);
+            Bukkit.broadcastMessage(ChatColor.RED + "[核心破坏检测] " + color + teamName + "队"
+                    + ChatColor.RED + " 扣除异常修复血量: " + ChatColor.YELLOW + deduction);
+        }
+
+        // 清理玩家记录（无论是否扣除都清理）
+        playerRepairMap.remove(playerId);
     }
 }
