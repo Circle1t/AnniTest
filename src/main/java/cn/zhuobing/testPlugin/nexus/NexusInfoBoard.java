@@ -168,7 +168,7 @@ public class NexusInfoBoard {
             score--;
 
             // 在下下行写上 “AnniTest”
-            Score footerScore = objective.getScore(ChatColor.AQUA + ChatColor.BOLD.toString() + "    梦天涯");
+            Score footerScore = objective.getScore(ChatColor.YELLOW + "circle1t.top");
             footerScore.setScore(score);
         }
     }

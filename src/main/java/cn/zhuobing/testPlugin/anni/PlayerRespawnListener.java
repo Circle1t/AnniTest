@@ -4,10 +4,7 @@ import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
-import cn.zhuobing.testPlugin.specialitem.items.KitSelectorItem;
-import cn.zhuobing.testPlugin.specialitem.items.MapConfigurerItem;
-import cn.zhuobing.testPlugin.specialitem.items.MapSelectorItem;
-import cn.zhuobing.testPlugin.specialitem.items.TeamSelectorItem;
+import cn.zhuobing.testPlugin.specialitem.items.*;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -104,10 +101,13 @@ public class PlayerRespawnListener implements Listener {
             // 职业选择物品
             ItemStack kitSelector = KitSelectorItem.createKitSelector();
             inventory.setItem(2, kitSelector);
+            // 获得游戏教程
+            ItemStack gameGuideBook = GuideBook.createGameGuideBook();
+            inventory.setItem(3, gameGuideBook);
             // 游戏未开始就给玩家地图选择器
             if(gameManager.getCurrentPhase() == 0){
                 ItemStack mapSelector = MapSelectorItem.createMapSelector();
-                inventory.setItem(3, mapSelector);
+                inventory.setItem(4, mapSelector);
             }
             if(player.isOp()){
                 // 地图配置物品

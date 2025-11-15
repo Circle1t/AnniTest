@@ -233,7 +233,7 @@ public class GameManager {
             player.sendTitle(ChatColor.GOLD + ChatColor.BOLD.toString() + "游 戏 结 束", teamManager.getTeamColor(winningTeam) + cnWinnerTeam + "队" + ChatColor.GOLD + " 获得胜利", 10, 70, 20);
             // 获胜者音效
             if (isPlayerInTeam(player, winningTeam)) {
-                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 2.0f, 1.0f);
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 2.0f, 1.0f);
             }
         }
         bossBar.setColor(BarColor.WHITE);

@@ -6,7 +6,7 @@
 
     <groupId>cn.zhuobing</groupId>
     <artifactId>AnniTest</artifactId> <!-- 插件名称 jar包名称 -->
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <name>AnniTest</name> <!-- 插件显示名称 -->

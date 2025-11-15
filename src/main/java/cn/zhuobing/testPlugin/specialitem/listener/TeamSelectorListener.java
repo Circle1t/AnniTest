@@ -24,25 +24,26 @@ public class TeamSelectorListener implements Listener {
     private static final Map<Integer, String[]> SLOT_TO_COMMAND_MAP = new HashMap<>();
 
     static {
-//        // 初始化槽位到队伍指令的映射
-//        SLOT_TO_COMMAND_MAP.put(0, new String[]{"red"});
-//        SLOT_TO_COMMAND_MAP.put(1, new String[]{"green"});
-//        SLOT_TO_COMMAND_MAP.put(2, new String[]{"blue"});
-//        SLOT_TO_COMMAND_MAP.put(3, new String[]{"yellow"});
-//        SLOT_TO_COMMAND_MAP.put(7, new String[]{"random"});
-//        SLOT_TO_COMMAND_MAP.put(8, new String[]{"leave"});
-
-        // 强制随机队伍
-        SLOT_TO_COMMAND_MAP.put(0, new String[]{"random"});
-        SLOT_TO_COMMAND_MAP.put(1, new String[]{"random"});
-        SLOT_TO_COMMAND_MAP.put(2, new String[]{"random"});
-        SLOT_TO_COMMAND_MAP.put(3, new String[]{"random"});
+        // 初始化槽位到队伍指令的映射
+        SLOT_TO_COMMAND_MAP.put(0, new String[]{"red"});
+        SLOT_TO_COMMAND_MAP.put(1, new String[]{"green"});
+        SLOT_TO_COMMAND_MAP.put(2, new String[]{"blue"});
+        SLOT_TO_COMMAND_MAP.put(3, new String[]{"yellow"});
         SLOT_TO_COMMAND_MAP.put(7, new String[]{"random"});
         SLOT_TO_COMMAND_MAP.put(8, new String[]{"leave"});
+
+//        // 强制随机队伍
+//        SLOT_TO_COMMAND_MAP.put(0, new String[]{"random"});
+//        SLOT_TO_COMMAND_MAP.put(1, new String[]{"random"});
+//        SLOT_TO_COMMAND_MAP.put(2, new String[]{"random"});
+//        SLOT_TO_COMMAND_MAP.put(3, new String[]{"random"});
+//        SLOT_TO_COMMAND_MAP.put(7, new String[]{"random"});
+//        SLOT_TO_COMMAND_MAP.put(8, new String[]{"leave"});
     }
 
     /**
      * 构造函数
+     *
      * @param itemManager 特殊物品管理器
      * @param teamHandler 团队命令处理器
      */
@@ -53,6 +54,7 @@ public class TeamSelectorListener implements Listener {
 
     /**
      * 处理玩家右键点击物品的事件
+     *
      * @param event 玩家交互事件
      */
     @EventHandler
@@ -73,6 +75,7 @@ public class TeamSelectorListener implements Listener {
 
     /**
      * 处理玩家在库存中点击物品的事件
+     *
      * @param event 库存点击事件
      */
     @EventHandler

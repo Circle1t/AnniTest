@@ -71,7 +71,7 @@ public class AFKManager implements Listener {
                     if (timeInactive >= INACTIVITY_TIMEOUT) {
                         // 玩家超时没有活动，踢出服务器
                         Player player = Bukkit.getPlayer(entry.getKey());
-                        if (player != null && player.isOnline()) {
+                        if (player != null && player.isOnline() && !player.isOp()) {
                             player.kickPlayer(ChatColor.RED + "你因长时间未操作而被踢出游戏。");
                             Bukkit.getLogger().info("玩家 " + player.getName() + " 因挂机被踢出！");
                         }
