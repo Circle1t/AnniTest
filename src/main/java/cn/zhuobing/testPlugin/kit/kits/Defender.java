@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -191,6 +192,12 @@ public class Defender extends Kit implements Listener {
         }.runTaskTimer(plugin, 0, CHECK_INTERVAL);
 
         effectTasks.put(player.getUniqueId(), task);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        BukkitTask task = effectTasks.remove(event.getPlayer().getUniqueId());
+        if (task != null) task.cancel();
     }
 
     // 玩家移动时快速响应

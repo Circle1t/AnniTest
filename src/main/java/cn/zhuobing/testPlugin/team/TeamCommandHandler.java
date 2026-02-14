@@ -7,6 +7,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -58,11 +59,18 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
         int currentPhase = gameManager.getCurrentPhase();
 
         if (args.length == 0) {
-            player.sendMessage(ChatColor.RED + "用法：/team <red/yellow/blue/green/leave/random/respawn/respawnremove> [队伍名]");
+            player.sendMessage(ChatColor.RED + "用法：/team <red/yellow/blue/green/leave/random> 或 /team <玩家名> <红/黄/蓝/绿>（管理员）");
             return true;
         }
 
         String subCommand = args[0].toLowerCase();
+
+        // 两参数且非 respawn/respawnremove：视为管理员强制入队 /team 玩家名 红
+        if (args.length == 2 && !"respawn".equals(subCommand) && !"respawnremove".equals(subCommand)) {
+            if (player.isOp()) {
+                return handlePlayerForceJoin(player, args[0], args[1]);
+            }
+        }
 
         switch (subCommand) {
             case "respawn":
@@ -71,6 +79,54 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
                 return handleRespawnCancelCommand(player, args);
             default:
                 return handleOriginalCommands(player, args, currentPhase);
+        }
+    }
+
+    /** 管理员指令：强制指定玩家加入某队伍。用法：/team <玩家名> <红/黄/蓝/绿> */
+    private boolean handlePlayerForceJoin(Player admin, String targetPlayerName, String teamInput) {
+        Player target = Bukkit.getPlayer(targetPlayerName);
+        if (target == null || !target.isOnline()) {
+            admin.sendMessage(ChatColor.RED + "玩家不在线或不存在！");
+            return true;
+        }
+        String teamName = parseTeamName(teamInput);
+        if (teamName == null) {
+            admin.sendMessage(ChatColor.RED + "无效的队伍，请使用 红/黄/蓝/绿 或 red/yellow/blue/green");
+            return true;
+        }
+        Map<String, ChatColor> teamColors = teamManager.getTeamColors();
+        if (!teamColors.containsKey(teamName)) {
+            admin.sendMessage(ChatColor.RED + "无效的队伍名称！");
+            return true;
+        }
+        Scoreboard scoreboard = teamManager.getScoreboard();
+        removePlayerFromTeams(target, scoreboard);
+        addPlayerToTeam(target, teamName, scoreboard, teamColors, true); // 管理员强制入队，跳过核心摧毁检查
+
+        Map<String, String> englishToChineseMap = teamManager.getEnglishToChineseMap();
+        String cnName = englishToChineseMap.getOrDefault(teamName, teamName);
+        admin.sendMessage(ChatColor.GREEN + "已强制将 " + ChatColor.WHITE + target.getName() + ChatColor.GREEN + " 加入 " + teamColors.get(teamName) + cnName + "队" + ChatColor.GREEN + "。");
+        target.sendMessage(ChatColor.GREEN + "管理员已将你加入 " + teamColors.get(teamName) + cnName + "队" + ChatColor.GREEN + "。");
+        return true;
+    }
+
+    private static String parseTeamName(String input) {
+        if (input == null) return null;
+        switch (input.toLowerCase()) {
+            case "red":
+            case "红":
+                return "red";
+            case "yellow":
+            case "黄":
+                return "yellow";
+            case "blue":
+            case "蓝":
+                return "blue";
+            case "green":
+            case "绿":
+                return "green";
+            default:
+                return null;
         }
     }
 
@@ -183,7 +239,7 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
         }
 
         removePlayerFromTeams(player, scoreboard);
-        addPlayerToTeam(player, teamName, scoreboard, teamColors);
+        addPlayerToTeam(player, teamName, scoreboard, teamColors, false);
         return true;
     }
 
@@ -215,12 +271,16 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
     }
 
     private void addPlayerToTeam(Player player, String teamName, Scoreboard scoreboard, Map<String, ChatColor> teamColors) {
+        addPlayerToTeam(player, teamName, scoreboard, teamColors, false);
+    }
+
+    private void addPlayerToTeam(Player player, String teamName, Scoreboard scoreboard, Map<String, ChatColor> teamColors, boolean forceJoin) {
         Team selectedTeam = scoreboard.getTeam(teamName);
         if (selectedTeam == null) {
             player.sendMessage(ChatColor.RED + "队伍不存在！");
             return;
         }
-        if(nexusManager.getNexusHealth(teamName) <= 0) {
+        if (!forceJoin && nexusManager.getNexusHealth(teamName) <= 0) {
             player.sendMessage(ChatColor.RED + "该队伍核心已被摧毁！");
             return;
         }
@@ -263,11 +323,28 @@ public class TeamCommandHandler implements CommandHandler, TabCompleter {
                     completions.add(cmd);
                 }
             }
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("respawn") || args[0].equalsIgnoreCase("respawnremove"))) {
-            List<String> teamNames = new ArrayList<>(teamManager.getTeamColors().keySet());
-            for (String teamName : teamNames) {
-                if (teamName.startsWith(args[1].toLowerCase())) {
-                    completions.add(teamName);
+            // OP 可补全在线玩家名，用于 /team 玩家名 红
+            if (sender.isOp()) {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (p.getName().toLowerCase().startsWith(args[0].toLowerCase())) {
+                        completions.add(p.getName());
+                    }
+                }
+            }
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("respawn") || args[0].equalsIgnoreCase("respawnremove")) {
+                for (String teamName : teamManager.getTeamColors().keySet()) {
+                    if (teamName.startsWith(args[1].toLowerCase())) {
+                        completions.add(teamName);
+                    }
+                }
+            } else {
+                // 强制入队第二参数：队伍名
+                List<String> teams = Arrays.asList("red", "yellow", "blue", "green", "红", "黄", "蓝", "绿");
+                for (String t : teams) {
+                    if (t.startsWith(args[1].toLowerCase()) || t.equals(args[1])) {
+                        completions.add(t);
+                    }
                 }
             }
         }

@@ -4,10 +4,14 @@ import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.ChatPaginator;
 
@@ -17,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class TeamManager {
+public class TeamManager implements Listener {
     private final Scoreboard scoreboard;
     private final List<String> teamNames = new ArrayList<>();
     private final Map<String, ChatColor> teamColors = new HashMap<>();
@@ -26,12 +30,12 @@ public class TeamManager {
     // 使用 UUID 作为键来存储玩家和其所在队伍英文名的关系
     private final Map<UUID, String> playerTeamMap = new HashMap<>();
 
-    public TeamManager() {
-        // 初始化计分板
+    public TeamManager(Plugin plugin) {
         ScoreboardManager scoreboardManager = Bukkit.getScoreboardManager();
         this.scoreboard = scoreboardManager.getNewScoreboard();
         initTeams();
         setupTabList();
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     private void initTeams() {
@@ -182,7 +186,9 @@ public class TeamManager {
     }
 
     public boolean isSameTeam(Player p1, Player p2) {
-        return getPlayerTeamName(p1).equals(getPlayerTeamName(p2));
+        String t1 = getPlayerTeamName(p1);
+        String t2 = getPlayerTeamName(p2);
+        return t1 != null && t1.equals(t2);
     }
 
     // 通过 UUID 获取玩家所在队伍英文名
@@ -201,7 +207,14 @@ public class TeamManager {
     }
 
     public boolean isSameTeam(UUID uuid1, UUID uuid2) {
-        return getPlayerTeamName(uuid1).equals(getPlayerTeamName(uuid2));
+        String t1 = getPlayerTeamName(uuid1);
+        String t2 = getPlayerTeamName(uuid2);
+        return t1 != null && t1.equals(t2);
     }
 
+    /** 玩家退出时从队伍映射中移除，避免 playerTeamMap 无限增长 */
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        removePlayerFromTeam(event.getPlayer());
+    }
 }

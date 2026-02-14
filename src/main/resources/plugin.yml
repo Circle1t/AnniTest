@@ -21,8 +21,8 @@ resources:
   - boss/Wither.png
 commands:
   team:
-    description: 用于队伍选择和团队重生点的设置与移除。使用示例：/team respawn red 可添加多个重生点。
-    usage: /team <red/yellow/blue/green/random/leave>/<respawn/respawnremove>
+    description: 队伍选择、重生点设置与移除；管理员可使用 /team <玩家名> <红/黄/蓝/绿> 强制玩家入队。
+    usage: /team <red/yellow/blue/green/random/leave> 或 /team <玩家名> <队伍>（OP）
   lobby:
     description: 用于设置游戏大厅的重生点。
     usage: /lobby <respawn>
@@ -53,6 +53,9 @@ commands:
   witch:
     description: 设置和移除队伍女巫的重生点。
     usage: /witch <set/remove> <队伍>
+  annihelp:
+    description: 查看面向玩家的游戏指令帮助；使用 /annihelp book 可获取教程书。
+    usage: /annihelp [book]
   kl:
     description: 自杀指令，效果等同于 /kill，可绕过部分权限问题。
     usage: /kl

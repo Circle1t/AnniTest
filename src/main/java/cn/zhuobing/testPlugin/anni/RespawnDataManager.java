@@ -10,6 +10,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +30,8 @@ public class RespawnDataManager {
     private LobbyManager lobbyManager;
     private NexusManager nexusManager;
     private String mapFolderName;
+    private static final long SAVE_DEBOUNCE_TICKS = 20L;
+    private BukkitTask pendingSaveTask;
 
     public RespawnDataManager(LobbyManager lobbyManager, NexusManager nexusManager, Plugin plugin) {
         this.plugin = plugin;
@@ -75,6 +78,7 @@ public class RespawnDataManager {
     }
 
     public void saveConfig() {
+        if (config == null || configFile == null) return;
         File mapsFolder = new File(plugin.getDataFolder(), "maps");
         if (!mapsFolder.exists()) {
             mapsFolder.mkdirs();
@@ -99,11 +103,30 @@ public class RespawnDataManager {
                 index++;
             }
         }
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        if (pendingSaveTask != null) pendingSaveTask.cancel();
+        FileConfiguration toSave = new YamlConfiguration();
+        toSave.set("team.respawnLocations", null);
+        for (Map.Entry<String, Set<Location>> entry : teamRespawnLocations.entrySet()) {
+            String teamName = entry.getKey();
+            Set<Location> locations = entry.getValue();
+            int index = 0;
+            for (Location location : locations) {
+                toSave.set("team.respawnLocations." + teamName + "." + index, location);
+                index++;
+            }
         }
+        File fileToSave = configFile;
+        pendingSaveTask = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pendingSaveTask = null;
+            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    toSave.save(fileToSave);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }, SAVE_DEBOUNCE_TICKS);
     }
 
     public void addRespawnLocation(String teamName, Location location) {

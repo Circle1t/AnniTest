@@ -12,6 +12,8 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -36,25 +38,51 @@ class TeamInfo implements Comparable<TeamInfo> {
 }
 
 public class NexusInfoBoard {
+    private static final long UPDATE_THROTTLE_MS = 500L;  // 最多 0.5 秒更新一次，减轻挖核心时的负荷
+
     private final ScoreboardManager scoreboardManager;
     private final NexusManager dataManager;
     private final TeamManager teamManager;
     private final Map<String, String> teamNames;
     private final GameManager gameManager;
+    private final Plugin plugin;
     private MapSelectManager mapSelectManager;
     private boolean voteFlag = true;
 
-    public NexusInfoBoard(NexusManager dataManager, TeamManager teamManager, GameManager gameManager, MapSelectManager mapSelectManager) {
+    private volatile long lastUpdateTime = 0L;
+    private volatile BukkitTask pendingUpdateTask = null;
+
+    public NexusInfoBoard(NexusManager dataManager, TeamManager teamManager, GameManager gameManager, MapSelectManager mapSelectManager, Plugin plugin) {
         this.dataManager = dataManager;
         this.scoreboardManager = Bukkit.getScoreboardManager();
         this.teamNames = teamManager.getEnglishToChineseMap();
         this.teamManager = teamManager;
         this.gameManager = gameManager;
         this.mapSelectManager = mapSelectManager;
+        this.plugin = plugin;
         gameManager.setNexusInfoBoard(this);
     }
 
+    /**
+     * 请求更新计分板。若距上次更新不足 0.5 秒则节流，最多 0.5 秒执行一次，减轻挖核心时的负荷。
+     */
     public void updateInfoBoard() {
+        long now = System.currentTimeMillis();
+        if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+            lastUpdateTime = now;
+            doUpdateInfoBoard();
+            return;
+        }
+        if (pendingUpdateTask == null || pendingUpdateTask.isCancelled()) {
+            pendingUpdateTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                pendingUpdateTask = null;
+                lastUpdateTime = System.currentTimeMillis();
+                doUpdateInfoBoard();
+            }, 10L); // 0.5 秒 = 10 ticks
+        }
+    }
+
+    private void doUpdateInfoBoard() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             Scoreboard playerScoreboard = player.getScoreboard();
 
@@ -171,6 +199,16 @@ public class NexusInfoBoard {
             Score footerScore = objective.getScore(ChatColor.YELLOW + "circle1t.top");
             footerScore.setScore(score);
         }
+    }
+
+    /** 供需要立即刷新的场景使用（如阶段切换、玩家加入），不受 0.5 秒节流限制。 */
+    public void updateInfoBoardImmediate() {
+        if (pendingUpdateTask != null && !pendingUpdateTask.isCancelled()) {
+            pendingUpdateTask.cancel();
+            pendingUpdateTask = null;
+        }
+        lastUpdateTime = System.currentTimeMillis();
+        doUpdateInfoBoard();
     }
 
     public void setMapSelectManager(MapSelectManager mapSelectManager){

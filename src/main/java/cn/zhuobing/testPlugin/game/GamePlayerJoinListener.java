@@ -19,8 +19,12 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GamePlayerJoinListener implements Listener {
     private final GameManager gameManager;
@@ -81,14 +85,15 @@ public class GamePlayerJoinListener implements Listener {
                 // 防止饥饿值降低
                 player.setSaturation(20);
                 player.setExhaustion(0);
-                // 清楚玩家效果
-                // 遍历所有可能的状态效果类型
-                for (PotionEffectType effectType : PotionEffectType.values()) {
-                    // 检查玩家是否拥有该效果
-                    if (effectType != null && player.hasPotionEffect(effectType)) {
-                        // 移除该效果
-                        player.removePotionEffect(effectType);
+                // 只移除当前已有的药水效果，避免遍历全部 PotionEffectType
+                List<PotionEffectType> toRemove = new ArrayList<>();
+                for (PotionEffect effect : player.getActivePotionEffects()) {
+                    if (effect != null && effect.getType() != null) {
+                        toRemove.add(effect.getType());
                     }
+                }
+                for (PotionEffectType type : toRemove) {
+                    player.removePotionEffect(type);
                 }
 
                 // 设置玩家游戏模式为生存模式
@@ -134,8 +139,9 @@ public class GamePlayerJoinListener implements Listener {
         if (this.teamManager.isInTeam(player))
             cancelShutdownTask();
 
-        if(currentPhase == 0){
-            gameManager.checkAndStartGame(); // 检查是否满足启动条件
+        // 延后 1 tick 再检查是否满足开局条件，让 Join 事件先返回，减少主线程阻塞
+        if (currentPhase == 0) {
+            Bukkit.getScheduler().runTaskLater(plugin, gameManager::checkAndStartGame, 1L);
         }
     }
 
@@ -198,10 +204,8 @@ public class GamePlayerJoinListener implements Listener {
 
         // 创建关闭任务（2分钟倒计时）
         shutdownTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // 广播关闭消息
+            shutdownTask = null; // 任务已执行，释放引用
             Bukkit.broadcastMessage(ChatColor.RED + "所有队伍玩家已离开，服务器即将关闭! ");
-
-            // 延迟5秒后关闭服务器
             Bukkit.getScheduler().runTaskLater(plugin, Bukkit::shutdown, 100L); // 5秒延迟
         }, 2400L); // 2分钟倒计时 (2400 ticks = 120秒)
     }

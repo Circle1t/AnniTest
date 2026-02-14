@@ -23,7 +23,7 @@ public class GuideBook {
                     ChatColor.GOLD + " 游戏介绍";
 
     // 灵魂绑定等级
-    private static final int SOUL_BOUND_LEVEL = 5;
+    private static final int SOUL_BOUND_LEVEL = 1;
 
     /**
      * 创建核心战争游戏介绍书本

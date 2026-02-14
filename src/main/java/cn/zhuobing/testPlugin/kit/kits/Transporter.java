@@ -280,14 +280,28 @@ public class Transporter extends Kit implements Listener {
         }
     }
 
-    // 启动粒子效果
+    // 传送门粒子：白色、竖直向上发射
+    private static final double PORTAL_PARTICLE_OX = 0.12;
+    private static final double PORTAL_PARTICLE_OY = 0.9;  // 竖直方向扩散大，形成向上喷涌
+    private static final double PORTAL_PARTICLE_OZ = 0.12;
+    private static final double PORTAL_PARTICLE_EXTRA = 0.06;
+
     private void startParticleEffect(Teleporter teleporter) {
         BukkitTask task = new BukkitRunnable() {
             @Override
             public void run() {
                 if (teleporter.isLinked()) {
-                    showParticles(teleporter.getLoc1().toLocation(), Particle.CLOUD, 5, 0.3);
-                    showParticles(teleporter.getLoc2().toLocation(), Particle.CLOUD, 5, 0.3);
+                    Location c1 = centerAbove(teleporter.getLoc1().toLocation());
+                    Location c2 = centerAbove(teleporter.getLoc2().toLocation());
+                    // 白色粒子：END_ROD 偏白且自带向上飘动
+                    if (c1 != null) {
+                        showParticles(c1, Particle.END_ROD, 18, PORTAL_PARTICLE_OX, PORTAL_PARTICLE_OY, PORTAL_PARTICLE_OZ, PORTAL_PARTICLE_EXTRA);
+                        showParticles(c1, Particle.CLOUD, 8, PORTAL_PARTICLE_OX, PORTAL_PARTICLE_OY, PORTAL_PARTICLE_OZ, 0.02);
+                    }
+                    if (c2 != null) {
+                        showParticles(c2, Particle.END_ROD, 18, PORTAL_PARTICLE_OX, PORTAL_PARTICLE_OY, PORTAL_PARTICLE_OZ, PORTAL_PARTICLE_EXTRA);
+                        showParticles(c2, Particle.CLOUD, 8, PORTAL_PARTICLE_OX, PORTAL_PARTICLE_OY, PORTAL_PARTICLE_OZ, 0.02);
+                    }
                 } else {
                     this.cancel();
                     particleTasks.remove(teleporter);
@@ -298,17 +312,29 @@ public class Transporter extends Kit implements Listener {
         particleTasks.put(teleporter, task);
     }
 
-    // 显示粒子效果
-    private void showParticles(Location location, Particle particle, int count, double extra) {
-        if (location == null) return;
+    private Location centerAbove(Location blockLoc) {
+        if (blockLoc == null || blockLoc.getWorld() == null) return null;
+        return blockLoc.clone().add(0.5, 1.0, 0.5);
+    }
 
-        location.getWorld().spawnParticle(
-                Particle.END_ROD,
-                location.clone().add(0.5, 1.0, 0.5),
-                count,
-                0, 0.1, 0, // 无扩散
-                extra
-        );
+    /** 在位置上方中心生成粒子，使用传入的粒子类型。 */
+    private void showParticles(Location location, Particle particle, int count, double offsetX, double offsetY, double offsetZ, double extra) {
+        if (location == null || location.getWorld() == null) return;
+        location.getWorld().spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra);
+    }
+
+    /** 传送瞬间在两端播放白色向上粒子。 */
+    private void showTeleportEffect(Location from, Location to) {
+        if (from != null && from.getWorld() != null) {
+            Location cFrom = from.clone().add(0.5, 1.0, 0.5);
+            showParticles(cFrom, Particle.END_ROD, 35, 0.15, 0.7, 0.15, 0.12);
+            showParticles(cFrom, Particle.CLOUD, 20, 0.15, 0.7, 0.15, 0.04);
+        }
+        if (to != null && to.getWorld() != null) {
+            Location cTo = to.clone().add(0.5, 1.0, 0.5);
+            showParticles(cTo, Particle.END_ROD, 35, 0.15, 0.7, 0.15, 0.12);
+            showParticles(cTo, Particle.CLOUD, 20, 0.15, 0.7, 0.15, 0.04);
+        }
     }
 
     // 检查位置是否有效
@@ -397,10 +423,11 @@ public class Transporter extends Kit implements Listener {
             owner.sendMessage(ChatColor.GREEN + player.getName() + " 使用了你的传送门！");
         }
 
-        // 传送效果
+        // 传送效果：两端播放末影人传送音效 + 传送门/火焰粒子（参考原版 Effect.MOBSPAWNER_FLAMES + ENDERMAN_TELEPORT）
+        loc1.getWorld().playSound(loc1, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, (float) (0.8 + Math.random() * 0.4));
+        loc2.getWorld().playSound(loc2, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, (float) (0.8 + Math.random() * 0.4));
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
-        showParticles(player.getLocation(), Particle.PORTAL, 100, 1.0);
-        showParticles(teleportLoc, Particle.PORTAL, 100, 1.0);
+        showTeleportEffect(block.getLocation(), targetLoc);
     }
 
     // 玩家移动时提示传送门
@@ -471,9 +498,16 @@ public class Transporter extends Kit implements Listener {
         // 播放破坏声音 - 使用草被破坏的声音
         block.getWorld().playSound(block.getLocation(), Sound.BLOCK_GRASS_BREAK, 1.0f, 1.0f);
 
+        // 清除前记录两端位置，用于播放破坏粒子（参考原版 Effect.STEP_SOUND）
+        Location loc1 = teleporter.getLoc1() != null ? teleporter.getLoc1().toLocation() : null;
+        Location loc2 = teleporter.getLoc2() != null ? teleporter.getLoc2().toLocation() : null;
+
         // 清除整个传送门对
         teleporter.clear();
         teleporters.remove(ownerId);
+
+        if (loc1 != null) showParticles(loc1.clone().add(0.5, 0.5, 0.5), Particle.CLOUD, 18, 0.25, 0.25, 0.25, 0.03);
+        if (loc2 != null) showParticles(loc2.clone().add(0.5, 0.5, 0.5), Particle.CLOUD, 18, 0.25, 0.25, 0.25, 0.03);
 
         // 停止粒子效果
         BukkitTask task = particleTasks.remove(teleporter);

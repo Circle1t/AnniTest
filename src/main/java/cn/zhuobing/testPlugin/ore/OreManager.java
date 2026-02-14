@@ -2,6 +2,7 @@ package cn.zhuobing.testPlugin.ore;
 
 import cn.zhuobing.testPlugin.AnniTest;
 import cn.zhuobing.testPlugin.game.GameManager;
+import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.kit.kits.Enchanter;
 import cn.zhuobing.testPlugin.kit.kits.Miner;
@@ -9,12 +10,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,17 +45,26 @@ public class OreManager {
         updateDiamondBlocks(); // 加载完配置后更新钻石块状态
     }
 
+    /** 全局单任务：每0.5秒检查冷却中的矿物，到点的恢复原矿并移出 map，避免每个矿物单独 runTaskLater 造成大量定时任务。 */
     private void startCoolDownCheckTask() {
         Bukkit.getScheduler().runTaskTimer(AnniTest.getInstance(), () -> {
-            Iterator<Map.Entry<Location, CoolingOre>> iterator = coolingOres.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<Location, CoolingOre> entry = iterator.next();
-                CoolingOre coolingOre = entry.getValue();
-                if (coolingOre.getRestoreTask().isCancelled()) {
-                    iterator.remove();
+            long now = System.currentTimeMillis();
+            Iterator<Map.Entry<Location, CoolingOre>> it = coolingOres.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Location, CoolingOre> e = it.next();
+                CoolingOre co = e.getValue();
+                if (co.getRestoreAtMillis() > now) continue;
+                if (gameManager.getCurrentPhase() >= co.getOreType().availablePhase) {
+                    e.getKey().getBlock().setType(co.getOreType().getOriginalMaterial());
                 }
+                it.remove();
             }
-        }, 0L, 20L);
+        }, 0L, 10L);
+    }
+
+    /** 地图卸载时调用：清空冷却表（恢复由全局任务统一处理，无单独任务需取消） */
+    public void clearAllCoolingOres() {
+        coolingOres.clear();
     }
 
     public void processOreBreak(Player player, Block block) {
@@ -83,10 +90,8 @@ public class OreManager {
 
     private void giveRewards(Player player, OreType oreType, Block block) {
         Random random = new Random();
-
-        // 判断是否为附魔师
-        boolean isEnchanter = kitManager.getPlayerKit(player.getUniqueId()) != null &&
-                kitManager.getPlayerKit(player.getUniqueId()) instanceof Enchanter;
+        Kit playerKit = kitManager.getPlayerKit(player.getUniqueId());
+        boolean isEnchanter = playerKit != null && playerKit instanceof Enchanter;
         // 给予经验
         int xp = oreType.xp;
         if (xp <= 0) {
@@ -133,8 +138,7 @@ public class OreManager {
         }
 
         // 判断玩家职业是否为矿工
-        boolean isMiner = kitManager.getPlayerKit(player.getUniqueId()) != null &&
-                kitManager.getPlayerKit(player.getUniqueId()) instanceof Miner;
+        boolean isMiner = playerKit != null && playerKit instanceof Miner;
         // 给予物品
         for (ItemStack toGive : actualDrops) {
             int baseAmount = oreType.getRandomDropAmount();
@@ -172,17 +176,8 @@ public class OreManager {
         }
 
         block.setType(oreType.cooledForm);
-        CoolingOre coolingOre = new CoolingOre(block.getLocation(), oreType);
-
-        BukkitTask task = Bukkit.getScheduler().runTaskLater(AnniTest.getInstance(), () -> {
-            if (gameManager.getCurrentPhase() >= oreType.availablePhase) {
-                block.setType(oreType.getOriginalMaterial());
-            }
-            coolingOres.remove(block.getLocation());
-        }, oreType.coolDown * 20L);
-
-        coolingOre.setRestoreTask(task);
-        coolingOres.put(block.getLocation(), coolingOre);
+        long restoreAtMillis = System.currentTimeMillis() + oreType.coolDown * 1000L;
+        coolingOres.put(block.getLocation(), new CoolingOre(block.getLocation(), oreType, restoreAtMillis));
     }
 
     public void refreshAllOres() {

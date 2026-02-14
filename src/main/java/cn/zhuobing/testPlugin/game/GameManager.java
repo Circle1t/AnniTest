@@ -81,6 +81,7 @@ public class GameManager {
     private void startCountdown() {
         if (countdownTask != null) {
             countdownTask.cancel();
+            countdownTask = null;
         }
         countdownTask = new GameCountdownTask(this, bossBar, remainingTime, currentPhase);
         countdownTask.runTaskTimer(AnniTest.getInstance(), 0L, 20L);
@@ -222,6 +223,7 @@ public class GameManager {
     public void endGameWithWinner(String winningTeam) {
         if (countdownTask != null) {
             countdownTask.cancel();
+            countdownTask = null;
         }
         //设置获胜者判定值
         gameOver = true;
@@ -331,8 +333,9 @@ public class GameManager {
         public void run() {
             if (remainingTime <= 0) {
                 // 倒计时结束，关闭服务器
-                Bukkit.shutdown();
+                gameManager.restartTask = null;
                 cancel();
+                Bukkit.shutdown();
                 return;
             }
 
@@ -353,5 +356,17 @@ public class GameManager {
     // 游戏结束状态判断修改
     public boolean isGameOver() {
         return gameOver || restartTask != null;
+    }
+
+    /** 插件卸载或需要清理时调用，取消所有定时任务并释放引用，避免残留。 */
+    public void cancelAllTasks() {
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+        if (restartTask != null) {
+            restartTask.cancel();
+            restartTask = null;
+        }
     }
 }

@@ -29,6 +29,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.io.File;
@@ -53,6 +54,8 @@ public class BossDataManager implements Listener {
     private final BossWorldManager bossWorldManager;
     private final MessageRenderer messageRenderer;
     private final String BOSS_MESSAGE = ChatColor.DARK_PURPLE + " BOSS " + ChatColor.GRAY +"已经生成";
+    private static final long SAVE_DEBOUNCE_TICKS = 20L;
+    private BukkitTask pendingSaveTask;
 
     public BossDataManager(Plugin plugin, GameManager gameManager, TeamManager teamManager, BossWorldManager bossWorldManager, MessageRenderer messageRenderer) {
         this.plugin = plugin;
@@ -117,28 +120,42 @@ public class BossDataManager implements Listener {
     }
 
     public void saveConfig() {
-        saveLocationToSection("bossSpawn", bossSpawnLocation);
+        if (config == null || configFile == null) return;
+        saveLocationToSection(config, "bossSpawn", bossSpawnLocation);
         config.set("teamTpLocations", null);
         for (Map.Entry<String, Location> entry : teamTpLocations.entrySet()) {
-            saveLocationToSection("teamTpLocations." + entry.getKey(), entry.getValue());
+            saveLocationToSection(config, "teamTpLocations." + entry.getKey(), entry.getValue());
         }
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        if (pendingSaveTask != null) pendingSaveTask.cancel();
+        FileConfiguration toSave = new YamlConfiguration();
+        saveLocationToSection(toSave, "bossSpawn", bossSpawnLocation);
+        toSave.set("teamTpLocations", null);
+        for (Map.Entry<String, Location> entry : teamTpLocations.entrySet()) {
+            saveLocationToSection(toSave, "teamTpLocations." + entry.getKey(), entry.getValue());
         }
-        loadConfig();
+        File fileToSave = configFile;
+        pendingSaveTask = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pendingSaveTask = null;
+            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    toSave.save(fileToSave);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }, SAVE_DEBOUNCE_TICKS);
     }
 
     /** 将 Location 保存为 worldName/x/y/z/yaw/pitch，避免下次加载时被当作 Location 反序列化导致 unknown world */
-    private void saveLocationToSection(String path, Location loc) {
+    private void saveLocationToSection(FileConfiguration target, String path, Location loc) {
         if (loc == null) return;
-        config.set(path + ".worldName", loc.getWorld() != null ? loc.getWorld().getName() : "AnniBoss");
-        config.set(path + ".x", loc.getX());
-        config.set(path + ".y", loc.getY());
-        config.set(path + ".z", loc.getZ());
-        config.set(path + ".yaw", loc.getYaw());
-        config.set(path + ".pitch", loc.getPitch());
+        target.set(path + ".worldName", loc.getWorld() != null ? loc.getWorld().getName() : "AnniBoss");
+        target.set(path + ".x", loc.getX());
+        target.set(path + ".y", loc.getY());
+        target.set(path + ".z", loc.getZ());
+        target.set(path + ".yaw", loc.getYaw());
+        target.set(path + ".pitch", loc.getPitch());
     }
 
     public void enterBossMap(Player player) {

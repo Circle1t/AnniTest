@@ -114,6 +114,8 @@ public class AnniTest extends JavaPlugin {
     // 这里的反作弊没有开源，删除相关反作弊代码即可
     private NexusAntiCheat nexusAntiCheat;
 
+    private GameTipBroadcaster gameTipBroadcaster;
+
     @Override
     public void onEnable() {
         instance = this;
@@ -155,6 +157,10 @@ public class AnniTest extends JavaPlugin {
         // 开始掉落物清除任务
         startItemCleanupTask();
 
+        // 每 2 分钟向玩家广播一条游戏教程小提示
+        gameTipBroadcaster = new GameTipBroadcaster(this);
+        gameTipBroadcaster.start();
+
         getLogger().info("AnniTest 插件初始化完成！");
     }
 
@@ -164,12 +170,12 @@ public class AnniTest extends JavaPlugin {
         lobbyManager = new LobbyManager(this);
         bossWorldManager = new BossWorldManager(lobbyManager,this);
         borderManager = new BorderManager(this);
-        teamManager = new TeamManager();
+        teamManager = new TeamManager(this);
         enderFurnaceManager = new EnderFurnaceManager(this);
         nexusManager = new NexusManager(this);
         witchDataManager = new WitchDataManager(this,teamManager);
         gameManager = new GameManager(teamManager,null,null,null,witchDataManager,null,messageRenderer,this);
-        nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager,gameManager,null);
+        nexusInfoBoard = new NexusInfoBoard(nexusManager, teamManager, gameManager, null, this);
         kitManager = new KitManager(gameManager,teamManager,this);
         diamondDataManager = new DiamondDataManager(this);
         oreManager = new OreManager(gameManager,diamondDataManager,kitManager);
@@ -251,6 +257,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
         getServer().getPluginManager().registerEvents(new PlayerRespawnListener(teamManager, respawnDataManager,gameManager,nexusManager,kitManager,this), this);
         getServer().getPluginManager().registerEvents(new KitSelectorListener(kitManager),this);
+        getServer().getPluginManager().registerEvents(kitManager, this);
         getServer().getPluginManager().registerEvents(new PlayerListener(teamManager,gameManager,kitManager,nexusManager),this);
         getServer().getPluginManager().registerEvents(new EndPortalListener(teamManager,bossDataManager,gameManager),this);
         getServer().getPluginManager().registerEvents(new BossListener(bossDataManager),this);
@@ -321,6 +328,15 @@ public class AnniTest extends JavaPlugin {
 
         // 关闭掉落物清除任务
         stopItemCleanupTask();
+
+        if (gameTipBroadcaster != null) {
+            gameTipBroadcaster.stop();
+        }
+
+        // 取消游戏内所有定时任务（倒计时、重启倒计时等），避免插件卸载后任务残留
+        if (gameManager != null) {
+            gameManager.cancelAllTasks();
+        }
 
         getLogger().info("大厅副本和游戏地图副本卸载完成，AnniTest 插件已关闭。");
     }

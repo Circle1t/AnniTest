@@ -7,7 +7,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -15,7 +17,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 
-public class KitManager {
+public class KitManager implements Listener {
     private static KitManager instance;
     private final Map<UUID, String> playerKits = new HashMap<>();
     private final Map<String, Kit> registeredKits = new LinkedHashMap<>();
@@ -155,5 +157,11 @@ public class KitManager {
 
     public Plugin getPlugin(){
         return plugin;
+    }
+
+    /** 玩家退出时清理职业映射，避免 Map 无限增长 */
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        playerKits.remove(event.getPlayer().getUniqueId());
     }
 }

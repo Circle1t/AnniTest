@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -33,6 +34,12 @@ public class AFKManager implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         playerLastActivityTime.put(player.getUniqueId(), System.currentTimeMillis());
+    }
+
+    // 玩家离开时清理，避免 Map 无限增长
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        playerLastActivityTime.remove(event.getPlayer().getUniqueId());
     }
 
     // 监听玩家移动事件

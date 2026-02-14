@@ -244,8 +244,8 @@ public class Scorpio extends Kit implements Listener {
         hook.setPickupDelay(Integer.MAX_VALUE);
         hook.setVelocity(player.getEyeLocation().getDirection().multiply(1.8));
 
-        // 启动追踪器（5秒自动清理）
-        new HookTracer(hook, player, isTeamHook).runTaskTimer(kitManager.getPlugin(), 0, 1);
+        // 启动追踪器（5秒自动清理），每4 tick 执行一次以减轻性能压力
+        new HookTracer(hook, player, isTeamHook).runTaskTimer(kitManager.getPlugin(), 0, 4);
     }
 
     // 修改后的空间检测方法（检查前方1格处3格高度空间）

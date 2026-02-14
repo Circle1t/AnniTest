@@ -16,6 +16,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -459,6 +460,21 @@ public class Sova extends Kit implements Listener {
                 ticks += 5;
             }
         }.runTaskTimer(kitManager.getPlugin(), 0L, 5L);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        // 作为被标记目标：从 markerMap 与对应标记者集合中移除
+        if (markerMap.containsKey(id)) {
+            UUID shooterId = markerMap.remove(id);
+            Set<UUID> set = markedPlayers.get(shooterId);
+            if (set != null) set.remove(id);
+        }
+        // 作为标记者：清除标记并取消定时任务
+        removeMarkEffect(id);
+        BukkitTask t = markTasks.remove(id);
+        if (t != null) t.cancel();
     }
 
     // 移除标记效果

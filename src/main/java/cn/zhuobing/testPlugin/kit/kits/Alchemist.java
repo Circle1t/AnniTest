@@ -397,7 +397,7 @@ public class Alchemist extends Kit implements Listener {
                     }
                 }
             }
-        }.runTaskTimer(kitManager.getPlugin(), 1L, 1L);
+        }.runTaskTimer(kitManager.getPlugin(), 1L, 10L); // 每 0.5 秒检查一次，减轻每 tick 执行的压力
     }
 
     // 材料仓库使用

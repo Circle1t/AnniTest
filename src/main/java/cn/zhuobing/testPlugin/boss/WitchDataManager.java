@@ -16,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,8 @@ public class WitchDataManager implements Listener {
     private File configFile;
     private FileConfiguration config;
     private String mapFolderName;
+    private static final long SAVE_DEBOUNCE_TICKS = 20L;
+    private BukkitTask pendingSaveTask;
 
     public WitchDataManager(Plugin plugin, TeamManager teamManager) {
         this.plugin = plugin;
@@ -73,6 +76,7 @@ public class WitchDataManager implements Listener {
     }
 
     public void saveConfig() {
+        if (config == null || configFile == null) return;
         File mapsFolder = new File(plugin.getDataFolder(), "maps");
         if (!mapsFolder.exists()) {
             mapsFolder.mkdirs();
@@ -91,11 +95,24 @@ public class WitchDataManager implements Listener {
         for (Map.Entry<String, Location> entry : teamWitchLocations.entrySet()) {
             config.set("witch." + entry.getKey(), entry.getValue());
         }
-        try {
-            config.save(configFile);
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        if (pendingSaveTask != null) pendingSaveTask.cancel();
+        FileConfiguration toSave = new YamlConfiguration();
+        toSave.set("witch", null);
+        for (Map.Entry<String, Location> entry : teamWitchLocations.entrySet()) {
+            toSave.set("witch." + entry.getKey(), entry.getValue());
         }
+        File fileToSave = configFile;
+        pendingSaveTask = org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pendingSaveTask = null;
+            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    toSave.save(fileToSave);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }, SAVE_DEBOUNCE_TICKS);
     }
     public void setWitchLocation(String teamName, Location location) {
         teamWitchLocations.put(teamName, location);

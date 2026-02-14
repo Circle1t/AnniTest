@@ -533,10 +533,12 @@ public class MapSelectManager {
                     }
                 }
 
-                // 2. 卸载世界
+                // 2. 清空矿石冷却并取消恢复任务，避免对已卸载世界 setBlock
+                oreManager.clearAllCoolingOres();
+                // 3. 卸载世界
                 plugin.getServer().unloadWorld(world, false);
 
-                // 3. 删除副本
+                // 4. 删除副本
                 File worldDir = world.getWorldFolder();
                 deleteDirectory(worldDir);
             }
