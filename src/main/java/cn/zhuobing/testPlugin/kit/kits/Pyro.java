@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
@@ -18,16 +19,12 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.projectiles.ProjectileSource;
 
 import java.util.*;
@@ -48,18 +45,17 @@ public class Pyro extends Kit implements Listener {
     private ItemStack firestormItem;
     private ItemStack healthPotion;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int FIRESTORM_COOLDOWN = 40 * 1000; // 40秒冷却
-    private final String FIRESTORM_ITEM_NAME = ChatColor.AQUA + "烈焰风暴 " + ChatColor.GREEN + "准备就绪";
-    private final String FIRESTORM_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String FIRESTORM_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
+    private static final int FIRESTORM_COOLDOWN_MS = 40 * 1000; // 40 秒冷却
+    private static final String FIRESTORM_ITEM_NAME = ChatColor.AQUA + "烈焰风暴 " + ChatColor.GREEN + "准备就绪";
+    private static final String FIRESTORM_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String FIRESTORM_COOLDOWN_SUFFIX = " 秒";
     private final int SOUL_BOUND_LEVEL = 4; // 灵魂绑定IV级
+    private final CooldownUtil firestormCooldown;
 
     public Pyro(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.firestormCooldown = new CooldownUtil(kitManager.getPlugin(), FIRESTORM_COOLDOWN_MS);
         setUp();
     }
 
@@ -208,10 +204,8 @@ public class Pyro extends Kit implements Listener {
                 event.setCancelled(true);
 
                 if (!performSpecialAction(player)) {
-                    // 技能使用失败，需要处理冷却中的提示
-                    if (isOnCooldown(player)) {
-                        long secondsLeft = getCooldownSecondsLeft(player);
-                        player.sendMessage(ChatColor.RED + "烈焰风暴冷却中，剩余 " + secondsLeft + " 秒");
+                    if (firestormCooldown.isOnCooldown(player)) {
+                        player.sendMessage(ChatColor.RED + "烈焰风暴冷却中，剩余 " + firestormCooldown.getSecondsLeft(player) + " 秒");
                     } else {
                         player.sendMessage(ChatColor.RED + "未找到有效目标或不在队伍中，无法使用技能");
                     }
@@ -220,82 +214,34 @@ public class Pyro extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + FIRESTORM_COOLDOWN);
-        startCooldownCheckTask(player);
-        updateFirestormItem(player);
-    }
-
     // 统一 isFirestormItem 方法逻辑
     private boolean isFirestormItem(ItemStack stack) {
         return stack != null && isSoulBoundItem(stack, Material.FIRE_CHARGE) &&
                 getSoulBoundLevel(stack) == SOUL_BOUND_LEVEL;
     }
 
-    // 新增物品更新方法
     private void updateFirestormItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
-
         if (isFirestormItem(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
-
-            if (isOnCooldown(player)) {
+            long secondsLeft = firestormCooldown.getSecondsLeft(player);
+            if (firestormCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(FIRESTORM_COOLDOWN_PREFIX + secondsLeft + FIRESTORM_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(FIRESTORM_ITEM_NAME);
             }
-
             heldItem.setItemMeta(meta);
             player.updateInventory();
         }
     }
 
-    // 新增冷却检查任务
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        if (plugin == null) {
-            throw new IllegalStateException("Plugin instance in KitManager is null!");
+    private void onFirestormCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.PLAYERS, 0.8f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "烈焰风暴 " + ChatColor.GREEN + "准备就绪！");
+            updateFirestormItemsInInventory(player);
         }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isOnCooldown(player)) {
-                    if(isThisKit(player)){
-                        // 冷却完成音效
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.PLAYERS, 0.8f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "烈焰风暴 " + ChatColor.GREEN + "准备就绪！");
-                        updateFirestormItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateFirestormItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
     }
 
     private void updateFirestormItemsInInventory(Player player) {
@@ -310,7 +256,7 @@ public class Pyro extends Kit implements Listener {
     }
 
     private boolean performSpecialAction(Player player) {
-        if (isOnCooldown(player)) {
+        if (firestormCooldown.isOnCooldown(player)) {
             return false;
         }
 
@@ -343,16 +289,9 @@ public class Pyro extends Kit implements Listener {
         player.getWorld().spawnParticle(Particle.LAVA, player.getLocation(), 10, 0.5, 0.5, 0.5, 0.1);
 
         player.sendMessage(ChatColor.DARK_RED + "烈焰风暴！");
-        startCooldown(player);
+        firestormCooldown.startCooldown(player, FIRESTORM_COOLDOWN_MS, this::onFirestormCooldownReady, (p, sec) -> updateFirestormItem(p));
+        updateFirestormItem(player);
         return true;
-    }
-
-    @EventHandler
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            updateFirestormItem(player);
-        }
     }
 
     // 箭发射时点燃

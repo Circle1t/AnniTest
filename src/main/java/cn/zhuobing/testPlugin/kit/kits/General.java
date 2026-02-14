@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -13,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -22,7 +22,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -44,19 +43,17 @@ public class General extends Kit implements Listener {
     private ItemStack purpleEgg;
     private ItemStack sunFlower;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int PURPLE_EGG_COOLDOWN = 60 * 1000; // 60秒冷却
-    private final String LOYALTY_ITEM_NAME = ChatColor.GOLD + "忠橙";
-    private final String PURPLE_EGG_ITEM_NAME = ChatColor.DARK_PURPLE + "紫蛋 " + ChatColor.GREEN + "准备就绪";
-    private final String PURPLE_EGG_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String PURPLE_EGG_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
-
+    private static final int PURPLE_EGG_COOLDOWN_MS = 60 * 1000; // 60 秒冷却
+    private static final String LOYALTY_ITEM_NAME = ChatColor.GOLD + "忠橙";
+    private static final String PURPLE_EGG_ITEM_NAME = ChatColor.DARK_PURPLE + "紫蛋 " + ChatColor.GREEN + "准备就绪";
+    private static final String PURPLE_EGG_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String PURPLE_EGG_COOLDOWN_SUFFIX = " 秒";
+    private final CooldownUtil purpleEggCooldown;
 
     public General(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.purpleEggCooldown = new CooldownUtil(kitManager.getPlugin(), PURPLE_EGG_COOLDOWN_MS);
         setUp();
     }
 
@@ -231,25 +228,6 @@ public class General extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + PURPLE_EGG_COOLDOWN);
-        startCooldownCheckTask(player);
-        updatePurpleEggItem(player);
-    }
-
     // 统一 isLoyaltyItem 方法逻辑
     private boolean isLoyaltyItem(ItemStack stack) {
         return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.GLOW_BERRIES);
@@ -260,56 +238,28 @@ public class General extends Kit implements Listener {
         return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.DRAGON_EGG);
     }
 
-    // 新增物品更新方法
     private void updatePurpleEggItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
-
         if (isPurpleEgg(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
-
-            if (isOnCooldown(player)) {
+            long secondsLeft = purpleEggCooldown.getSecondsLeft(player);
+            if (purpleEggCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(PURPLE_EGG_COOLDOWN_PREFIX + secondsLeft + PURPLE_EGG_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(PURPLE_EGG_ITEM_NAME);
             }
-
             heldItem.setItemMeta(meta);
             player.updateInventory();
         }
     }
 
-    // 新增冷却检查任务
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        if (plugin == null) {
-            throw new IllegalStateException("Plugin instance in KitManager is null!");
+    private void onPurpleEggCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.DARK_PURPLE + "紫蛋 " + ChatColor.GREEN + "准备就绪！");
+            updatePurpleEggItemsInInventory(player);
         }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isOnCooldown(player)) {
-                    if (isThisKit(player)) {
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.DARK_PURPLE + "紫蛋 " + ChatColor.GREEN + "准备就绪！");
-                        updatePurpleEggItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updatePurpleEggItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
     }
 
     private void updatePurpleEggItemsInInventory(Player player) {
@@ -325,31 +275,22 @@ public class General extends Kit implements Listener {
 
 
     private boolean performPurpleEggAction(Player player) {
-        if (isOnCooldown(player)) {
-            long secondsLeft = getCooldownSecondsLeft(player);
+        if (purpleEggCooldown.isOnCooldown(player)) {
+            long secondsLeft = purpleEggCooldown.getSecondsLeft(player);
             player.sendMessage(ChatColor.GREEN + "技能冷却中，剩余 " + ChatColor.YELLOW + secondsLeft + ChatColor.GREEN + " 秒");
             return false;
         }
-
         Player target = getPlayerInSight(player, 10);
         if (target == null || isSameTeam(player, target)) {
-            //player.sendMessage(ChatColor.RED + "未找到有效目标！");
             return false;
         }
-
-        // 修改紫蛋伤害为 8
         target.damage(8);
-        // 添加缓慢效果
         target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 2 * 20, 0));
-
-        // 播放音效
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1.0f, 1.0f);
         target.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1.0f, 1.0f);
-
-        // 显示粒子效果
         displayParticleEffect(player.getLocation(), target.getLocation());
-
-        startCooldown(player);
+        purpleEggCooldown.startCooldown(player, PURPLE_EGG_COOLDOWN_MS, this::onPurpleEggCooldownReady, (p, sec) -> updatePurpleEggItem(p));
+        updatePurpleEggItem(player);
         return true;
     }
 
@@ -375,14 +316,6 @@ public class General extends Kit implements Listener {
         }
 
         return target;
-    }
-
-    @EventHandler
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            updatePurpleEggItem(player);
-        }
     }
 
     @EventHandler

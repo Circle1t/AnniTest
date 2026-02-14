@@ -5,6 +5,8 @@ import cn.zhuobing.testPlugin.ore.OreType;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
 import cn.zhuobing.testPlugin.utils.MessageUtil;
+import cn.zhuobing.testPlugin.xp.XPManager;
+import cn.zhuobing.testPlugin.xp.XPRewardType;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -36,12 +38,14 @@ public class NexusListener implements Listener {
     private final TeamManager teamManager;
     private final MessageRenderer messageRenderer;
     private final NexusAntiCheat nexusAntiCheat;
+    private final XPManager xpManager = XPManager.getInstance();
     private final Plugin plugin;
 
     private String winningTeam = null;
     private final Map<String, Long> lastDigTime = new HashMap<>(); // 记录核心最后被挖掘的时间
     private final Map<String, String> lastDigPlayer = new HashMap<>(); // 记录核心最后被挖掘的玩家
     private static final int EXCLUSIVE_PERIOD = 500; // 500毫秒专属期，在这期间其他人不能挖核心
+    private int destroyedTeamIndex = 1;
 
 
     public NexusListener(NexusManager nexusManager, NexusInfoBoard nexusInfoBoard, GameManager gameManager, TeamManager teamManager,Plugin plugin,MessageRenderer messageRenderer,NexusAntiCheat antiCheat) {
@@ -164,8 +168,10 @@ public class NexusListener implements Listener {
                 int currentHealth = nexusManager.getNexusHealth(teamName);
                 if (gameManager.getCurrentPhase() == 5) {
                     currentHealth -= 2;
+                    xpManager.addXP(player, XPRewardType.NEXUS_DAMAGED_PHASE_5);
                 } else {
                     currentHealth--;
+                    xpManager.addXP(player,XPRewardType.NEXUS_DAMAGED_PHASE_1_4);
                 }
 
                 // 这里的反作弊没有开源，删除相关反作弊代码即可
@@ -191,15 +197,28 @@ public class NexusListener implements Listener {
                     for (String line : welcomeMessage) {
                         player.sendMessage(line);
                     }
+                    // 对被摧毁队伍的所有玩家发放补贴奖励
+                    if(destroyedTeamIndex == 1){
+                        xpManager.addXPToTeam(teamManager.getPlayersInTeam(teamName), XPRewardType.KNOCKED_OUT_1ST);
+                    } else if (destroyedTeamIndex == 2) {
+                        xpManager.addXPToTeam(teamManager.getPlayersInTeam(teamName), XPRewardType.KNOCKED_OUT_2ND);
+                    } else if (destroyedTeamIndex == 3) {
+                        xpManager.addXPToTeam(teamManager.getPlayersInTeam(teamName), XPRewardType.KNOCKED_OUT_3RD);
+                    }
+                    destroyedTeamIndex++;
+
                     //Bukkit.broadcastMessage(teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁 | 破坏者 " + teamManager.getTeamColor(playerTeam) + player.getName());
                     // 检查是否只有一个队伍的核心未被摧毁
                     // 延迟检查获胜者，确保所有核心状态更新完成
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         String winner = checkForWinner();
+                        winningTeam = winner;
                         if (winner != null) {
                             gameManager.endGameWithWinner(winner);
+                            // 为获胜队伍发放xp奖励
+                            xpManager.addWinRewardToTeam(teamManager.getPlayersInTeam(winner), nexusManager.getNexusHealth(winningTeam));
                         }
-                    }, 2L); // 延迟2 tick执行
+                    }, 10L); // 延迟10 tick执行
 
                     // 播放 TNT 爆炸声音给全局玩家
                     playTntExplosionSound(nexusLocation);

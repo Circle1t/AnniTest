@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.MessageUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
@@ -15,7 +16,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -41,13 +41,11 @@ public class ISO extends Kit implements Listener {
     private ItemStack woodAxe;
     private ItemStack amethystItem;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int FLOW_COOLDOWN = 60 * 1000; // 60秒冷却
-    private final String FLOW_ITEM_NAME = ChatColor.LIGHT_PURPLE + "战斗心流 " + ChatColor.GREEN + "准备就绪";
-    private final String FLOW_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String FLOW_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
+    private static final int FLOW_COOLDOWN_MS = 60 * 1000; // 60 秒冷却
+    private static final String FLOW_ITEM_NAME = ChatColor.LIGHT_PURPLE + "战斗心流 " + ChatColor.GREEN + "准备就绪";
+    private static final String FLOW_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String FLOW_COOLDOWN_SUFFIX = " 秒";
+    private final CooldownUtil flowCooldown;
 
     // 心流状态相关
     private final Set<UUID> inFlowState = new HashSet<>();
@@ -59,6 +57,7 @@ public class ISO extends Kit implements Listener {
     public ISO(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.flowCooldown = new CooldownUtil(kitManager.getPlugin(), FLOW_COOLDOWN_MS);
         setUp();
     }
 
@@ -212,25 +211,6 @@ public class ISO extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + FLOW_COOLDOWN);
-        startCooldownCheckTask(player);
-        updateAmethystItem(player);
-    }
-
     private boolean isAmethystItem(ItemStack stack) {
         return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.AMETHYST_SHARD);
     }
@@ -238,48 +218,25 @@ public class ISO extends Kit implements Listener {
     private void updateAmethystItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
-
         if (isAmethystItem(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
-
-            if (isOnCooldown(player)) {
+            long secondsLeft = flowCooldown.getSecondsLeft(player);
+            if (flowCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(FLOW_COOLDOWN_PREFIX + secondsLeft + FLOW_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(FLOW_ITEM_NAME);
             }
-
             heldItem.setItemMeta(meta);
             player.updateInventory();
         }
     }
 
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isOnCooldown(player)) {
-                    if(isThisKit(player)){
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.LIGHT_PURPLE + "战斗心流 " + ChatColor.GREEN + "准备就绪！");
-                        updateAmethystItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateAmethystItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
+    private void onFlowCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.LIGHT_PURPLE + "战斗心流 " + ChatColor.GREEN + "准备就绪！");
+            updateAmethystItemsInInventory(player);
+        }
     }
 
     private void updateAmethystItemsInInventory(Player player) {
@@ -294,15 +251,14 @@ public class ISO extends Kit implements Listener {
     }
 
     private boolean performSpecialAction(Player player) {
-        if (isOnCooldown(player)) {
-            long secondsLeft = getCooldownSecondsLeft(player);
+        if (flowCooldown.isOnCooldown(player)) {
+            long secondsLeft = flowCooldown.getSecondsLeft(player);
             player.sendMessage(ChatColor.GREEN + "技能冷却中，剩余 " + ChatColor.YELLOW + secondsLeft + ChatColor.GREEN + " 秒");
             return false;
         }
-
-        // 进入心流状态
         enterFlowState(player);
-        startCooldown(player);
+        flowCooldown.startCooldown(player, FLOW_COOLDOWN_MS, this::onFlowCooldownReady, (p, sec) -> updateAmethystItem(p));
+        updateAmethystItem(player);
         return true;
     }
 
@@ -458,14 +414,6 @@ public class ISO extends Kit implements Listener {
                 goldenHeartTasks.remove(playerId);
             }
         }.runTaskLater(kitManager.getPlugin(), 5 * 20));
-    }
-
-    @EventHandler
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            updateAmethystItem(player);
-        }
     }
 
     // 让水晶簇没有碰撞体积（玩家可穿过）

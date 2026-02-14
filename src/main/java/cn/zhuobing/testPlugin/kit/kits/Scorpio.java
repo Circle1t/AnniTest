@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.entity.*;
@@ -14,14 +15,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -39,19 +37,18 @@ public class Scorpio extends Kit implements Listener {
     private ItemStack woodAxe;
     private ItemStack compass;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int SKILL_COOLDOWN = 5 * 1000; // 5秒冷却
-    private final String HOOK_ITEM_NAME = ChatColor.YELLOW + "钩子 " + ChatColor.GREEN + "准备就绪";
-    private final String HOOK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String HOOK_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
-    // 新增字段记录免疫坠落伤害的玩家
+    private static final int SKILL_COOLDOWN_MS = 5 * 1000; // 5 秒冷却
+    private static final String HOOK_ITEM_NAME = ChatColor.YELLOW + "钩子 " + ChatColor.GREEN + "准备就绪";
+    private static final String HOOK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String HOOK_COOLDOWN_SUFFIX = " 秒";
+    private final CooldownUtil hookCooldown;
+    // 免疫坠落伤害的玩家
     private final Map<UUID, Long> fallDamageImmunePlayers = new HashMap<>();
 
     public Scorpio(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.hookCooldown = new CooldownUtil(kitManager.getPlugin(), SKILL_COOLDOWN_MS);
         setUp();
     }
 
@@ -179,80 +176,33 @@ public class Scorpio extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + SKILL_COOLDOWN);
-        startCooldownCheckTask(player);
-        updateHookItem(player);
-    }
-
     // 判断是否为钩子物品
     private boolean isHookItem(ItemStack stack) {
         return SoulBoundUtil.isSoulBoundItem(stack, Material.NETHER_STAR,4);
     }
 
-    // 新增物品更新方法
     private void updateHookItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
-
         if (isHookItem(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
-
-            if (isOnCooldown(player)) {
+            long secondsLeft = hookCooldown.getSecondsLeft(player);
+            if (hookCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(HOOK_COOLDOWN_PREFIX + secondsLeft + HOOK_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(HOOK_ITEM_NAME);
             }
-
             heldItem.setItemMeta(meta);
             player.updateInventory();
         }
     }
 
-    // 新增冷却检查任务
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        if (plugin == null) {
-            throw new IllegalStateException("Plugin instance in KitManager is null!");
+    private void onHookCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
+            updateHookItemsInInventory(player);
         }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isOnCooldown(player)) {
-                    if(isThisKit(player)){
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
-                        updateHookItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateHookItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
     }
 
     private void updateHookItemsInInventory(Player player) {
@@ -268,21 +218,19 @@ public class Scorpio extends Kit implements Listener {
 
     // 执行特殊技能
     private boolean performSpecialAction(Player player, Action action) {
-        if (isOnCooldown(player)) {
-            long secondsLeft = getCooldownSecondsLeft(player);
+        if (hookCooldown.isOnCooldown(player)) {
+            long secondsLeft = hookCooldown.getSecondsLeft(player);
             player.sendMessage(ChatColor.GREEN + "技能冷却中，剩余 " + ChatColor.YELLOW + secondsLeft + ChatColor.GREEN + " 秒");
             return false;
         }
-
         boolean isRightClick = action.toString().contains("RIGHT");
-
         if (isRightClick && !hasEnoughSpaceInFront(player)) {
             player.sendMessage(ChatColor.RED + "前方空间不足！");
             return false;
         }
-
         launchHook(player, !isRightClick); // 左键为队友模式
-        startCooldown(player);
+        hookCooldown.startCooldown(player, SKILL_COOLDOWN_MS, this::onHookCooldownReady, (p, sec) -> updateHookItem(p));
+        updateHookItem(player);
         return true;
     }
 
@@ -345,18 +293,10 @@ public class Scorpio extends Kit implements Listener {
         return false;
     }
 
-    // 玩家退出时清理记录
+    // 玩家退出时只清理坠落伤害免疫记录（冷却由 CooldownUtil 离线暂存）
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        UUID id = event.getPlayer().getUniqueId();
-        cooldowns.remove(id);
-        fallDamageImmunePlayers.remove(id);
-
-        // 清理冷却任务
-        if (cooldownTasks.containsKey(id)) {
-            cooldownTasks.get(id).cancel();
-            cooldownTasks.remove(id);
-        }
+        fallDamageImmunePlayers.remove(event.getPlayer().getUniqueId());
     }
 
     // 防止钩子被拾取
@@ -365,14 +305,6 @@ public class Scorpio extends Kit implements Listener {
         Item item = event.getItem();
         if (item.getItemStack().getType() == Material.NETHER_STAR) {
             event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            updateHookItem(player);
         }
     }
 

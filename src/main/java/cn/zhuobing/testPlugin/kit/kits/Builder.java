@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -13,14 +14,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 
@@ -37,13 +34,11 @@ public class Builder extends Kit implements Listener {
     private ItemStack woodShovel;
     private ItemStack materialBrick;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int OPEN_BOOK_COOLDOWN = 90 * 1000; // 90秒冷却
-    private final String MATERIAL_BOOK_NAME = ChatColor.YELLOW + "材料仓库 " + ChatColor.GREEN + "准备就绪";
-    private final String MATERIAL_BOOK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String MATERIAL_BOOK_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
+    private static final int OPEN_BOOK_COOLDOWN_MS = 90 * 1000; // 90 秒冷却
+    private static final String MATERIAL_BOOK_NAME = ChatColor.YELLOW + "材料仓库 " + ChatColor.GREEN + "准备就绪";
+    private static final String MATERIAL_BOOK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String MATERIAL_BOOK_COOLDOWN_SUFFIX = " 秒";
+    private final CooldownUtil materialBookCooldown;
 
     // 放置方块计时
     private final HashMap<UUID, Long> blockPlaceTimers = new HashMap<>();
@@ -70,6 +65,7 @@ public class Builder extends Kit implements Listener {
     public Builder(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.materialBookCooldown = new CooldownUtil(kitManager.getPlugin(), OPEN_BOOK_COOLDOWN_MS);
         setUp();
     }
 
@@ -210,80 +206,33 @@ public class Builder extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + OPEN_BOOK_COOLDOWN);
-        startCooldownCheckTask(player);
-        updateMaterialBookItem(player);
-    }
-
     // 统一 isMaterialBook 方法逻辑
     private boolean isMaterialBrick(ItemStack stack) {
         return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.BRICK);
     }
 
-    // 新增物品更新方法
     private void updateMaterialBookItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
-
         if (isMaterialBrick(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
-
-            if (isOnCooldown(player)) {
+            long secondsLeft = materialBookCooldown.getSecondsLeft(player);
+            if (materialBookCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(MATERIAL_BOOK_COOLDOWN_PREFIX + secondsLeft + MATERIAL_BOOK_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(MATERIAL_BOOK_NAME);
             }
-
             heldItem.setItemMeta(meta);
             player.updateInventory();
         }
     }
 
-    // 新增冷却检查任务
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        if (plugin == null) {
-            throw new IllegalStateException("Plugin instance in KitManager is null!");
+    private void onMaterialBookCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
+            updateMaterialBookItemsInInventory(player);
         }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isOnCooldown(player)) {
-                    if(isThisKit(player)){
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
-                        updateMaterialBookItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateMaterialBookItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
     }
 
     private void updateMaterialBookItemsInInventory(Player player) {
@@ -298,15 +247,14 @@ public class Builder extends Kit implements Listener {
     }
 
     private boolean performSpecialAction(Player player) {
-        if (isOnCooldown(player)) {
-            long secondsLeft = getCooldownSecondsLeft(player);
+        if (materialBookCooldown.isOnCooldown(player)) {
+            long secondsLeft = materialBookCooldown.getSecondsLeft(player);
             player.sendMessage(ChatColor.GREEN + "技能冷却中，剩余 " + ChatColor.YELLOW + secondsLeft + ChatColor.GREEN + " 秒");
             return false;
         }
-
-        // 打开 GUI
         openMaterialWarehouse(player);
-        startCooldown(player);
+        materialBookCooldown.startCooldown(player, OPEN_BOOK_COOLDOWN_MS, this::onMaterialBookCooldownReady, (p, sec) -> updateMaterialBookItem(p));
+        updateMaterialBookItem(player);
         return true;
     }
 
@@ -331,14 +279,6 @@ public class Builder extends Kit implements Listener {
         }
 
         player.openInventory(inv);
-    }
-
-    @EventHandler
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            updateMaterialBookItem(player);
-        }
     }
 
     private boolean isThisKit(Player player) {

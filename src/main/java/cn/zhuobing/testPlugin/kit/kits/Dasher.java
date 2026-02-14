@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
@@ -18,11 +19,8 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -40,12 +38,11 @@ public class Dasher extends Kit implements Listener {
     private ItemStack woodAxe;
     private ItemStack blinkItem;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final String BLINK_ITEM_NAME = ChatColor.YELLOW + "闪现 " + ChatColor.GREEN + "准备就绪";
-    private final String BLINK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String BLINK_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
+    private static final String BLINK_ITEM_NAME = ChatColor.YELLOW + "闪现 " + ChatColor.GREEN + "准备就绪";
+    private static final String BLINK_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String BLINK_COOLDOWN_SUFFIX = " 秒";
+    /** 默认冷却仅用于构造，实际冷却为 distance * 1000 ms */
+    private final CooldownUtil blinkCooldown;
 
     // 无法瞬移到的方块
     private static final List<Material> BLOCKED_MATERIALS = Arrays.asList(
@@ -64,6 +61,7 @@ public class Dasher extends Kit implements Listener {
     public Dasher(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.blinkCooldown = new CooldownUtil(kitManager.getPlugin(), 5000);
         setUp();
     }
 
@@ -187,81 +185,33 @@ public class Dasher extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player, int distance) {
-        int cooldownTime = distance * 1000; // 1格 = 冷却时间增加1s
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + cooldownTime);
-        startCooldownCheckTask(player);
-        updateBlinkItem(player);
-    }
-
     // 统一 isBlinkItem 方法逻辑
     private boolean isBlinkItem(ItemStack stack) {
         return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.PURPLE_DYE);
     }
 
-    // 新增物品更新方法
     private void updateBlinkItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
-
         if (isBlinkItem(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
-
-            if (isOnCooldown(player)) {
+            long secondsLeft = blinkCooldown.getSecondsLeft(player);
+            if (blinkCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(BLINK_COOLDOWN_PREFIX + secondsLeft + BLINK_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(BLINK_ITEM_NAME);
             }
-
             heldItem.setItemMeta(meta);
             player.updateInventory();
         }
     }
 
-    // 新增冷却检查任务
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        if (plugin == null) {
-            throw new IllegalStateException("Plugin instance in KitManager is null!");
+    private void onBlinkCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
+            updateBlinkItemsInInventory(player);
         }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isOnCooldown(player)) {
-                    if(isThisKit(player)){
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
-                        updateBlinkItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateBlinkItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
     }
 
     private void updateBlinkItemsInInventory(Player player) {
@@ -276,8 +226,8 @@ public class Dasher extends Kit implements Listener {
     }
 
     private boolean performSpecialAction(Player player) {
-        if (isOnCooldown(player)) {
-            long secondsLeft = getCooldownSecondsLeft(player);
+        if (blinkCooldown.isOnCooldown(player)) {
+            long secondsLeft = blinkCooldown.getSecondsLeft(player);
             player.sendMessage(ChatColor.GREEN + "技能冷却中，剩余 " + ChatColor.YELLOW + secondsLeft + ChatColor.GREEN + " 秒");
             return false;
         }
@@ -336,8 +286,9 @@ public class Dasher extends Kit implements Listener {
             player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, duration, 0));
         }
 
-        // 开始冷却
-        startCooldown(player, (int) distance);
+        long cooldownMs = (long) distance * 1000;
+        blinkCooldown.startCooldown(player, cooldownMs, this::onBlinkCooldownReady, (p, sec) -> updateBlinkItem(p));
+        updateBlinkItem(player);
         return true;
     }
 
@@ -437,10 +388,7 @@ public class Dasher extends Kit implements Listener {
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         if (isThisKit(player)) {
-            // 恢复之前的 Fake Block
             restorePreviousFakeBlock(player);
-
-            // 如果手持的是闪现物品，显示目标方块
             if (isBlinkItem(player.getInventory().getItem(event.getNewSlot()))) {
                 showTargetBlock(player);
             }

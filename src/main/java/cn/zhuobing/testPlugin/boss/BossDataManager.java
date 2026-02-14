@@ -11,6 +11,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
@@ -68,29 +69,58 @@ public class BossDataManager implements Listener {
     public void loadConfig() {
         configFile = new File(plugin.getDataFolder(), "boss-config.yml");
         config = YamlConfiguration.loadConfiguration(configFile);
+        World bossWorld = bossWorldManager.getBossWorld();
 
-        // 加载Boss生成点
+        // 兼容两种格式：1) 已被反序列化为 Location（配置里带 ==: org.bukkit.Location）；2) 普通 section（worldName/x/y/z）
         if (config.contains("bossSpawn")) {
-            Location loc = config.getLocation("bossSpawn");
-            if (loc != null) loc.setWorld(bossWorldManager.getBossWorld());
-            bossSpawnLocation = loc;
+            Object raw = config.get("bossSpawn");
+            if (raw instanceof Location) {
+                Location loc = (Location) raw;
+                if (bossWorld != null) loc.setWorld(bossWorld);
+                bossSpawnLocation = loc;
+            } else {
+                bossSpawnLocation = getLocationFromSection(config.getConfigurationSection("bossSpawn"), bossWorld);
+            }
         }
 
-        // 加载队伍传送点
         if (config.contains("teamTpLocations")) {
-            for (String team : config.getConfigurationSection("teamTpLocations").getKeys(false)) {
-                Location loc = config.getLocation("teamTpLocations." + team);
-                if (loc != null) loc.setWorld(bossWorldManager.getBossWorld());
-                teamTpLocations.put(team, loc);
+            ConfigurationSection section = config.getConfigurationSection("teamTpLocations");
+            if (section != null) {
+                for (String team : section.getKeys(false)) {
+                    Object raw = section.get(team);
+                    Location loc;
+                    if (raw instanceof Location) {
+                        loc = (Location) raw;
+                        if (bossWorld != null) loc.setWorld(bossWorld);
+                    } else {
+                        loc = getLocationFromSection(section.getConfigurationSection(team), bossWorld);
+                    }
+                    if (loc != null) teamTpLocations.put(team, loc);
+                }
             }
         }
     }
 
+    /** 从配置段构建 Location，支持 worldName 或 world；world 未加载时返回 null */
+    private Location getLocationFromSection(ConfigurationSection section, World fallbackWorld) {
+        if (section == null) return null;
+        String worldName = section.getString("worldName", section.getString("world"));
+        World w = worldName != null ? plugin.getServer().getWorld(worldName) : null;
+        if (w == null) w = fallbackWorld;
+        if (w == null) return null;
+        double x = section.getDouble("x", 0);
+        double y = section.getDouble("y", 64);
+        double z = section.getDouble("z", 0);
+        float yaw = (float) section.getDouble("yaw", 0);
+        float pitch = (float) section.getDouble("pitch", 0);
+        return new Location(w, x, y, z, yaw, pitch);
+    }
+
     public void saveConfig() {
-        config.set("bossSpawn", bossSpawnLocation);
+        saveLocationToSection("bossSpawn", bossSpawnLocation);
         config.set("teamTpLocations", null);
         for (Map.Entry<String, Location> entry : teamTpLocations.entrySet()) {
-            config.set("teamTpLocations." + entry.getKey(), entry.getValue());
+            saveLocationToSection("teamTpLocations." + entry.getKey(), entry.getValue());
         }
         try {
             config.save(configFile);
@@ -98,6 +128,17 @@ public class BossDataManager implements Listener {
             e.printStackTrace();
         }
         loadConfig();
+    }
+
+    /** 将 Location 保存为 worldName/x/y/z/yaw/pitch，避免下次加载时被当作 Location 反序列化导致 unknown world */
+    private void saveLocationToSection(String path, Location loc) {
+        if (loc == null) return;
+        config.set(path + ".worldName", loc.getWorld() != null ? loc.getWorld().getName() : "AnniBoss");
+        config.set(path + ".x", loc.getX());
+        config.set(path + ".y", loc.getY());
+        config.set(path + ".z", loc.getZ());
+        config.set(path + ".yaw", loc.getYaw());
+        config.set(path + ".pitch", loc.getPitch());
     }
 
     public void enterBossMap(Player player) {

@@ -1,9 +1,9 @@
 package cn.zhuobing.testPlugin.utils;
 
 import cn.zhuobing.testPlugin.game.GamePhase;
+import cn.zhuobing.testPlugin.xp.XPManager; // 新增导入
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -22,6 +22,8 @@ public class AnniConfigManager {
     public static boolean BUNGEE_ENABLED = false;
     public static String BUNGEE_LOBBY_SERVER = "lobby";
     public static List<GamePhase> GAME_PHASES = new ArrayList<>();
+    // XP系统开关配置（默认开启）
+    public static boolean XP_SYSTEM_ENABLED = true;
 
     // Header 和 Footer 配置
     public static String HEADER = ChatColor.GOLD + "核心战争\n" + ChatColor.YELLOW + "欢迎体验一个全新的核心战争！";
@@ -47,6 +49,9 @@ public class AnniConfigManager {
         BUNGEE_ENABLED = config.getBoolean("bungeecord.enabled", false);
         BUNGEE_LOBBY_SERVER = config.getString("bungeecord.lobby-server", "lobby");
 
+        // 读取XP系统开关配置
+        XP_SYSTEM_ENABLED = config.getBoolean("xp-system.enabled", true);
+
         // 读取 Header 和 Footer 配置
         if (config.contains("header")) {
             String headerValue;
@@ -70,7 +75,7 @@ public class AnniConfigManager {
             FOOTER = ChatColor.translateAlternateColorCodes('&', footerValue);
         }
 
-        // 修复：正确加载游戏阶段配置
+        // 加载游戏阶段配置
         GAME_PHASES.clear();
         if (config.contains("phases")) {
             List<Map<?, ?>> phaseMaps = (List<Map<?, ?>>) config.getList("phases");
@@ -95,6 +100,10 @@ public class AnniConfigManager {
             plugin.getLogger().info("未找到阶段配置，使用默认阶段配置");
         }
 
+        // 同步XP系统开关状态到XPManager
+        XPManager.getInstance().setXpSystemEnabled(XP_SYSTEM_ENABLED);
+        plugin.getLogger().info("XP系统状态: " + (XP_SYSTEM_ENABLED ? "已启用" : "已禁用"));
+
         // 保存可能更新后的配置
         saveConfig(plugin, config);
     }
@@ -114,6 +123,12 @@ public class AnniConfigManager {
                     "bungeecord:\n" +
                     "  enabled: true    # 是否启用 BungeeCord 跨服传送功能\n" +
                     "  lobby-server: \"lobby\"  # BungeeCord 大厅服务器名称（必须与 BungeeCord 配置匹配）\n" +
+                    "\n" +
+                    "# ==============================\n" +
+                    "# XP系统配置\n" +
+                    "# ==============================\n" +
+                    "xp-system:\n" +
+                    "  enabled: true    # 是否启用XP系统（默认开启）\n" +
                     "\n" +
                     "# ==============================\n" +
                     "# 游戏设置\n" +
@@ -198,6 +213,9 @@ public class AnniConfigManager {
         config.set("paths.map-config-folder", MAP_CONFIG_FOLDER);
         config.set("bungeecord.enabled", BUNGEE_ENABLED);
         config.set("bungeecord.lobby-server", BUNGEE_LOBBY_SERVER);
+
+        // 保存XP系统开关配置
+        config.set("xp-system.enabled", XP_SYSTEM_ENABLED);
 
         // 保存 Header 和 Footer
         config.set("header", Arrays.asList(HEADER.replace(ChatColor.COLOR_CHAR, '&').split("\n")));

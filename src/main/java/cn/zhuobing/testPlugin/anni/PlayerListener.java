@@ -8,6 +8,8 @@ import cn.zhuobing.testPlugin.kit.kits.Assassin;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.ore.OreType;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.xp.XPManager;
+import cn.zhuobing.testPlugin.xp.XPRewardType;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -29,7 +31,10 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerListener implements Listener {
     private final TeamManager teamManager;
@@ -37,6 +42,9 @@ public class PlayerListener implements Listener {
     private final KitManager kitManager;
     private final NexusManager nexusManager;
     private final Set<Material> prohibitedMaterials;
+    private final XPManager xpManager = XPManager.getInstance();
+    // 存储复仇关系：键=受害者UUID，值=击杀者UUID（即该受害者的复仇目标）
+    private final Map<UUID, UUID> revengeTargetMap = new ConcurrentHashMap<>();
 
     public PlayerListener(TeamManager teamManager, GameManager gameManager, KitManager kitManager, NexusManager nexusManager) {
         this.teamManager = teamManager;
@@ -129,19 +137,50 @@ public class PlayerListener implements Listener {
             // 使用 String.format 方法格式化健康值为保留两位小数的字符串
             String formattedHealth = String.format("%.2f", killerHealth);
 
+            // ===== 复仇击杀逻辑 =====
+            UUID killerUUID = killer.getUniqueId();
+            UUID victimUUID = victim.getUniqueId();
+            boolean isRevengeKill = false;
+
+            // 检查当前击杀是否为复仇（杀手的复仇目标就是当前受害者） 复仇击杀优先级最高
+            if (revengeTargetMap.containsKey(killerUUID) && revengeTargetMap.get(killerUUID).equals(victimUUID)) {
+                isRevengeKill = true;
+                // 复仇成功，添加复仇XP奖励（与基础击杀奖励叠加）
+                xpManager.addXP(killer, XPRewardType.AVENGE_KILL);
+                // 清除复仇目标（避免重复触发复仇奖励）
+                revengeTargetMap.remove(killerUUID);
+            }
+
+            // 记录当前受害者的复仇目标（即杀死他的人）
+            revengeTargetMap.put(victimUUID, killerUUID);
+
+            // ===== 击杀奖励逻辑 =====
             if(nexusManager.isPlayerInTeamProtectionArea(victim,victimTeamName)){
+                if (!isRevengeKill) {  // 如果是复仇击杀，之前已经给过了奖励，这里就不给了
+                    // 给进攻者加基础击杀XP
+                    xpManager.addXP(killer, XPRewardType.RUSHED_NEXUS);
+                }
                 String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 在防守核心时被击杀因为 " +
                         killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
                         + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
                 event.getEntity().getServer().broadcastMessage(deathMessage);
+
             }
             else if(nexusManager.isPlayerInTeamProtectionArea(victim,killerTeamName)){
+                if (!isRevengeKill) { // 如果是复仇击杀，之前已经给过了奖励，这里就不给了
+                    // 给防守者加基础击杀XP
+                    xpManager.addXP(killer, XPRewardType.DEFENDED_NEXUS);
+                }
                 String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 在攻击敌方核心时被击杀因为 " +
                         killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
                         + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";
                 event.getEntity().getServer().broadcastMessage(deathMessage);
             }
             else {
+                if (!isRevengeKill) { // 如果是复仇击杀，之前已经给过了奖励，这里就不给了
+                    // 普通击杀加基础XP
+                    xpManager.addXP(killer, XPRewardType.KILLED_ENEMY);
+                }
                 String deathMessage = victimColor + victim.getName() + ChatColor.GRAY + " 被击杀因为 " +
                         killerColor + killer.getName() + "[" + ChatColor.GOLD + formattedHealth + ChatColor.RED + "❤" + killerColor + "]("
                         + kitManager.getPlayerKit(killer.getUniqueId()).getNameWithColor() + killerColor + ")";

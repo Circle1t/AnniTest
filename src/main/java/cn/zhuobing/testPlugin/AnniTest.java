@@ -69,6 +69,7 @@ import cn.zhuobing.testPlugin.team.TeamCommandHandler;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
+import cn.zhuobing.testPlugin.xp.XPManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -110,6 +111,7 @@ public class AnniTest extends JavaPlugin {
     private MapConfigurerManager mapConfigurerManager;
     private EnderFurnaceManager enderFurnaceManager;
 
+    // 这里的反作弊没有开源，删除相关反作弊代码即可
     private NexusAntiCheat nexusAntiCheat;
 
     @Override

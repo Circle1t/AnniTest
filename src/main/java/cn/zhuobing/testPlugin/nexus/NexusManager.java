@@ -13,10 +13,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class NexusManager {
     private final Map<String, Location> teamNexusLocations = new HashMap<>();
-    private final Map<String, Integer> teamNexusHealth = new HashMap<>();
+    private final Map<String, Integer> teamNexusHealth = new ConcurrentHashMap<>();
     private final Map<String, Location> borderFirst = new HashMap<>();
     private final Map<String, Location> borderSecond = new HashMap<>();
     private static final int DEFAULT_HEALTH = 75;

@@ -5,6 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
@@ -12,15 +13,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -39,18 +36,17 @@ public class Swapper extends Kit implements Listener {
     private ItemStack woodShovel;
     private ItemStack swapperItem;
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> cooldowns = new HashMap<>();
-    private final int SWAP_COOLDOWN = 20 * 1000; // 20秒冷却
-    private final String SWAPPER_ITEM_NAME = ChatColor.YELLOW + "交换之音 " + ChatColor.GREEN + "准备就绪";
-    private final String SWAPPER_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String SWAPPER_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> cooldownTasks = new HashMap<>();
+    private static final int SWAP_COOLDOWN_MS = 20 * 1000; // 20 秒冷却
+    private static final String SWAPPER_ITEM_NAME = ChatColor.YELLOW + "交换之音 " + ChatColor.GREEN + "准备就绪";
+    private static final String SWAPPER_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String SWAPPER_COOLDOWN_SUFFIX = " 秒";
 
+    private final CooldownUtil swapCooldown;
 
     public Swapper(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.swapCooldown = new CooldownUtil(kitManager.getPlugin(), SWAP_COOLDOWN_MS);
         setUp();
     }
 
@@ -177,40 +173,20 @@ public class Swapper extends Kit implements Listener {
         }
     }
 
-    // 冷却检查方法
-    private boolean isOnCooldown(Player player) {
-        return cooldowns.containsKey(player.getUniqueId()) &&
-                cooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getCooldownSecondsLeft(Player player) {
-        if (cooldowns.containsKey(player.getUniqueId())) {
-            return (cooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-        }
-        return 0;
-    }
-
-    private void startCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + SWAP_COOLDOWN);
-        startCooldownCheckTask(player);
-        updateSwapperItem(player);
-    }
-
     // 统一 isSwapperItem 方法逻辑
     private boolean isSwapperItem(ItemStack stack) {
         return stack != null && SoulBoundUtil.isSoulBoundItem(stack, Material.MUSIC_DISC_CAT);
     }
 
-    // 新增物品更新方法
     private void updateSwapperItem(Player player) {
         PlayerInventory inv = player.getInventory();
         ItemStack heldItem = inv.getItemInMainHand();
 
         if (isSwapperItem(heldItem) && isThisKit(player)) {
             ItemMeta meta = heldItem.getItemMeta();
-            long secondsLeft = getCooldownSecondsLeft(player);
+            long secondsLeft = swapCooldown.getSecondsLeft(player);
 
-            if (isOnCooldown(player)) {
+            if (swapCooldown.isOnCooldown(player)) {
                 meta.setDisplayName(SWAPPER_COOLDOWN_PREFIX + secondsLeft + SWAPPER_COOLDOWN_SUFFIX);
             } else {
                 meta.setDisplayName(SWAPPER_ITEM_NAME);
@@ -221,36 +197,16 @@ public class Swapper extends Kit implements Listener {
         }
     }
 
-    // 新增冷却检查任务
-    private void startCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        if (plugin == null) {
-            throw new IllegalStateException("Plugin instance in KitManager is null!");
+    private void onSwapCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
+            updateSwapperItemsInInventory(player);
         }
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
+    }
 
-                if (!isOnCooldown(player)) {
-                    if(isThisKit(player)){
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.YELLOW + "准备就绪！");
-                        updateSwapperItemsInInventory(player);
-                    }
-                    cooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateSwapperItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        cooldownTasks.put(player.getUniqueId(), task);
+    private void onSwapCooldownTick(Player player, Long secondsLeft) {
+        updateSwapperItem(player);
     }
 
     private void updateSwapperItemsInInventory(Player player) {
@@ -266,8 +222,8 @@ public class Swapper extends Kit implements Listener {
 
 
     private boolean performSpecialAction(Player player) {
-        if (isOnCooldown(player)) {
-            long secondsLeft = getCooldownSecondsLeft(player);
+        if (swapCooldown.isOnCooldown(player)) {
+            long secondsLeft = swapCooldown.getSecondsLeft(player);
             player.sendMessage(ChatColor.GREEN + "技能冷却中，剩余 " + ChatColor.YELLOW + secondsLeft + ChatColor.GREEN + " 秒");
             return false;
         }
@@ -308,7 +264,8 @@ public class Swapper extends Kit implements Listener {
         // 显示粒子效果
         displayParticleEffect(playerLoc, targetLoc);
 
-        startCooldown(player);
+        swapCooldown.startCooldown(player, SWAP_COOLDOWN_MS, this::onSwapCooldownReady, this::onSwapCooldownTick);
+        updateSwapperItem(player);
         return true;
     }
 
@@ -334,14 +291,6 @@ public class Swapper extends Kit implements Listener {
         }
 
         return target;
-    }
-
-    @EventHandler
-    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
-        Player player = event.getPlayer();
-        if (isThisKit(player)) {
-            updateSwapperItem(player);
-        }
     }
 
     private boolean isSameTeam(Player p1, Player p2) {

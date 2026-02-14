@@ -86,7 +86,13 @@ public class NPCManager implements Listener {
             return;
         }
 
-        // 先清理可能散落的旧 NPC
+        // 优先按映射表同步移除该玩家的离线 NPC，避免重进后 NPC 仍残留（不依赖按名称遍历实体）
+        boolean hadNpc = playerToNpcMap.containsKey(playerId);
+        if (hadNpc) {
+            removeNPC(playerId);
+        }
+
+        // 再按名称扫描世界，清理可能未在映射中的散落 NPC（如重启、异常等）
         cleanupPlayerNPCs(player);
 
         // 如果上次NPC被玩家击杀，则返回时立即死亡并不掉落
@@ -107,24 +113,15 @@ public class NPCManager implements Listener {
 
         // 如果上次NPC是被服务器自动清除，则无需死亡惩罚
         if (autoClearedPlayers.remove(playerId)) {
-            // 仅通知，物品由服务器安全保存
             if (player.isOnline()) {
                 player.sendMessage(ChatColor.GREEN + "你的离线NPC已被服务器清除，状态已安全恢复！");
             }
             return;
         }
 
-        // 如果NPC依然存在，则移除并通知
-        if (playerToNpcMap.containsKey(playerId)) {
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    removeNPC(playerId);
-                    if (player.isOnline()) {
-                        player.sendMessage(ChatColor.GREEN + "你的离线NPC安全的活了下来，状态已安全恢复！");
-                    }
-                }
-            }.runTaskLater(plugin, 2L);
+        // 刚才按映射表移除了存活 NPC，通知玩家
+        if (hadNpc && player.isOnline()) {
+            player.sendMessage(ChatColor.GREEN + "你的离线NPC安全的活了下来，状态已安全恢复！");
         }
     }
 

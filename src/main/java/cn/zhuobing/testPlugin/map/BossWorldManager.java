@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import static cn.zhuobing.testPlugin.utils.DirectoryUtil.copyDirectory;
 import static cn.zhuobing.testPlugin.utils.DirectoryUtil.deleteDirectory;
@@ -46,22 +48,22 @@ public class BossWorldManager {
                         String defaultConfigContent = "# boss-config.yml\n" +
                                 "bossMap: \"BossTemplate\"    # Boss地图模板名称（需存放在 plugins/插件名/maps/ 目录下）\n" +
                                 "bossSpawn:                 # Boss生成点坐标（建议参数都在游戏里配置）\n" +
-                                "  world: AnniBoss          # 必须为 AnniBoss 世界\n" +
+                                "  worldName: AnniBoss      # 必须为 AnniBoss 世界（勿用 world 键，否则加载时会报 unknown world）\n" +
                                 "  x: 100.5\n" +
                                 "  y: 64.0\n" +
                                 "  z: 200.5\n" +
                                 "  yaw: 0.0\n" +
                                 "  pitch: 0.0\n" +
                                 "teamTpLocations:           # 队伍传送点坐标\n" +
-                                "  red:                     # 红队传送点\n" +
-                                "    world: AnniBoss\n" +
+                                "  red:\n" +
+                                "    worldName: AnniBoss\n" +
                                 "    x: -150.5\n" +
                                 "    y: 64.0\n" +
                                 "    z: 300.5\n" +
                                 "    yaw: 90.0\n" +
                                 "    pitch: 0.0\n" +
-                                "  blue:                    # 蓝队传送点\n" +
-                                "    world: AnniBoss\n" +
+                                "  blue:\n" +
+                                "    worldName: AnniBoss\n" +
                                 "    x: 200.5\n" +
                                 "    y: 64.0\n" +
                                 "    z: -100.5\n" +
@@ -81,8 +83,27 @@ public class BossWorldManager {
                 plugin.getLogger().severe("创建 boss-config.yml 文件时出错: " + e.getMessage());
             }
         }
+        // 迁移旧配置：将 world 改为 worldName，避免 Yaml 加载时被反序列化为 Location（此时 AnniBoss 世界尚未加载会报 unknown world）
+        migrateWorldKeyInConfig();
         config = YamlConfiguration.loadConfiguration(configFile);
         loadBossWorld();
+    }
+
+    /** 将配置中的键 "world" 改为 "worldName"，避免 Bukkit 将坐标段反序列化为 Location 导致 unknown world */
+    private void migrateWorldKeyInConfig() {
+        if (!configFile.exists()) return;
+        try {
+            String content = new String(Files.readAllBytes(configFile.toPath()), StandardCharsets.UTF_8);
+            String migrated = content
+                    .replace("  world: ", "  worldName: ")
+                    .replace("    world: ", "    worldName: ");
+            if (!migrated.equals(content)) {
+                Files.write(configFile.toPath(), migrated.getBytes(StandardCharsets.UTF_8));
+                plugin.getLogger().info("[BossWorldManager] 已迁移 boss-config.yml：world -> worldName");
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("迁移 boss-config.yml 时出错: " + e.getMessage());
+        }
     }
 
     private void loadBossWorld() {

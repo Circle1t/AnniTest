@@ -7,6 +7,7 @@ import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -48,9 +49,8 @@ public class Transporter extends Kit implements Listener {
     // 传送门管理
     private final Map<UUID, Teleporter> teleporters = new ConcurrentHashMap<>();
 
-    // 传送冷却
-    private final Map<UUID, Long> portalCooldowns = new ConcurrentHashMap<>();
-    private final int PORTAL_COOLDOWN = 5000; // 5秒冷却
+    private static final int PORTAL_COOLDOWN_MS = 5000; // 5 秒冷却
+    private final CooldownUtil portalCooldown;
 
     // 玩家已提示传送门的标记
     private final Set<UUID> portalTipPlayers = ConcurrentHashMap.newKeySet();
@@ -62,6 +62,7 @@ public class Transporter extends Kit implements Listener {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
         this.nexusManager = nexusManager;
+        this.portalCooldown = new CooldownUtil(kitManager.getPlugin(), PORTAL_COOLDOWN_MS);
         setUp();
     }
 
@@ -360,10 +361,8 @@ public class Transporter extends Kit implements Listener {
             return;
         }
 
-        // 检查冷却
-        if (isOnPortalCooldown(player)) {
-            long secondsLeft = (portalCooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
-            player.sendMessage(ChatColor.RED + "传送冷却中，剩余 " + secondsLeft + " 秒");
+        if (portalCooldown.isOnCooldown(player)) {
+            player.sendMessage(ChatColor.RED + "传送冷却中，剩余 " + portalCooldown.getSecondsLeft(player) + " 秒");
             return;
         }
 
@@ -390,8 +389,7 @@ public class Transporter extends Kit implements Listener {
         teleportLoc.setDirection(player.getLocation().getDirection());
         player.teleport(teleportLoc);
 
-        // 设置冷却
-        portalCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + PORTAL_COOLDOWN);
+        portalCooldown.startCooldown(player);
 
         // 给传送师经验
         if (owner.isOnline()) {
@@ -403,12 +401,6 @@ public class Transporter extends Kit implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
         showParticles(player.getLocation(), Particle.PORTAL, 100, 1.0);
         showParticles(teleportLoc, Particle.PORTAL, 100, 1.0);
-    }
-
-    // 检查传送冷却
-    private boolean isOnPortalCooldown(Player player) {
-        return portalCooldowns.containsKey(player.getUniqueId()) &&
-                portalCooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
     }
 
     // 玩家移动时提示传送门

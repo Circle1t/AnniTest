@@ -5,7 +5,7 @@ import cn.zhuobing.testPlugin.kit.KitManager;
 import cn.zhuobing.testPlugin.specialitem.items.CompassItem;
 import cn.zhuobing.testPlugin.specialitem.items.SpecialArmor;
 import cn.zhuobing.testPlugin.team.TeamManager;
-import cn.zhuobing.testPlugin.utils.MessageUtil;
+import cn.zhuobing.testPlugin.utils.CooldownUtil;
 import cn.zhuobing.testPlugin.utils.SoulBoundUtil;
 import org.bukkit.*;
 import org.bukkit.enchantments.Enchantment;
@@ -20,7 +20,6 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -36,21 +35,18 @@ public class Sova extends Kit implements Listener {
     private final KitManager kitManager;
     private List<ItemStack> kitItems = new ArrayList<>();
 
-    // 冷却相关字段
-    private final HashMap<UUID, Long> scanCooldowns = new HashMap<>();
-    private final HashMap<UUID, Long> furyCooldowns = new HashMap<>();
-    private final int SCAN_COOLDOWN = 60 * 1000; // 60秒冷却
-    private final int FURY_COOLDOWN = 120 * 1000; // 120秒冷却
-    private final String SCAN_ITEM_NAME = ChatColor.AQUA + "寻敌弓 " + ChatColor.GREEN + "准备就绪";
-    private final String LIGHT_ARROW = ChatColor.AQUA + "光灵箭";
-    private final String HELMET = ChatColor.AQUA + "头盔";
-    private final String SCAN_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String SCAN_COOLDOWN_SUFFIX = " 秒";
-    private final String FURY_ITEM_NAME = ChatColor.YELLOW + "狂猎之怒 " + ChatColor.GREEN + "准备就绪";
-    private final String FURY_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
-    private final String FURY_COOLDOWN_SUFFIX = " 秒";
-    private final HashMap<UUID, BukkitTask> scanCooldownTasks = new HashMap<>();
-    private final HashMap<UUID, BukkitTask> furyCooldownTasks = new HashMap<>();
+    private static final int SCAN_COOLDOWN_MS = 60 * 1000; // 60 秒
+    private static final int FURY_COOLDOWN_MS = 120 * 1000; // 120 秒
+    private static final String SCAN_ITEM_NAME = ChatColor.AQUA + "寻敌弓 " + ChatColor.GREEN + "准备就绪";
+    private static final String LIGHT_ARROW = ChatColor.AQUA + "光灵箭";
+    private static final String HELMET = ChatColor.AQUA + "头盔";
+    private static final String SCAN_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String SCAN_COOLDOWN_SUFFIX = " 秒";
+    private static final String FURY_ITEM_NAME = ChatColor.YELLOW + "狂猎之怒 " + ChatColor.GREEN + "准备就绪";
+    private static final String FURY_COOLDOWN_PREFIX = ChatColor.RED + "冷却中 ";
+    private static final String FURY_COOLDOWN_SUFFIX = " 秒";
+    private final CooldownUtil scanCooldown;
+    private final CooldownUtil furyCooldown;
 
     // 标记相关
     private final Map<UUID, Set<UUID>> markedPlayers = new HashMap<>(); // 标记者 -> 被标记玩家
@@ -60,6 +56,8 @@ public class Sova extends Kit implements Listener {
     public Sova(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
         this.kitManager = kitManager;
+        this.scanCooldown = new CooldownUtil(kitManager.getPlugin(), SCAN_COOLDOWN_MS);
+        this.furyCooldown = new CooldownUtil(kitManager.getPlugin(), FURY_COOLDOWN_MS);
         setUp();
     }
 
@@ -187,97 +185,20 @@ public class Sova extends Kit implements Listener {
         return kitItems;
     }
 
-    // 检查冷却
-    private boolean isScanOnCooldown(Player player) {
-        return scanCooldowns.containsKey(player.getUniqueId()) &&
-                scanCooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private boolean isFuryOnCooldown(Player player) {
-        return furyCooldowns.containsKey(player.getUniqueId()) &&
-                furyCooldowns.get(player.getUniqueId()) > System.currentTimeMillis();
-    }
-
-    private long getScanCooldownSecondsLeft(Player player) {
-        if (scanCooldowns.containsKey(player.getUniqueId())) {
-            return (scanCooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
+    private void onScanCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.AQUA + "寻敌弓 " + ChatColor.GREEN + "准备就绪！");
+            updateBowItemsInInventory(player);
         }
-        return 0;
     }
 
-    private long getFuryCooldownSecondsLeft(Player player) {
-        if (furyCooldowns.containsKey(player.getUniqueId())) {
-            return (furyCooldowns.get(player.getUniqueId()) - System.currentTimeMillis()) / 1000;
+    private void onFuryCooldownReady(Player player) {
+        if (isThisKit(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
+            player.sendMessage(ChatColor.GOLD + "你的技能 " + ChatColor.YELLOW + "狂猎之怒 " + ChatColor.GREEN + "准备就绪！");
+            updateFuryItemsInInventory(player);
         }
-        return 0;
-    }
-
-    private void startScanCooldown(Player player) {
-        scanCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + SCAN_COOLDOWN);
-        startScanCooldownCheckTask(player);
-        updateBowItem(player);
-    }
-
-    private void startFuryCooldown(Player player) {
-        furyCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + FURY_COOLDOWN);
-        startFuryCooldownCheckTask(player);
-        updateFuryItem(player);
-    }
-
-    private void startScanCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    scanCooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isScanOnCooldown(player)) {
-                    if (isThisKit(player)) {
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GREEN + "你的技能 " + ChatColor.AQUA + "寻敌弓 " + ChatColor.GREEN + "准备就绪！");
-                        updateBowItemsInInventory(player);
-                    }
-                    scanCooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateBowItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        scanCooldownTasks.put(player.getUniqueId(), task);
-    }
-
-    private void startFuryCooldownCheckTask(Player player) {
-        Plugin plugin = kitManager.getPlugin();
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) {
-                    furyCooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                    return;
-                }
-
-                if (!isFuryOnCooldown(player)) {
-                    if (isThisKit(player)) {
-                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.0f);
-                        player.sendMessage(ChatColor.GOLD + "你的技能 " + ChatColor.YELLOW + "狂猎之怒 " + ChatColor.GREEN + "准备就绪！");
-                        updateFuryItemsInInventory(player);
-                    }
-                    furyCooldownTasks.remove(player.getUniqueId());
-                    this.cancel();
-                } else {
-                    updateFuryItem(player);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-
-        furyCooldownTasks.put(player.getUniqueId(), task);
     }
 
     private void updateBowItem(Player player) {
@@ -285,14 +206,12 @@ public class Sova extends Kit implements Listener {
         for (ItemStack item : inv.getContents()) {
             if (isScanBow(item)) {
                 ItemMeta meta = item.getItemMeta();
-                long secondsLeft = getScanCooldownSecondsLeft(player);
-
-                if (isScanOnCooldown(player)) {
+                long secondsLeft = scanCooldown.getSecondsLeft(player);
+                if (scanCooldown.isOnCooldown(player)) {
                     meta.setDisplayName(SCAN_COOLDOWN_PREFIX + secondsLeft + SCAN_COOLDOWN_SUFFIX);
                 } else {
                     meta.setDisplayName(SCAN_ITEM_NAME);
                 }
-
                 item.setItemMeta(meta);
             }
         }
@@ -315,14 +234,12 @@ public class Sova extends Kit implements Listener {
         for (ItemStack item : inv.getContents()) {
             if (isFuryItem(item)) {
                 ItemMeta meta = item.getItemMeta();
-                long secondsLeft = getFuryCooldownSecondsLeft(player);
-
-                if (isFuryOnCooldown(player)) {
+                long secondsLeft = furyCooldown.getSecondsLeft(player);
+                if (furyCooldown.isOnCooldown(player)) {
                     meta.setDisplayName(FURY_COOLDOWN_PREFIX + secondsLeft + FURY_COOLDOWN_SUFFIX);
                 } else {
                     meta.setDisplayName(FURY_ITEM_NAME);
                 }
-
                 item.setItemMeta(meta);
             }
         }
@@ -362,9 +279,8 @@ public class Sova extends Kit implements Listener {
         if ((action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) &&
                 item != null && isScanBow(item) && isThisKit(player)) {
 
-            if (isScanOnCooldown(player)) {
-                long secondsLeft = getScanCooldownSecondsLeft(player);
-                player.sendMessage(ChatColor.RED + "技能冷却中，剩余 " + secondsLeft + " 秒");
+            if (scanCooldown.isOnCooldown(player)) {
+                player.sendMessage(ChatColor.RED + "技能冷却中，剩余 " + scanCooldown.getSecondsLeft(player) + " 秒");
                 event.setCancelled(true);
                 return;
             }
@@ -384,9 +300,8 @@ public class Sova extends Kit implements Listener {
             // 防止放置避雷针
             event.setCancelled(true);
 
-            if (isFuryOnCooldown(player)) {
-                long secondsLeft = getFuryCooldownSecondsLeft(player);
-                player.sendMessage(ChatColor.RED + "狂猎之怒冷却中，剩余 " + secondsLeft + " 秒");
+            if (furyCooldown.isOnCooldown(player)) {
+                player.sendMessage(ChatColor.RED + "狂猎之怒冷却中，剩余 " + furyCooldown.getSecondsLeft(player) + " 秒");
                 return;
             }
 
@@ -404,8 +319,8 @@ public class Sova extends Kit implements Listener {
             BukkitTask task = markTasks.remove(playerId);
             if (task != null) task.cancel();
 
-            // 开始冷却
-            startFuryCooldown(player);
+            furyCooldown.startCooldown(player, FURY_COOLDOWN_MS, this::onFuryCooldownReady, (p, sec) -> updateFuryItem(p));
+            updateFuryItem(player);
         }
     }
 
@@ -433,17 +348,12 @@ public class Sova extends Kit implements Listener {
         ItemStack bow = shooter.getInventory().getItemInMainHand();
         if (!isScanBow(bow)) return;
 
-        // 检查冷却是否就绪
-        if (isScanOnCooldown(shooter)) return;
+        if (scanCooldown.isOnCooldown(shooter)) return;
 
-        // 移除箭矢
         arrow.remove();
-
-        // 标记敌人
         markNearbyEnemies(shooter, arrow.getLocation());
-
-        // 开始冷却
-        startScanCooldown(shooter);
+        scanCooldown.startCooldown(shooter, SCAN_COOLDOWN_MS, this::onScanCooldownReady, (p, sec) -> updateBowItem(p));
+        updateBowItem(shooter);
     }
 
     // 标记附近敌人

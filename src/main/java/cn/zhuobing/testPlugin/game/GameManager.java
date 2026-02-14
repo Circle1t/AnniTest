@@ -8,6 +8,7 @@ import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.ore.OreManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import cn.zhuobing.testPlugin.utils.MessageRenderer;
+import cn.zhuobing.testPlugin.xp.XPManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -228,7 +229,14 @@ public class GameManager {
         String cnWinnerTeam = englishToChineseMap.get(winningTeam);
         bossBar.setTitle(ChatColor.GOLD + ChatColor.BOLD.toString() + "游戏结束！" + teamManager.getTeamColor(winningTeam) + cnWinnerTeam + "队" + ChatColor.GOLD + " 获胜");
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(ChatColor.GOLD + ChatColor.BOLD.toString() + "游戏结束！" + teamManager.getTeamColor(winningTeam) + cnWinnerTeam + "队" + ChatColor.GOLD + " 获胜");
+            player.sendMessage(" ");
+            List<String> welcomeMessage = messageRenderer.formatMessage(
+                    messageRenderer.getTeamMessage(winningTeam),
+                    teamManager.getTeamColor(winningTeam) + cnWinnerTeam + "队" + ChatColor.GOLD + " 获胜！"
+            );
+            for (String line : welcomeMessage) {
+                player.sendMessage(line);
+            }
             // 显示 title
             player.sendTitle(ChatColor.GOLD + ChatColor.BOLD.toString() + "游 戏 结 束", teamManager.getTeamColor(winningTeam) + cnWinnerTeam + "队" + ChatColor.GOLD + " 获得胜利", 10, 70, 20);
             // 获胜者音效
