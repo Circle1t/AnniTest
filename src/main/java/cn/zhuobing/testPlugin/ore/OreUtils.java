@@ -19,6 +19,11 @@ public class OreUtils {
             return toolMaterial == Material.SHEARS;
         }
 
+        // 树叶可用剑或锄头
+        if (oreType == OreType.LEAVES) {
+            return toolName.endsWith("_SWORD") || toolName.endsWith("_HOE");
+        }
+
         // 验证工具类型后缀
         if (!toolName.endsWith("_" + oreType.toolType)) {
             return false;

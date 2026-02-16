@@ -7,9 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -159,9 +157,5 @@ public class KitManager implements Listener {
         return plugin;
     }
 
-    /** 玩家退出时清理职业映射，避免 Map 无限增长 */
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        playerKits.remove(event.getPlayer().getUniqueId());
-    }
+    // 玩家退出时不清除职业映射，重进后保留职业，职业物品才能继续生效
 }

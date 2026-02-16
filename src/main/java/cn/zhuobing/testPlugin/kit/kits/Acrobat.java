@@ -126,6 +126,14 @@ public class Acrobat extends Kit implements Listener {
         }
     }
 
+    @Override
+    public void onKitUnset(Player player) {
+        // 转职时清除飞行状态，避免保留 allowFlight 后切到其他职业（如刺客）能无限飞行
+        player.setAllowFlight(false);
+        player.setFlying(false);
+        cooldowns.remove(player.getUniqueId());
+    }
+
     private void setUp() {
 
         //createSoulBoundItem(Material material, String displayName, int amount, int soulBoundLevel, boolean isUnbreakable)

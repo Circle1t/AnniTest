@@ -46,6 +46,8 @@ public class EnderFurnaceListener implements Listener {
         if (!furnaceManager.hasVirtualFurnace(player)) {
             furnaceManager.createVirtualFurnace(player);
         }
+        // 打开前确保熔炉所在区块已加载，否则烧不了东西
+        furnaceManager.ensurePlayerFurnaceChunkLoaded(player);
 
         // 打开库存
         FurnaceInventory inventory = furnaceManager.getPlayerInventory(player);

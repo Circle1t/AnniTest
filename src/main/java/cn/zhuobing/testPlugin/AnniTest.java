@@ -37,6 +37,7 @@ package cn.zhuobing.testPlugin;
 import cn.zhuobing.testPlugin.anni.*;
 import cn.zhuobing.testPlugin.boss.*;
 import cn.zhuobing.testPlugin.command.CommandHandler;
+import cn.zhuobing.testPlugin.enchant.BrewingStandListener;
 import cn.zhuobing.testPlugin.enchant.EnchantManager;
 import cn.zhuobing.testPlugin.enchant.EnchantTableListener;
 import cn.zhuobing.testPlugin.enchant.SoulBoundListener;
@@ -249,9 +250,10 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TeamChatListener(teamManager, gameManager), this);
         getServer().getPluginManager().registerEvents(new EnderFurnaceListener(enderFurnaceManager, teamManager), this);
         getServer().getPluginManager().registerEvents(new NexusListener(nexusManager, nexusInfoBoard, gameManager, teamManager,this,messageRenderer,nexusAntiCheat), this);
-        getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager,teamManager, gameManager, nexusInfoBoard,respawnDataManager,bossDataManager,this), this);
+        getServer().getPluginManager().registerEvents(new GamePlayerJoinListener(lobbyManager, teamManager, gameManager, nexusInfoBoard, respawnDataManager, bossDataManager, kitManager, this), this);
         getServer().getPluginManager().registerEvents(new OreBreakListener(oreManager, gameManager,nexusManager), this);
         getServer().getPluginManager().registerEvents(new EnchantTableListener(enchantManager), this);
+        getServer().getPluginManager().registerEvents(new BrewingStandListener(), this);
         getServer().getPluginManager().registerEvents(new SoulBoundListener(),this);
         getServer().getPluginManager().registerEvents(new TeamSelectorListener(teamSelectorManager,teamCommandHandler), this);
         getServer().getPluginManager().registerEvents(new CompassListener(teamManager, nexusManager,this),this);
@@ -270,6 +272,7 @@ public class AnniTest extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BorderListener(borderManager,mapSelectManager),this);
         getServer().getPluginManager().registerEvents(new MapConfigurerListener(mapConfigurerManager, mapSelectManager),this);
         getServer().getPluginManager().registerEvents(new ItemCleanListener(this,mapSelectManager,bossWorldManager),this);
+        getServer().getPluginManager().registerEvents(new CraftingManager(this), this);
     }
 
     private void initKits() {
@@ -289,6 +292,7 @@ public class AnniTest extends JavaPlugin {
         kitManager.registerKit(new Handyman(teamManager, kitManager, nexusManager, gameManager,nexusInfoBoard));
         kitManager.registerKit(new Scorpio(teamManager, kitManager));
         kitManager.registerKit(new Defender(teamManager,kitManager,nexusManager));
+        kitManager.registerKit(new Tank(teamManager, kitManager));
         kitManager.registerKit(new Pyro(teamManager,kitManager));
         kitManager.registerKit(new Berserker(teamManager,kitManager));
         kitManager.registerKit(new Alchemist(teamManager,kitManager,gameManager));

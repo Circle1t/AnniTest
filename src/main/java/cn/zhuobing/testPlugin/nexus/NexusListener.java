@@ -178,7 +178,7 @@ public class NexusListener implements Listener {
                 nexusAntiCheat.recordPlayerDig(player,teamName);
 
                 nexusManager.setNexusHealth(teamName, currentHealth);
-                // 更新计分板
+                // 计分板更新已节流并推迟到下一 tick，不阻塞破坏事件
                 nexusInfoBoard.updateInfoBoard();
 
                 if (currentHealth <= 0) {
@@ -187,15 +187,17 @@ public class NexusListener implements Listener {
                     lastDigPlayer.remove(teamName);
                     // 核心血量为 0，变为基岩
                     block.setType(Material.BEDROCK);
-                    // 发送队伍消息
-                    player.sendMessage(" ");
+                    // 全局广播：核心被摧毁的消息（所有在线玩家可见）
                     List<String> welcomeMessage = messageRenderer.formatMessage(
                             messageRenderer.getTeamMessage(teamName),
-                            teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁！" ,
+                            teamManager.getTeamColor(teamName) + chineseTeamName + "队" + ChatColor.GOLD + " 核心已被摧毁！",
                             ChatColor.GOLD + "摧毁者 " + teamManager.getTeamColor(playerTeam) + player.getName()
                     );
-                    for (String line : welcomeMessage) {
-                        player.sendMessage(line);
+                    for (Player online : Bukkit.getOnlinePlayers()) {
+                        online.sendMessage(" ");
+                        for (String line : welcomeMessage) {
+                            online.sendMessage(line);
+                        }
                     }
                     // 对被摧毁队伍的所有玩家发放补贴奖励
                     if(destroyedTeamIndex == 1){
@@ -288,21 +290,17 @@ public class NexusListener implements Listener {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if(!teamManager.isInTeam(player)){
-                continue;
-            }
             double distance = player.getLocation().distance(nexusLocation);
             if (distance <= MAX_DISTANCE) {
-                // 距离核心 15 格范围内，播放音调不同的铁砧放置声，音量随距离衰减
+                // 距离核心 15 格范围内，所有人（含未选队观战）都能听到挖掘声效
                 float volume = (float) (1 - (distance / MAX_DISTANCE));
                 if (volume < 0.1f) {
                     volume = 0.1f; // 设置最小音量
                 }
-                // 缩小音调的随机范围，让音调在 0.9 到 1.1 之间浮动
                 float pitch = (float) (1 + (Math.random() * 0.3) - 0.2);
                 player.playSound(nexusLocation, Sound.BLOCK_ANVIL_PLACE, SoundCategory.BLOCKS, volume, pitch);
             } else {
-                // 超出 30 格范围，只有被挖掘核心的队伍玩家能听见警报音效
+                // 超出 15 格，仅被挖掘核心的队伍玩家能听见警报音效
                 String playerTeamName = teamManager.getPlayerTeamName(player);
                 if (playerTeamName != null && playerTeamName.equalsIgnoreCase(teamName)) {
                     player.playSound(player.getLocation(), ALERT_SOUND, SoundCategory.BLOCKS, ALERT_VOLUME, ALERT_PITCH);
@@ -310,9 +308,10 @@ public class NexusListener implements Listener {
             }
         }
     }
+    /** 核心被摧毁时全服播放爆炸音效（在每位玩家位置播放，确保所有人都能听见） */
     private void playTntExplosionSound(Location location) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.playSound(location, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, 1.5f, 1f);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.MASTER, 1.5f, 1f);
         }
     }
 

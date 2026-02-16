@@ -79,39 +79,36 @@ public class NPCManager implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        UUID playerId = player.getUniqueId();
-
-        // 尚未加入过、不在游戏阶段或未选队，跳过
         if (!player.hasPlayedBefore() || gameManager.getCurrentPhase() < 1 || !teamManager.isInTeam(player)) {
             return;
         }
+        // 将 NPC 清理与状态恢复延后 1 tick，避免遍历全世界实体阻塞 Join 导致进服卡顿
+        Bukkit.getScheduler().runTaskLater(plugin, () -> runDeferredNPCJoinLogic(player), 1L);
+    }
 
-        // 优先按映射表同步移除该玩家的离线 NPC，避免重进后 NPC 仍残留（不依赖按名称遍历实体）
+    private void runDeferredNPCJoinLogic(Player player) {
+        if (!player.isOnline()) return;
+        UUID playerId = player.getUniqueId();
+
         boolean hadNpc = playerToNpcMap.containsKey(playerId);
         if (hadNpc) {
             removeNPC(playerId);
         }
 
-        // 再按名称扫描世界，清理可能未在映射中的散落 NPC（如重启、异常等）
         cleanupPlayerNPCs(player);
 
-        // 如果上次NPC被玩家击杀，则返回时立即死亡并不掉落
         if (npcKilledPlayers.remove(playerId)) {
             noDropPlayers.add(playerId);
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (player.isOnline()) {
-                        player.setHealth(0);
-                        player.sendMessage(ChatColor.RED + "你的离线NPC已被击杀，死亡惩罚已生效！");
-                    }
-                    noDropPlayers.remove(playerId);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (player.isOnline()) {
+                    player.setHealth(0);
+                    player.sendMessage(ChatColor.RED + "你的离线NPC已被击杀，死亡惩罚已生效！");
                 }
-            }.runTaskLater(plugin, 1L);
+                noDropPlayers.remove(playerId);
+            }, 1L);
             return;
         }
 
-        // 如果上次NPC是被服务器自动清除，则无需死亡惩罚
         if (autoClearedPlayers.remove(playerId)) {
             if (player.isOnline()) {
                 player.sendMessage(ChatColor.GREEN + "你的离线NPC已被服务器清除，状态已安全恢复！");
@@ -119,7 +116,6 @@ public class NPCManager implements Listener {
             return;
         }
 
-        // 刚才按映射表移除了存活 NPC，通知玩家
         if (hadNpc && player.isOnline()) {
             player.sendMessage(ChatColor.GREEN + "你的离线NPC安全的活了下来，状态已安全恢复！");
         }

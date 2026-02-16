@@ -145,4 +145,23 @@ public class BorderManager {
         return loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
                 loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ;
     }
+
+    /**
+     * 判断指定位置是否恰好在边界线上（四边之一）
+     * @param loc 指定位置
+     * @return 是否在边界方块上
+     */
+    public boolean isOnBorder(Location loc) {
+        if (mapBorders.size() != 4) return false;
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
+        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+        for (Location border : mapBorders) {
+            minX = Math.min(minX, border.getBlockX());
+            maxX = Math.max(maxX, border.getBlockX());
+            minZ = Math.min(minZ, border.getBlockZ());
+            maxZ = Math.max(maxZ, border.getBlockZ());
+        }
+        int x = loc.getBlockX(), z = loc.getBlockZ();
+        return x == minX || x == maxX || z == minZ || z == maxZ;
+    }
 }

@@ -17,6 +17,8 @@ import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -25,6 +27,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.util.Vector;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.potion.PotionEffectType;
@@ -46,6 +49,9 @@ public class PlayerListener implements Listener {
     // 存储复仇关系：键=受害者UUID，值=击杀者UUID（即该受害者的复仇目标）
     private final Map<UUID, UUID> revengeTargetMap = new ConcurrentHashMap<>();
 
+    /** 致命伤时速度保留比例，贴近旧版死亡掉落，不会飞太远（0.25 = 只保留 25% 动量） */
+    private static final double DEATH_MOMENTUM_FACTOR = 0.25;
+
     public PlayerListener(TeamManager teamManager, GameManager gameManager, KitManager kitManager, NexusManager nexusManager) {
         this.teamManager = teamManager;
         this.gameManager = gameManager;
@@ -65,47 +71,54 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onPlayerAttack(EntityDamageByEntityEvent event) {
-        // 检查攻击者和被攻击者是否都是玩家
-        if (event.getDamager() instanceof Player && event.getEntity() instanceof Player) {
+        if (!(event.getEntity() instanceof Player)) return;
 
-            // 游戏未开始，未开启pvp
-            if(gameManager.getCurrentPhase() < 1){
-                // 阻止攻击行为
-                event.setCancelled(true);
+        Player victim = (Player) event.getEntity();
+        Player attacker = getAttackerPlayer(event.getDamager());
+        if (attacker == null) return;
+
+        // 游戏未开始，未开启 PVP
+        if (gameManager.getCurrentPhase() < 1) {
+            event.setCancelled(true);
+            return;
+        }
+
+        String attackerTeamName = teamManager.getPlayerTeamName(attacker);
+        String victimTeamName = teamManager.getPlayerTeamName(victim);
+
+        if (attackerTeamName == null || victimTeamName == null) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // 同队不造成伤害（近战与弓箭等抛射物均生效）
+        if (attackerTeamName.equals(victimTeamName)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // 隐身时近战攻击敌方则解除隐身
+        if (attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+            if (event.getDamager() instanceof Player && attacker.getInventory().getItemInMainHand().getType() == Material.AIR) {
                 return;
             }
-            Player attacker = (Player) event.getDamager();
-            Player victim = (Player) event.getEntity();
+            attacker.removePotionEffect(PotionEffectType.INVISIBILITY);
+            attacker.sendMessage(ChatColor.GOLD + "隐身已解除！");
+        }
+    }
 
-            // 获取攻击者和被攻击者所在的队伍名称
-            String attackerTeamName = teamManager.getPlayerTeamName(attacker);
-            String victimTeamName = teamManager.getPlayerTeamName(victim);
-
-            //不允许没有队伍的玩家攻击/被攻击
-            if(attackerTeamName == null || victimTeamName == null) {
-                event.setCancelled(true);
-                return;
-            }
-
-            // 检查攻击者和被攻击者是否属于同一队伍
-            if (attackerTeamName != null && attackerTeamName.equals(victimTeamName)) {
-                // 阻止攻击行为
-                event.setCancelled(true);
-                return;
-            }
-
-            // 检查玩家是否处于隐身状态
-            if (attacker.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
-                // 检查是否空手攻击
-                if (attacker.getInventory().getItemInMainHand().getType() == Material.AIR) {
-                    // 空手攻击敌方，不解除隐身
-                    return;
-                }
-                // 移除隐身效果
-                attacker.removePotionEffect(PotionEffectType.INVISIBILITY);
-                attacker.sendMessage(ChatColor.GOLD + "隐身已解除！");
+    /** 从 damager（玩家或抛射物）解析出攻击者玩家，非玩家造成则返回 null */
+    private static Player getAttackerPlayer(Entity damager) {
+        if (damager instanceof Player) {
+            return (Player) damager;
+        }
+        if (damager instanceof Projectile) {
+            ProjectileSource source = ((Projectile) damager).getShooter();
+            if (source instanceof Player) {
+                return (Player) source;
             }
         }
+        return null;
     }
 
     @EventHandler
@@ -227,6 +240,16 @@ public class PlayerListener implements Listener {
             player.removePotionEffect(PotionEffectType.INVISIBILITY);
             player.sendMessage(ChatColor.GOLD + "隐身已解除！");
         }
+    }
+
+    /** 致命伤时压低死亡动量，贴近旧版不飞太远 */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onLethalDamageReduceMomentum(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
+        if (player.getHealth() - event.getFinalDamage() > 0) return;
+        Vector v = player.getVelocity();
+        player.setVelocity(v.multiply(DEATH_MOMENTUM_FACTOR));
     }
 
     @EventHandler

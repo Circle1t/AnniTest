@@ -5,13 +5,9 @@ import cn.zhuobing.testPlugin.map.MapSelectManager;
 import cn.zhuobing.testPlugin.team.TeamManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -38,9 +34,19 @@ class TeamInfo implements Comparable<TeamInfo> {
 }
 
 public class NexusInfoBoard {
-    private static final long UPDATE_THROTTLE_MS = 500L;  // 最多 0.5 秒更新一次，减轻挖核心时的负荷
+    private static final long UPDATE_THROTTLE_MS = 600L;  // 挖核心时最多约 0.6 秒更新一次，减轻卡顿
+    private static final int MAX_SIDEBAR_LINES = 20;      // 计分板最大行数，用 Team 占位避免 getEntries/resetScores
 
-    private final ScoreboardManager scoreboardManager;
+    /** 每行用不同长度空格作为唯一占位符（1～20 个空格），仅用于区分条目，真实内容在 Team prefix 中显示 */
+    private static final String[] LINE_ENTRIES = new String[MAX_SIDEBAR_LINES];
+    static {
+        for (int i = 0; i < MAX_SIDEBAR_LINES; i++) {
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j <= i; j++) sb.append(' ');
+            LINE_ENTRIES[i] = sb.toString();
+        }
+    }
+
     private final NexusManager dataManager;
     private final TeamManager teamManager;
     private final Map<String, String> teamNames;
@@ -51,10 +57,11 @@ public class NexusInfoBoard {
 
     private volatile long lastUpdateTime = 0L;
     private volatile BukkitTask pendingUpdateTask = null;
+    private volatile String cachedDateLine = "";
+    private volatile long cachedDateMs = 0L;
 
     public NexusInfoBoard(NexusManager dataManager, TeamManager teamManager, GameManager gameManager, MapSelectManager mapSelectManager, Plugin plugin) {
         this.dataManager = dataManager;
-        this.scoreboardManager = Bukkit.getScoreboardManager();
         this.teamNames = teamManager.getEnglishToChineseMap();
         this.teamManager = teamManager;
         this.gameManager = gameManager;
@@ -64,9 +71,14 @@ public class NexusInfoBoard {
     }
 
     /**
-     * 请求更新计分板。若距上次更新不足 0.5 秒则节流，最多 0.5 秒执行一次，减轻挖核心时的负荷。
+     * 请求更新计分板。始终推迟到下一 tick 执行，不在事件线程做任何计分板逻辑，挖核心时明显减轻卡顿。
+     * 若距上次更新不足 throttle 则节流，最多约 0.6 秒更新一次。
      */
     public void updateInfoBoard() {
+        Bukkit.getScheduler().runTaskLater(plugin, this::doThrottledUpdate, 1L);
+    }
+
+    private void doThrottledUpdate() {
         long now = System.currentTimeMillis();
         if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
             lastUpdateTime = now;
@@ -74,130 +86,131 @@ public class NexusInfoBoard {
             return;
         }
         if (pendingUpdateTask == null || pendingUpdateTask.isCancelled()) {
+            long delayMs = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+            int delayTicks = Math.max(1, (int) (delayMs / 50));
             pendingUpdateTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 pendingUpdateTask = null;
                 lastUpdateTime = System.currentTimeMillis();
                 doUpdateInfoBoard();
-            }, 10L); // 0.5 秒 = 10 ticks
+            }, delayTicks);
         }
     }
 
+    /**
+     * 使用共享计分板 + Team prefix 更新，只更新一行行文本，不调用 getEntries/resetScores，单 tick 完成。
+     */
     private void doUpdateInfoBoard() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            Scoreboard playerScoreboard = player.getScoreboard();
+        List<ScoreLine> content = buildContent();
+        if (content.isEmpty()) return;
 
-            // 获取或创建目标
-            Objective objective = playerScoreboard.getObjective("nexusInfo");
-            if (objective == null) {
-                objective = playerScoreboard.registerNewObjective(
-                        "nexusInfo",
-                        "dummy",
-                        ChatColor.RED + ChatColor.BOLD.toString() + "核" +
-                                ChatColor.YELLOW + ChatColor.BOLD.toString() + "心" +
-                                ChatColor.BLUE + ChatColor.BOLD.toString() + "战" +
-                                ChatColor.GREEN + ChatColor.BOLD.toString() + "争" +
-                                ChatColor.GOLD + ChatColor.BOLD.toString() + " 重制版"
-                );
-                objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        Scoreboard sb = teamManager.getScoreboard();
+        Objective objective = ensureObjective(sb);
+        ensureLineTeams(sb);
+
+        int n = Math.min(content.size(), MAX_SIDEBAR_LINES);
+        for (int i = 0; i < n; i++) {
+            ScoreLine line = content.get(i);
+            org.bukkit.scoreboard.Team team = sb.getTeam("nexus_" + i);
+            if (team != null) {
+                team.setPrefix(line.text.length() > 64 ? line.text.substring(0, 64) : line.text);
+                objective.getScore(LINE_ENTRIES[i]).setScore(line.score);
             }
+        }
+        for (int i = n; i < MAX_SIDEBAR_LINES; i++) {
+            sb.resetScores(LINE_ENTRIES[i]);
+            org.bukkit.scoreboard.Team team = sb.getTeam("nexus_" + i);
+            if (team != null) team.setPrefix("");
+        }
+    }
 
-            // 清空计分板上的所有条目
-            for (String entry : new ArrayList<>(playerScoreboard.getEntries())) {
-                playerScoreboard.resetScores(entry);
+    private Objective ensureObjective(Scoreboard sb) {
+        Objective objective = sb.getObjective("nexusInfo");
+        if (objective == null) {
+            objective = sb.registerNewObjective(
+                    "nexusInfo",
+                    "dummy",
+                    ChatColor.RED + ChatColor.BOLD.toString() + "核" + ChatColor.YELLOW + ChatColor.BOLD.toString() + "心"
+                            + ChatColor.BLUE + ChatColor.BOLD.toString() + "战" + ChatColor.GREEN + ChatColor.BOLD.toString() + "争"
+                            + ChatColor.GOLD + ChatColor.BOLD.toString() + " 重制版"
+            );
+            objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+        }
+        return objective;
+    }
+
+    private void ensureLineTeams(Scoreboard sb) {
+        for (int i = 0; i < MAX_SIDEBAR_LINES; i++) {
+            String teamId = "nexus_" + i;
+            org.bukkit.scoreboard.Team team = sb.getTeam(teamId);
+            if (team == null) {
+                team = sb.registerNewTeam(teamId);
+                team.addEntry(LINE_ENTRIES[i]);
             }
+        }
+    }
 
-            // 计分板分数
-            int score = 9;
+    /** 每轮只构建一次内容，避免对每个玩家重复排序、拼串。日期行约 1 秒缓存一次。 */
+    private List<ScoreLine> buildContent() {
+        List<ScoreLine> out = new ArrayList<>();
+        int score = 9;
 
-            // 显示日期
-            Calendar calendar = Calendar.getInstance();
+        long now = System.currentTimeMillis();
+        if (cachedDateLine.isEmpty() || now - cachedDateMs > 1000L) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
-            String date = dateFormat.format(calendar.getTime());
-            Score dateScore = objective.getScore(ChatColor.GRAY + date);
-            dateScore.setScore(score);
-            score--;
+            cachedDateLine = ChatColor.GRAY + dateFormat.format(new Date(now));
+            cachedDateMs = now;
+        }
+        out.add(new ScoreLine(score--, cachedDateLine));
+        out.add(new ScoreLine(score--, "    "));
 
-            // 日期下方空一行
-            Score emptyLine1 = objective.getScore("    ");
-            emptyLine1.setScore(score);
-            score--;
-
-            if (voteFlag) {
-                // 在投票时间段内，展示地图投票数量情况
-                Score voteMsg = objective.getScore(ChatColor.AQUA + "请为地图投票");
-                voteMsg.setScore(score);
-                score--;
-
-                Score emptyLine = objective.getScore(" ");
-                emptyLine.setScore(score);
-                score--;
-
-                List<String> candidateMaps = mapSelectManager.getCandidateMaps();
-                for (String mapName : candidateMaps) {
+        if (voteFlag) {
+            out.add(new ScoreLine(score--, ChatColor.AQUA + "请为地图投票"));
+            out.add(new ScoreLine(score--, " "));
+            if (mapSelectManager != null) {
+                for (String mapName : mapSelectManager.getCandidateMaps()) {
                     int voteCount = mapSelectManager.getVoteCount(mapName);
                     String info = ChatColor.WHITE + mapSelectManager.getMapMappingName(mapName) + ChatColor.GRAY + " : " + ChatColor.GRAY + "( " + ChatColor.WHITE + voteCount + ChatColor.GRAY + " )";
-                    Score mapScore = objective.getScore(info);
-                    mapScore.setScore(score);
-                    score--;
-                }
-            } else {
-                // 游戏开始，展示每个队伍的核心血量信息
-                // 存储未被摧毁的队伍信息
-                List<TeamInfo> aliveTeams = new ArrayList<>();
-                // 存储被摧毁的队伍信息
-                List<TeamInfo> destroyedTeams = new ArrayList<>();
-
-                // 收集队伍信息
-                for (Map.Entry<String, Location> entry : dataManager.getNexusLocations().entrySet()) {
-                    String teamName = entry.getKey();
-                    int health = dataManager.getNexusHealth(teamName);
-                    String displayName = teamNames.getOrDefault(teamName, teamName);
-                    if (health > 0) {
-                        aliveTeams.add(new TeamInfo(teamName, health, displayName));
-                    } else {
-                        destroyedTeams.add(new TeamInfo(teamName, health, displayName));
-                    }
-                }
-
-                // 对未被摧毁的队伍按血量从高到低排序
-                Collections.sort(aliveTeams);
-
-                // 显示未被摧毁的队伍
-                for (TeamInfo teamInfo : aliveTeams) {
-                    String info = teamManager.getTeamColor(teamInfo.teamName) + teamInfo.displayName + "队" + ChatColor.GREEN + " ✔  " + ChatColor.GRAY + "[ " + ChatColor.RESET + teamInfo.health + ChatColor.GRAY + " ]";
-                    Score teamScore = objective.getScore(info);
-                    teamScore.setScore(score);
-                    score--;
-                }
-
-                // 显示被摧毁的队伍
-                for (TeamInfo teamInfo : destroyedTeams) {
-                    String info = teamManager.getTeamColor(teamInfo.teamName) + teamInfo.displayName + "队" + ChatColor.GRAY + " ❌  已被摧毁";
-                    Score teamScore = objective.getScore(info);
-                    teamScore.setScore(score);
-                    score--;
-                }
-
-                Score emptyLine = objective.getScore("     ");
-                emptyLine.setScore(score);
-                score--;
-                // 在 AnniTest logo 上一行展示“地图：” + 地图名称
-                String gameMap = mapSelectManager.getGameMapMappingName();
-                if (gameMap != null) {
-                    Score mapNameScore = objective.getScore(ChatColor.WHITE + "地图：" + ChatColor.GREEN + gameMap);
-                    mapNameScore.setScore(score);
-                    score--;
+                    out.add(new ScoreLine(score--, info));
                 }
             }
+        } else {
+            List<TeamInfo> aliveTeams = new ArrayList<>();
+            List<TeamInfo> destroyedTeams = new ArrayList<>();
+            for (String teamName : dataManager.getNexusLocations().keySet()) {
+                int health = dataManager.getNexusHealth(teamName);
+                String displayName = teamNames.getOrDefault(teamName, teamName);
+                if (health > 0) aliveTeams.add(new TeamInfo(teamName, health, displayName));
+                else destroyedTeams.add(new TeamInfo(teamName, health, displayName));
+            }
+            Collections.sort(aliveTeams);
+            for (TeamInfo t : aliveTeams) {
+                String info = teamManager.getTeamColor(t.teamName) + t.displayName + "队" + ChatColor.GREEN + " ✔  " + ChatColor.GRAY + "[ " + ChatColor.RESET + t.health + ChatColor.GRAY + " ]";
+                out.add(new ScoreLine(score--, info));
+            }
+            for (TeamInfo t : destroyedTeams) {
+                String info = teamManager.getTeamColor(t.teamName) + t.displayName + "队" + ChatColor.GRAY + " ❌  已被摧毁";
+                out.add(new ScoreLine(score--, info));
+            }
+            out.add(new ScoreLine(score--, "     "));
+            if (mapSelectManager != null) {
+                String gameMap = mapSelectManager.getGameMapMappingName();
+                if (gameMap != null) {
+                    out.add(new ScoreLine(score--, ChatColor.WHITE + "地图：" + ChatColor.GREEN + gameMap));
+                }
+            }
+        }
 
-            // 最后一个队伍下方空一行
-            Score emptyLine2 = objective.getScore("  ");
-            emptyLine2.setScore(score);
-            score--;
+        out.add(new ScoreLine(score--, "  "));
+        out.add(new ScoreLine(score, ChatColor.YELLOW + "内测版本 2.15.3"));
+        return out;
+    }
 
-            // 在下下行写上 “AnniTest”
-            Score footerScore = objective.getScore(ChatColor.YELLOW + "circle1t.top");
-            footerScore.setScore(score);
+    private static class ScoreLine {
+        final int score;
+        final String text;
+        ScoreLine(int score, String text) {
+            this.score = score;
+            this.text = text;
         }
     }
 

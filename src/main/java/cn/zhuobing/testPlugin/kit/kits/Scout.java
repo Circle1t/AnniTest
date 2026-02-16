@@ -10,13 +10,17 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -25,6 +29,9 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static cn.zhuobing.testPlugin.utils.SoulBoundUtil.createSoulBoundItem;
 
@@ -37,6 +44,9 @@ public class Scout extends Kit implements Listener {
     private ItemStack woodAxe;
     private List<ItemStack> kitItems = new ArrayList<>();
     private String grappleName = ChatColor.AQUA + "抓钩";
+
+    private static final long COMBAT_DURATION_MS = 3000L;
+    private final Map<UUID, Long> combatUntil = new ConcurrentHashMap<>();
 
     public Scout(TeamManager teamManager, KitManager kitManager) {
         this.teamManager = teamManager;
@@ -56,7 +66,27 @@ public class Scout extends Kit implements Listener {
 
     @Override
     public String getDescription() {
-        return "使用抓钩快速移动，摔落伤害减半的职业";
+        return "使用抓钩快速移动，摔落伤害减半。战斗状态下无法使用抓钩（最多3秒）。";
+    }
+
+    @Override
+    public void onKitUnset(Player player) {
+        combatUntil.remove(player.getUniqueId());
+    }
+
+    private void enterCombat(Player player) {
+        if (!isThisKit(player)) return;
+        combatUntil.put(player.getUniqueId(), System.currentTimeMillis() + COMBAT_DURATION_MS);
+    }
+
+    private boolean isInCombat(Player player) {
+        Long until = combatUntil.get(player.getUniqueId());
+        if (until == null) return false;
+        if (System.currentTimeMillis() >= until) {
+            combatUntil.remove(player.getUniqueId());
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -165,10 +195,45 @@ public class Scout extends Kit implements Listener {
         }
     }
 
+    /** 仅当双方均为玩家时进入战斗状态（打动物不触发 CD） */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDamageEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+        Player attacker = getAttackerPlayer(event.getDamager());
+        if (attacker == null) return;
+        enterCombat(attacker);
+        enterCombat((Player) event.getEntity());
+    }
+
+    private static Player getAttackerPlayer(Entity damager) {
+        if (damager instanceof Player) return (Player) damager;
+        if (damager instanceof Projectile) {
+            ProjectileSource src = ((Projectile) damager).getShooter();
+            if (src instanceof Player) return (Player) src;
+        }
+        return null;
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        combatUntil.remove(event.getPlayer().getUniqueId());
+    }
+
+    /** 斥候死亡后重置战斗 CD，复活后即可使用抓钩 */
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        combatUntil.remove(event.getEntity().getUniqueId());
+    }
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void Grappler(PlayerFishEvent event) {
         Player player = event.getPlayer();
         if (!isThisKit(player) || !isGrappleItem(player.getInventory().getItemInMainHand())) {
+            return;
+        }
+        if (isInCombat(player)) {
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "战斗状态下无法使用抓钩！");
             return;
         }
 

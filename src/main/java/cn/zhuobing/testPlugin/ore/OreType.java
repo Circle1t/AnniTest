@@ -17,7 +17,7 @@ public enum OreType {
             Material.AIR, 0, 0,
             new Material[]{Material.MELON}
     ),
-    // 原木
+    // 原木（含 1.21 全部：樱花、红树、绯红/诡异菌柄及所有去皮变种）
     LOG(
             20, 2, "AXE",
             Arrays.asList(new ItemStack(Material.OAK_LOG)),
@@ -28,7 +28,21 @@ public enum OreType {
                     Material.BIRCH_LOG,
                     Material.JUNGLE_LOG,
                     Material.ACACIA_LOG,
-                    Material.DARK_OAK_LOG
+                    Material.DARK_OAK_LOG,
+                    Material.MANGROVE_LOG,
+                    Material.CHERRY_LOG,
+                    Material.CRIMSON_STEM,
+                    Material.WARPED_STEM,
+                    Material.STRIPPED_OAK_LOG,
+                    Material.STRIPPED_SPRUCE_LOG,
+                    Material.STRIPPED_BIRCH_LOG,
+                    Material.STRIPPED_JUNGLE_LOG,
+                    Material.STRIPPED_ACACIA_LOG,
+                    Material.STRIPPED_DARK_OAK_LOG,
+                    Material.STRIPPED_MANGROVE_LOG,
+                    Material.STRIPPED_CHERRY_LOG,
+                    Material.STRIPPED_CRIMSON_STEM,
+                    Material.STRIPPED_WARPED_STEM
             }
     ),
     // 沙砾
@@ -38,7 +52,9 @@ public enum OreType {
                     new ItemStack(Material.FLINT),
                     new ItemStack(Material.FEATHER),
                     new ItemStack(Material.STICK),
-                    new ItemStack(Material.ARROW)
+                    new ItemStack(Material.ARROW),
+                    new ItemStack(Material.STRING),
+                    new ItemStack(Material.BONE)
             ),
             Material.COBBLESTONE, 0, 0,
             new Material[]{Material.GRAVEL}
@@ -50,10 +66,10 @@ public enum OreType {
             Material.COBBLESTONE, 1, 0,
             new Material[]{Material.COAL_ORE}
     ),
-    // 铁矿
+    // 铁矿 → 掉落粗铁（粗矿）
     IRON(
             20, 9, "PICKAXE",
-            Arrays.asList(new ItemStack(Material.IRON_ORE)),
+            Arrays.asList(new ItemStack(Material.RAW_IRON)),
             Material.COBBLESTONE, 3, 0,
             new Material[]{Material.IRON_ORE}
     ),
@@ -71,10 +87,10 @@ public enum OreType {
             Material.COBBLESTONE, 3, 0,
             new Material[]{Material.REDSTONE_ORE}
     ),
-    // 金矿
+    // 金矿 → 掉落粗金（粗矿）
     GOLD(
             20, 11, "PICKAXE",
-            Arrays.asList(new ItemStack(Material.GOLD_ORE)),
+            Arrays.asList(new ItemStack(Material.RAW_GOLD)),
             Material.COBBLESTONE, 4, 0,
             new Material[]{Material.GOLD_ORE}
     ),

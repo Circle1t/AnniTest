@@ -69,7 +69,7 @@ public class Defender extends Kit implements Listener {
 
     @Override
     public ItemStack getIcon() {
-        ItemStack icon = new ItemStack(Material.SHIELD);
+        ItemStack icon = new ItemStack(Material.PRISMARINE_SHARD);
         ItemMeta meta = icon.getItemMeta();
         meta.setDisplayName(getNameWithColor());
         meta.setLore(Arrays.asList(

@@ -130,9 +130,20 @@ public class EnderFurnaceManager {
         return removed;
     }
 
+    /** 强制保持虚拟熔炉所在区块加载，否则熔炉不 tick、烧不了东西 */
     public void setChunkAlwaysLoad(World world) {
+        if (virtualFurnaceArea == null || virtualFurnaceArea.getWorld() == null) return;
         Chunk chunk = virtualFurnaceArea.getChunk();
-        chunk.setForceLoaded(true); // 强制保持加载
+        chunk.setForceLoaded(true);
+        if (!chunk.isLoaded()) {
+            chunk.load(true);
+        }
+    }
+
+    private void ensureFurnaceChunkLoaded(Location furnaceLoc) {
+        if (furnaceLoc == null || furnaceLoc.getWorld() == null) return;
+        Chunk chunk = furnaceLoc.getChunk();
+        chunk.setForceLoaded(true);
         if (!chunk.isLoaded()) {
             chunk.load(true);
         }
@@ -162,30 +173,26 @@ public class EnderFurnaceManager {
     }
 
     public void createVirtualFurnace(Player player) {
-        // 为每个玩家分配唯一坐标
+        if (virtualFurnaceArea == null || currentWorld == null) return;
         Location baseLoc = virtualFurnaceArea.clone();
         int offset = playerFurnaces.size() * 3;
         Location furnaceLoc = baseLoc.add(offset, 0, 0);
+        furnaceLoc.setWorld(currentWorld);
 
-        // 确保世界已加载
-        World world = furnaceLoc.getWorld();
-        if (world == null) {
-            world = Bukkit.getWorlds().get(0);
-            furnaceLoc.setWorld(world);
-        }
+        // 先强制加载区块，否则熔炉不会 tick、烧不了东西（服务器上该区块可能未加载）
+        ensureFurnaceChunkLoaded(furnaceLoc);
 
-        // 创建高炉方块
         Block block = furnaceLoc.getBlock();
         block.setType(Material.FURNACE);
         Furnace furnace = (Furnace) block.getState();
         String title = ChatColor.DARK_PURPLE + "末影高炉";
         furnace.setCustomName(title);
 
-        // 保存库存
-        furnaceInventories.put(furnaceLoc, furnace.getInventory());
-        playerFurnaces.put(player.getUniqueId(), furnaceLoc);
+        Location key = furnaceLoc.clone();
+        furnaceInventories.put(key, furnace.getInventory());
+        playerFurnaces.put(player.getUniqueId(), key);
 
-        furnace.update(true); // 强制更新
+        furnace.update(true);
     }
 
     public FurnaceInventory getPlayerInventory(Player player) {
@@ -195,5 +202,11 @@ public class EnderFurnaceManager {
 
     public boolean hasVirtualFurnace(Player player) {
         return playerFurnaces.containsKey(player.getUniqueId());
+    }
+
+    /** 打开前确保熔炉所在区块已加载，避免服务器上区块被卸载导致无法烧炼 */
+    public void ensurePlayerFurnaceChunkLoaded(Player player) {
+        Location loc = playerFurnaces.get(player.getUniqueId());
+        if (loc != null) ensureFurnaceChunkLoaded(loc);
     }
 }

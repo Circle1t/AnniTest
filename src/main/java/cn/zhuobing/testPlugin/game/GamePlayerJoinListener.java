@@ -2,6 +2,9 @@ package cn.zhuobing.testPlugin.game;
 
 import cn.zhuobing.testPlugin.anni.RespawnDataManager;
 import cn.zhuobing.testPlugin.boss.BossDataManager;
+import cn.zhuobing.testPlugin.kit.Kit;
+import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.kits.Berserker;
 import cn.zhuobing.testPlugin.map.LobbyManager;
 import cn.zhuobing.testPlugin.nexus.NexusInfoBoard;
 import cn.zhuobing.testPlugin.specialitem.items.*;
@@ -33,113 +36,106 @@ public class GamePlayerJoinListener implements Listener {
     private final TeamManager teamManager;
     private final RespawnDataManager respawnDataManager;
     private final BossDataManager bossDataManager;
+    private final KitManager kitManager;
     private final Plugin plugin;
+
+    /** 全局最大血量：两排心 = 40 滴血 */
+    private static final double DEFAULT_MAX_HEALTH = 40.0;
 
     // 关闭任务变量
     private BukkitTask shutdownTask;
 
-    public GamePlayerJoinListener(LobbyManager lobbyManager,TeamManager teamManager, GameManager gameManager,
+    public GamePlayerJoinListener(LobbyManager lobbyManager, TeamManager teamManager, GameManager gameManager,
                                   NexusInfoBoard nexusInfoBoard, RespawnDataManager respawnDataManager,
-                                  BossDataManager bossDataManager,Plugin plugin) {
+                                  BossDataManager bossDataManager, KitManager kitManager, Plugin plugin) {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.nexusInfoBoard = nexusInfoBoard;
         this.teamManager = teamManager;
         this.respawnDataManager = respawnDataManager;
         this.bossDataManager = bossDataManager;
+        this.kitManager = kitManager;
         this.plugin = plugin;
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        // 获取玩家对象
         Player player = event.getPlayer();
-
-        // 自定义玩家加入消息
         String joinMessage = ChatColor.GOLD + "[核心战争] " + ChatColor.AQUA + player.getName() + ChatColor.YELLOW + " 加入了游戏！";
         event.setJoinMessage(joinMessage);
 
-        // 检查玩家是否选择了队伍
+        if (teamManager.isInTeam(player)) {
+            cancelShutdownTask();
+        }
+
+        // 传送、背包、计分板、BossBar、物品发放等全部延后 1 tick，避免阻塞 Join 事件导致进服卡顿
+        Bukkit.getScheduler().runTaskLater(plugin, () -> runDeferredJoinLogic(player), 1L);
+    }
+
+    /** 延后执行的进服逻辑：传送、清包、发物品、计分板、BossBar、开局检测。 */
+    private void runDeferredJoinLogic(Player player) {
+        if (!player.isOnline()) return;
+
         if (!teamManager.isInTeam(player) || !gameManager.isGameStarted()) {
-            // 玩家没有选择队伍，尝试传送到大厅重生点
             if (!lobbyManager.teleportToLobby(player)) {
-                // 大厅传送失败，将玩家踢出服务器并解释原因
                 if (AnniConfigManager.BUNGEE_ENABLED) {
                     BungeeUtil.sendToLobby(player);
                 } else {
-                    String kickMessage = ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "大厅传送失败，请联系管理员！";
-                    player.kickPlayer(kickMessage);
+                    player.kickPlayer(ChatColor.RED + "你已被踢出服务器\n\n" + ChatColor.YELLOW + "大厅传送失败，请联系管理员！");
                 }
-            } else {
-                // 清空玩家背包
-                player.getInventory().clear();
-                // 清空玩家装备栏
-                player.getInventory().setArmorContents(null);
-                // 设置玩家经验为0
-                player.setExp(0);
-                // 设置血量为满
-                player.setMaxHealth(20.0);
-                player.setHealth(20.0);
-                // 设置饥饿值为满
-                player.setFoodLevel(20);
-                // 防止饥饿值降低
-                player.setSaturation(20);
-                player.setExhaustion(0);
-                // 只移除当前已有的药水效果，避免遍历全部 PotionEffectType
-                List<PotionEffectType> toRemove = new ArrayList<>();
-                for (PotionEffect effect : player.getActivePotionEffects()) {
-                    if (effect != null && effect.getType() != null) {
-                        toRemove.add(effect.getType());
-                    }
-                }
-                for (PotionEffectType type : toRemove) {
-                    player.removePotionEffect(type);
-                }
+                return;
+            }
+            // 清空玩家背包与状态
+            player.getInventory().clear();
+            player.getInventory().setArmorContents(null);
+            player.setExp(0);
+            player.setMaxHealth(DEFAULT_MAX_HEALTH);
+            player.setHealth(DEFAULT_MAX_HEALTH);
+            player.setFoodLevel(20);
+            player.setSaturation(20);
+            player.setExhaustion(0);
+            List<PotionEffectType> toRemove = new ArrayList<>();
+            for (PotionEffect effect : player.getActivePotionEffects()) {
+                if (effect != null && effect.getType() != null) toRemove.add(effect.getType());
+            }
+            for (PotionEffectType type : toRemove) {
+                player.removePotionEffect(type);
+            }
+            player.setGameMode(GameMode.SURVIVAL);
 
-                // 设置玩家游戏模式为生存模式
-                player.setGameMode(GameMode.SURVIVAL);
+            player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.AQUA + "欢迎回到核心战争！");
+            player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.LIGHT_PURPLE + "当前插件正处于测试阶段，游戏内会有少量日志提示");
 
-                player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.AQUA + "欢迎回到核心战争！");
-                player.sendMessage(ChatColor.GOLD + "[核心战争] " + ChatColor.LIGHT_PURPLE + "当前插件正处于测试阶段，游戏内会有少量日志提示");
-                Inventory inventory = player.getInventory();
-
-                // 未加入队伍的玩家获得特殊选择物品
-                ItemStack teamStar = TeamSelectorItem.createTeamStar();
-                // 物品栏索引从 0 开始，第二格的索引为 1
-                inventory.setItem(1, teamStar);
-                // 职业选择物品
-                ItemStack kitSelector = KitSelectorItem.createKitSelector();
-                inventory.setItem(2, kitSelector);
-                // 获得游戏教程
-                ItemStack gameGuideBook = GuideBook.createGameGuideBook();
-                inventory.setItem(3, gameGuideBook);
-                // 游戏未开始就给玩家地图选择器
-                if(gameManager.getCurrentPhase() == 0){
-                    ItemStack mapSelector = MapSelectorItem.createMapSelector();
-                    inventory.setItem(4, mapSelector);
-                }
-
-                if(player.isOp()){
-                    // 地图配置物品
-                    ItemStack mapConfigurer = MapConfigurerItem.createMapConfigurer();
-                    inventory.setItem(7, mapConfigurer);
-                }
+            Inventory inventory = player.getInventory();
+            inventory.setItem(1, TeamSelectorItem.createTeamStar());
+            inventory.setItem(2, KitSelectorItem.createKitSelector());
+            inventory.setItem(3, GuideBook.createGameGuideBook());
+            if (gameManager.getCurrentPhase() == 0) {
+                inventory.setItem(4, MapSelectorItem.createMapSelector());
+            }
+            if (player.isOp()) {
+                inventory.setItem(7, MapConfigurerItem.createMapConfigurer());
             }
         }
 
-        // 设置计分板 BossBar 事项
+        // 对局中重连：恢复两排血（40），狂战士由复活时 applyKit 再设
+        if (gameManager.isGameStarted() && teamManager.isInTeam(player)) {
+            Kit kit = kitManager.getPlayerKit(player.getUniqueId());
+            if (kit == null || !(kit instanceof Berserker)) {
+                player.setMaxHealth(DEFAULT_MAX_HEALTH);
+                player.setHealth(DEFAULT_MAX_HEALTH);
+            }
+        }
+
         gameManager.getBossBar().addPlayer(player);
         teamManager.applyScoreboardToPlayer(player);
         nexusInfoBoard.updateInfoBoard();
+
         int currentPhase = gameManager.getCurrentPhase();
         if (currentPhase != 5 && currentPhase != 0) {
             gameManager.updateBossBar(currentPhase, gameManager.getRemainingTime());
         }
 
-        if (this.teamManager.isInTeam(player))
-            cancelShutdownTask();
-
-        // 延后 1 tick 再检查是否满足开局条件，让 Join 事件先返回，减少主线程阻塞
         if (currentPhase == 0) {
             Bukkit.getScheduler().runTaskLater(plugin, gameManager::checkAndStartGame, 1L);
         }
@@ -157,8 +153,8 @@ public class GamePlayerJoinListener implements Listener {
         int currentPhase = gameManager.getCurrentPhase();
         plugin.getLogger().info("[关闭检测] 当前游戏阶段: " + currentPhase);
 
-        // 如果不是游戏结束阶段，延迟检测是否需要关闭服务器
-        if (currentPhase != 3) {
+        // 仅当游戏阶段 >= 3 时才做关服检测（避免大厅/对局中误触关服）
+        if (currentPhase >= 3) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 cancelShutdownTask();
 
@@ -166,7 +162,6 @@ public class GamePlayerJoinListener implements Listener {
                 int onlineCount = 0;
                 int teamPlayerCount = 0;
 
-                // 统计在线玩家信息
                 for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
                     onlineCount++;
                     if (teamManager.isInTeam(onlinePlayer)) {
@@ -179,7 +174,6 @@ public class GamePlayerJoinListener implements Listener {
                         " | 队伍玩家: " + teamPlayerCount +
                         " | 是否有队伍玩家: " + anyTeamPlayerOnline);
 
-                // 如果没有队伍玩家在线，启动关闭倒计时
                 if (!anyTeamPlayerOnline) {
                     plugin.getLogger().warning("[延迟关闭检测] 没有队伍玩家在线，启动关闭倒计时");
                     startShutdownCountdown();

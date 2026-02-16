@@ -22,7 +22,7 @@ public class TeamSelectorManager {
     }
 
     public Inventory createTeamSelectorGUI(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 9, "§8队伍选择 [测试阶段随机入队]");
+        Inventory inv = Bukkit.createInventory(null, 9, "§8队伍选择");
 
         // 动态获取队伍信息
         Map<String, String> englishToChineseMap = teamManager.getEnglishToChineseMap();

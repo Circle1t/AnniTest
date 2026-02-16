@@ -26,8 +26,11 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 public class BossStarItem implements Listener {
     // 字符常量提取到头部
@@ -66,6 +69,8 @@ public class BossStarItem implements Listener {
 
     private final Plugin plugin;
     private final Random random = new Random();
+    /** 由烈焰守护头盔赋予防火效果的玩家，脱下头盔时只移除这些人的效果，避免误删抗火药水 */
+    private final Set<UUID> fireResistanceFromHelmet = new HashSet<>();
 
     public BossStarItem(Plugin plugin) {
         this.plugin = plugin;
@@ -290,16 +295,13 @@ public class BossStarItem implements Listener {
         ItemStack newHelmet = player.getInventory().getHelmet();
         boolean hasHelmet = isChainedHelmet(newHelmet);
 
-        // 获取当前防火效果状态
         boolean hasEffect = player.hasPotionEffect(PotionEffectType.FIRE_RESISTANCE);
+        boolean effectFromUs = fireResistanceFromHelmet.contains(player.getUniqueId());
 
-        // 需要更新效果的三种情况：
-        // 1. 当前戴着头盔但没有效果
-        // 2. 当前没戴头盔但有效果
-        // 3. 更换了不同头盔
         if (hasHelmet && !hasEffect) {
             addFireResistanceEffect(player);
-        } else if (!hasHelmet && hasEffect) {
+        } else if (!hasHelmet && hasEffect && effectFromUs) {
+            // 仅当防火效果是头盔给的才移除，不误删抗火药水
             removeFireResistanceEffect(player);
         }
     }
@@ -309,8 +311,9 @@ public class BossStarItem implements Listener {
     }
 
 
-    // 添加防火效果
+    // 添加防火效果（仅头盔触发时调用，并记录来源）
     private void addFireResistanceEffect(Player player) {
+        fireResistanceFromHelmet.add(player.getUniqueId());
         PotionEffect fireRes = new PotionEffect(
                 PotionEffectType.FIRE_RESISTANCE,
                 99999, // 永久持续时间
@@ -321,9 +324,11 @@ public class BossStarItem implements Listener {
         player.addPotionEffect(fireRes, true); // 强制覆盖旧效果
     }
 
-    // 移除防火效果
+    // 移除防火效果（仅移除由头盔赋予的，避免误删抗火药水）
     private void removeFireResistanceEffect(Player player) {
-        player.removePotionEffect(PotionEffectType.FIRE_RESISTANCE);
+        if (fireResistanceFromHelmet.remove(player.getUniqueId())) {
+            player.removePotionEffect(PotionEffectType.FIRE_RESISTANCE);
+        }
     }
 
 

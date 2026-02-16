@@ -169,8 +169,8 @@ public class OreManager {
 
 
     private void startCoolDown(Block block, OreType oreType) {
-        // 判断是否为羊毛或泥土类型
-        if (oreType == OreType.WOOL || oreType == OreType.DIRT) {
+        // 判断是否为羊毛、泥土或树叶（挖掉后不恢复）
+        if (oreType == OreType.WOOL || oreType == OreType.DIRT || oreType == OreType.LEAVES) {
             block.setType(oreType.cooledForm); // 设置为冷却形态（这里是 AIR）
             return; // 不设置恢复任务，即不会重生
         }

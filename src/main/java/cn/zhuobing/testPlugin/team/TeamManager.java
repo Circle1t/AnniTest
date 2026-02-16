@@ -4,16 +4,10 @@ import cn.zhuobing.testPlugin.utils.AnniConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Team;
-import org.bukkit.util.ChatPaginator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class TeamManager implements Listener {
+/**
+ * 队伍数据与业务。玩家选队后退出游戏不会清除队伍，重进后仍保留原队伍（仅使用 /team leave 或换队时才会离开）。
+ */
+public class TeamManager {
     private final Scoreboard scoreboard;
     private final List<String> teamNames = new ArrayList<>();
     private final Map<String, ChatColor> teamColors = new HashMap<>();
@@ -35,7 +32,6 @@ public class TeamManager implements Listener {
         this.scoreboard = scoreboardManager.getNewScoreboard();
         initTeams();
         setupTabList();
-        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     private void initTeams() {
@@ -210,11 +206,5 @@ public class TeamManager implements Listener {
         String t1 = getPlayerTeamName(uuid1);
         String t2 = getPlayerTeamName(uuid2);
         return t1 != null && t1.equals(t2);
-    }
-
-    /** 玩家退出时从队伍映射中移除，避免 playerTeamMap 无限增长 */
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        removePlayerFromTeam(event.getPlayer());
     }
 }

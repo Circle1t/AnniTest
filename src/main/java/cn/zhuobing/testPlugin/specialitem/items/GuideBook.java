@@ -212,7 +212,7 @@ public class GuideBook {
                 ChatColor.GRAY + "右键打开核心战争游戏介绍",
                 ChatColor.DARK_GRAY + "介绍物品",
                 "", // 隔一行
-                ChatColor.GOLD + "灵魂绑定 V"
+                ChatColor.GOLD + "灵魂绑定 I"
         ));
 
         // 隐藏额外标签

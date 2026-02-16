@@ -89,43 +89,11 @@ public class EnchantedAppleListener implements Listener {
         }
     }
 
+    /** 原版附魔金苹果效果：吸收 IV 2分钟、再生 II 20秒、抗性 I 5分钟、防火 I 5分钟 */
     private void applyEnchantedAppleEffects(Player player) {
-        // 吸收 IV (2分钟)
-        player.addPotionEffect(new PotionEffect(
-                PotionEffectType.ABSORPTION,
-                120 * 20, // 2分钟 * 20 ticks/秒
-                3, // IV级
-                true, // 粒子效果
-                true  // 环境效果
-        ));
-
-        // 再生 III (30秒)
-        player.addPotionEffect(new PotionEffect(
-                PotionEffectType.REGENERATION,
-                30 * 20, // 30秒
-                2, // III级
-                true,
-                true
-        ));
-
-        // 火焰抗性 (5分钟)
-        player.addPotionEffect(new PotionEffect(
-                PotionEffectType.FIRE_RESISTANCE,
-                300 * 20, // 5分钟
-                0, // I级
-                true,
-                true
-        ));
-
-        // 抗性提升 I (3分钟)
-        player.addPotionEffect(new PotionEffect(
-                PotionEffectType.RESISTANCE,
-                180 * 20, // 3分钟
-                0, // I级
-                true,
-                true
-        ));
-
-        player.sendMessage("§a食用附魔金苹果！获得强力效果");
+        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 120 * 20, 3, true, true));   // 吸收 IV 2:00
+        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20 * 20, 1, true, true));   // 再生 II 0:20
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 300 * 20, 0, true, true));    // 抗性 I 5:00
+        player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 300 * 20, 0, true, true)); // 防火 I 5:00
     }
 }

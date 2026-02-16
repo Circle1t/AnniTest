@@ -18,6 +18,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -95,7 +96,7 @@ public class Transporter extends Kit implements Listener {
                 ChatColor.AQUA + "放置两个传送门后自动连接",
                 ChatColor.AQUA + "队友蹲下使用传送门瞬移",
                 ChatColor.AQUA + "传送后有5秒冷却时间",
-                ChatColor.AQUA + "左键单击传送门可立即破坏",
+                ChatColor.AQUA + "敌人轻击可摧毁",
                 ChatColor.AQUA + "破坏后恢复为原来的方块",
                 " "
         ));
@@ -228,6 +229,16 @@ public class Transporter extends Kit implements Listener {
 
         // 右键放置传送门
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            // 传送师右键自己的传送门方块可摧毁传送门
+            if (clickedBlock.getType() == Material.NETHER_QUARTZ_ORE) {
+                UUID ownerId = getBlockOwner(clickedBlock);
+                if (ownerId != null && ownerId.equals(player.getUniqueId())) {
+                    event.setCancelled(true);
+                    breakPortal(clickedBlock, player);
+                    return;
+                }
+            }
+
             Material type = clickedBlock.getType();
             if (type == Material.AIR || type == Material.NETHER_QUARTZ_ORE
                     || type.name().endsWith("_ORE")
@@ -458,7 +469,28 @@ public class Transporter extends Kit implements Listener {
         }
     }
 
-    // 保护传送门不被破坏
+    /** 敌人（或放置者）轻轻敲击一下传送门方块即摧毁传送门，无需挖掉 */
+    @EventHandler
+    public void onBlockDamage(BlockDamageEvent event) {
+        Block block = event.getBlock();
+        if (block.getType() != Material.NETHER_QUARTZ_ORE) return;
+
+        UUID ownerId = getBlockOwner(block);
+        if (ownerId == null) return;
+
+        Player player = event.getPlayer();
+        Player owner = Bukkit.getPlayer(ownerId);
+
+        if (player.getUniqueId().equals(ownerId)) {
+            event.setCancelled(true);
+            breakPortal(block, player);
+        } else if (owner != null && !teamManager.isSameTeam(player, owner)) {
+            event.setCancelled(true);
+            breakPortal(block, player);
+        }
+    }
+
+    // 保护传送门不被破坏（挖掉时也走 breakPortal，此处保留兼容）
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();

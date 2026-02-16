@@ -3,6 +3,7 @@ package cn.zhuobing.testPlugin.anni;
 import cn.zhuobing.testPlugin.game.GameManager;
 import cn.zhuobing.testPlugin.kit.Kit;
 import cn.zhuobing.testPlugin.kit.KitManager;
+import cn.zhuobing.testPlugin.kit.kits.Berserker;
 import cn.zhuobing.testPlugin.nexus.NexusManager;
 import cn.zhuobing.testPlugin.specialitem.items.*;
 import cn.zhuobing.testPlugin.team.TeamManager;
@@ -128,11 +129,15 @@ public class PlayerRespawnListener implements Listener {
         }
 
         respawnDataManager.handlePlayerRespawn(player, teamName, event);
-        // 获取玩家绑定的职业
+        // 获取玩家绑定的职业并应用装备
         Kit kit = kitManager.getPlayerKit(player.getUniqueId());
         if (kit != null) {
-            kit.applyKit(player); // 应用职业装备
-            //player.sendMessage("§a你已重生，职业装备已自动应用。");
+            kit.applyKit(player);
+            // 复活后统一两排血（40），狂战士由 applyKit 内设 18/26
+            if (!(kit instanceof Berserker)) {
+                player.setMaxHealth(40.0);
+                player.setHealth(40.0);
+            }
         }
     }
 

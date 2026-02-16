@@ -35,8 +35,8 @@ public class Berserker extends Kit implements Listener {
     private List<ItemStack> kitItems = new ArrayList<>();
 
     // 最大生命值常量
-    private static final double MAX_HEALTH = 26.0; // 13 hearts
-    private static final double INITIAL_HEALTH = 18.0; // 9 hearts
+    private static final double MAX_HEALTH = 50.0;   // 25 hearts
+    private static final double INITIAL_HEALTH = 30.0; // 15 hearts
 
     // 职业物品
     private ItemStack stoneSword;
@@ -61,7 +61,7 @@ public class Berserker extends Kit implements Listener {
 
     @Override
     public String getDescription() {
-        return "初始只有9颗心，每次击杀增加1颗心（最多13颗心）。生命值低于42%时攻击造成额外伤害。";
+        return "初始30血（15心），每次击杀增加2血（最多50血/25心）。生命值低于42%时攻击造成额外伤害。";
     }
 
     @Override
@@ -74,9 +74,9 @@ public class Berserker extends Kit implements Listener {
                 "",
                 ChatColor.YELLOW + "你是力量的化身。",
                 "",
-                ChatColor.AQUA + "初始生命值: " + ChatColor.RED + "9❤",
-                ChatColor.AQUA + "每次击杀增加" + ChatColor.RED + "1❤",
-                ChatColor.AQUA + "最大生命值: " + ChatColor.RED + "13❤",
+                ChatColor.AQUA + "初始生命值: " + ChatColor.RED + "30 (15❤)",
+                ChatColor.AQUA + "每次击杀增加" + ChatColor.RED + "2血 (1❤)",
+                ChatColor.AQUA + "最大生命值: " + ChatColor.RED + "50 (25❤)",
                 ChatColor.AQUA + "低生命值时增加伤害",
                 " "
         ));
@@ -97,6 +97,13 @@ public class Berserker extends Kit implements Listener {
     }
 
     @Override
+    public void onKitSet(Player player) {
+        // 更换为狂战士时立即应用血量上限与当前血（否则只有复活时 applyKit 才会设）
+        player.setMaxHealth(INITIAL_HEALTH);
+        player.setHealth(INITIAL_HEALTH);
+    }
+
+    @Override
     public void applyKit(Player player) {
         PlayerInventory inv = player.getInventory();
 
@@ -112,17 +119,17 @@ public class Berserker extends Kit implements Listener {
             inv.addItem(item);
         }
 
-        // 设置初始生命值
-        player.setHealth(INITIAL_HEALTH);
+        // 设置初始生命值（复活时也会走这里）
         player.setMaxHealth(INITIAL_HEALTH);
+        player.setHealth(INITIAL_HEALTH);
     }
 
     @Override
     public void onKitUnset(Player player) {
-        // 重置生命值
-        player.setMaxHealth(20.0);
-        if (player.getHealth() > 20.0) {
-            player.setHealth(20.0);
+        // 重置为全局两排血（40）
+        player.setMaxHealth(40.0);
+        if (player.getHealth() > 40.0) {
+            player.setHealth(40.0);
         }
     }
 
