@@ -1,37 +1,3 @@
-/**
- * 项目名称：AnniTest
- * 作者：灼冰/Circle1t
- * 作者联系方式：
- *   BiliBili：烧烤蒸馏水
- * 项目开发时间：2025年2月
- * 项目状态：正在持续更新
- *
- * 本项目基于 MIT 协议开源，此项目可免费用于学习交流和游戏体验。使用此项目时需要保留作者声明。
- * 项目开发过程中借助了 AI 辅助。
- *
- * MIT License
- *
- * Copyright (c) 2025 灼冰/Circle1t
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
 package cn.zhuobing.testPlugin;
 
 import cn.zhuobing.testPlugin.anni.*;
