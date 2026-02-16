@@ -106,7 +106,7 @@ public class MapSelectManager {
                                 "\n" +
                                 "mapFolderNameMapping:     # 地图文件夹名与显示名称映射\n" +
                                 "  map1: \"草原地图\"        # 显示在投票界面的地图名称\n" +
-                                "  map2: \"地狱岩地图\" " +
+                                "  map2: \"地狱岩地图\"\n " +
                                 "mapDescriptions:          # 地图描述信息\n" +
                                 "  map1: \"草原主题地图，适合新手玩家\"\n" +
                                 "  map2: \"地狱岩主题地图，具有特殊地形\"";
