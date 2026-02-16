@@ -415,57 +415,23 @@ paths:
 
 ## 开源协议
 
+1. **非商业使用授权**
+   任何人可免费下载、使用、修改、学习本项目，仅限非商业用途，包括但不限于：个人学习、研究、非盈利性游戏服务器自用、非盈利技术交流。使用时必须保留版权声明，不得删除、修改、隐藏作者信息。
 
+2. **严格禁止（未经授权均不允许）**
+   以下行为严禁在未获得作者书面授权时进行：
+- 将本项目（含修改版、衍生版）用于盈利性游戏服务器、商业插件分发、付费授权等盈利活动；
+- 将本项目出售、转租、转授权给第三方用于商业用途；
+- 提取本项目核心代码、逻辑、功能用于其他商业产品并盈利；
+- 以盈利为目的二次分发、传播、上架本项目（包括付费社群、收费平台）。
 
-本项目严格遵循 MIT 开源协议 进行开源，同时补充以下版权约束，兼顾开源自由与作者合法权益，所有使用者均需严格遵守本声明及MIT协议全文，违反则视为侵权，作者将依法追究其法律责任。
-1.  非商业使用授权：任何人可免费下载、使用、修改、学习本项目，仅限非商业用途（包括但不限于个人学习、非盈利性游戏服务器自用、技术交流），使用过程中必须完整保留作者版权声明，不得删除、篡改版权信息及MIT协议相关内容。
+3. **商业授权**
+   任何商业用途必须提前联系作者 **灼冰 / Circle1t** 获得书面授权，签订商业授权协议后方可使用。
 
-2.  商业使用限制：严禁任何未经作者书面授权的商业化使用行为，包括但不限于以下情形：
+4. **补充说明**
+   本项目开发过程中使用 AI 辅助，不影响本协议法律效力。凡违反本协议的商业化行为，作者有权要求立即停止侵权、删除相关内容，并保留追究法律责任与经济赔偿的权利。
 
-- 将本项目（含修改版、衍生版）用于盈利性游戏服务器运营、商业插件分发、付费授权等盈利活动；
+版权所有 ©2026 灼冰 / Circle1t
+保留所有未明确授权的权利。
 
-- 将本项目（含修改版、衍生版）出售、转租、授权给第三方用于商业化用途；
-
-- 将本项目核心代码、功能模块提取后，用于自身或第三方的商业产品开发并盈利；
-
-- 以商业为目的，对本项目进行二次分发、传播（包括但不限于付费社群分享、商业平台上架）。
-
-3.  授权说明：任何单位或个人欲将本项目用于商业用途，需提前与作者（灼冰/Circle1t）取得书面沟通，签订正式商业授权协议，明确授权范围、使用期限及相关义务，获得授权后方可开展商业化行为。
-
-4.  补充说明：本项目开发过程中借助AI辅助，不影响本版权声明及MIT协议的法律效力；MIT协议中与本声明不一致的，以本声明为准（本声明未违反MIT协议核心条款，仅对商业使用进行明确限制）；未经授权的商业化使用，作者有权要求其立即停止侵权行为、删除相关代码及产品，并追偿相应经济损失。
-
-版权所有 ©2026 灼冰/Circle1t，保留所有未明确授权的权利。
-
-
-
-### MIT 协议全文
-
-
-
-```plaintext
-MIT License
-
-Copyright (c) 2026 灼冰/Circle1t
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-
-
-## 
+##
